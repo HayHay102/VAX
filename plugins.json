@@ -37,27 +37,6 @@
             "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/clbpx.ico"
         },
         {
-            "id": "phim4k",
-            "name": "Phim4k",
-            "version": "1.0.0",
-            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/phim4k_vip.js",
-            "iconUrl": "https://phim4k.com/favicon.ico"
-        },
-        {
-            "id": "phimhdc",
-            "name": "PhimHDC",
-            "version": "1.0.0",
-            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/phimhdcs_plugin.js",
-            "iconUrl": "https://phimhdcs.com/favicon.ico"
-        },
-        {
-            "id": "phimmoichill",
-            "name": "Phim Mới",
-            "version": "1.0.0",
-            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/phimmoichill_plugin.js",
-            "iconUrl": "https://stpaulclinic.vn/vaapp/plugins/phimmoi.webp"
-        },
-        {
             "id": "missav",
             "name": "MissAV",
             "version": "1.0.4",
