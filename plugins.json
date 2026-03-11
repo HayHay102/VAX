@@ -1,0 +1,103 @@
+{
+    "version": 1,
+    "plugins": [
+        {
+            "id": "ophim",
+            "name": "OPhim",
+            "version": "1.0.3",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/ophim_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/ophim.ico"
+        },
+        {
+            "id": "kkphim",
+            "name": "KKPhim",
+            "version": "1.0.1",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/kkphim_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/kkphim.png"
+        },
+        {
+            "id": "nguonc",
+            "name": "Phim NguonC",
+            "version": "1.0.7",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/nguonc_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/nguonC.png"
+        },
+        {
+            "id": "hh3d",
+            "name": "HH3D - Hoạt Hình 3D",
+            "version": "1.0.1",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/hh3d_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/hh3d.ico"
+        },
+        {
+            "id": "clbpx",
+            "name": "CLB Phim Xưa",
+            "version": "1.0.5",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/clbpx_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/clbpx.ico"
+        },
+        {
+            "id": "phim4k",
+            "name": "Phim4k",
+            "version": "1.0.0",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/phim4k_vip.js",
+            "iconUrl": "https://phim4k.com/favicon.ico"
+        },
+        {
+            "id": "phimhdc",
+            "name": "PhimHDC",
+            "version": "1.0.0",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/phimhdcs_plugin.js",
+            "iconUrl": "https://phimhdcs.com/favicon.ico"
+        },
+        {
+            "id": "phimmoichill",
+            "name": "Phim Mới",
+            "version": "1.0.0",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/phimmoichill_plugin.js",
+            "iconUrl": "https://stpaulclinic.vn/vaapp/plugins/phimmoi.webp"
+        },
+        {
+            "id": "missav",
+            "name": "MissAV",
+            "version": "1.0.4",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/missav_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/missav.ico"
+        },
+        {
+            "id": "sextop1",
+            "name": "Sextop1",
+            "version": "1.1.3",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/sextop1_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/sextop1.webp"
+        },
+        {
+            "id": "sextop2",
+            "name": "Sextop2",
+            "version": "1.1.3",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/sextop2_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/sextop1.webp"
+        },
+        {
+            "id": "otruyen",
+            "name": "OTruyen",
+            "version": "1.0.0",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/otruyen_plugin.js",
+            "iconUrl": "https://otruyenapi.com/favicon.ico"
+        },
+        {
+            "id": "sayhentai",
+            "name": "SayHentai",
+            "version": "1.0.1",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/sayhentai_plugin.js",
+            "iconUrl": "https://sayhentai.world/favicon-32x32.png"
+        },
+        {
+            "id": "misskon",
+            "name": "MissKon",
+            "version": "1.0.0",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/misskon_plugin.js",
+            "iconUrl": "https://misskon.com/favicon.ico"
+        }
+    ]
+}
