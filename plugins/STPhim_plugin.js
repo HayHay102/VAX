@@ -1,5 +1,5 @@
 // =============================================================================
-// CONFIG
+// CONFIGURATION & METADATA
 // =============================================================================
 
 const BASE_URL = "https://www.sieutamphim.pro";
@@ -8,9 +8,9 @@ function getManifest() {
     return JSON.stringify({
         id: "STPhim",
         name: "Siêu Tầm Phim",
-        version: "1.0.1",
+        version: "1.0.0",
         baseUrl: BASE_URL,
-        iconUrl: BASE_URL + "/posts/2024/06/cropped-logosieutamphim-192x192.png",
+        iconUrl: "https://www.sieutamphim.pro/posts/2024/06/cropped-logosieutamphim.png",
         isEnabled: true,
         isAdult: false,
         type: "MOVIE",
@@ -25,16 +25,229 @@ function getManifest() {
 
 function getHomeSections() {
     return JSON.stringify([
-        { slug: "phim-le", title: "Phim Lẻ", type: "Horizontal", path: "search/label" },
-        { slug: "phim-bo", title: "Phim Bộ", type: "Horizontal", path: "search/label" },
-        { slug: "tien-hiep-ngon-tinh", title: "Tiên Hiệp", type: "Horizontal", path: "search/label" },
-        { slug: "ma-kinh-di", title: "Phim Ma", type: "Horizontal", path: "search/label" },
-        { slug: "thap-nien-90", title: "Thập Niên 90", type: "Horizontal", path: "search/label" },
+        { slug: "phim-hk-tk", title: "Phim Châu Á", type: "Horizontal", path: "category" },
+        { slug: "phim-bo-kiem-hiep-co-trang", title: "Kiếm Hiệp Cổ Trang", type: "Horizontal", path: "category" },
+        { slug: "tien-hiep-ngon-tinh", title: "Tiên Hiệp", type: "Horizontal", path: "category" },
+        { slug: "ma-kinh-di", title: "Phim Ma", type: "Horizontal", path: "category" },
+        { slug: "thap-nien-90", title: "Thập Niên 90", type: "Horizontal", path: "category" },
         { slug: "home", title: "Mới Cập Nhật", type: "Grid", path: "" }
     ]);
 }
 
 function getPrimaryCategories() {
+    return JSON.stringify([
+        { name: "Kiếm Hiệp", slug: "phim-bo-kiem-hiep-co-trang" },
+        { name: "Tiên Hiệp", slug: "tien-hiep-ngon-tinh" },
+        { name: "Tâm Lý", slug: "tlhd" },
+        { name: "Ma Kinh Dị", slug: "ma-kinh-di" },
+        { name: "Châu Á", slug: "phim-hk-tk" },
+        { name: "Âu Mỹ", slug: "dien-anh-tay" },
+        { name: "Hàn Quốc", slug: "drama-hq-nb" },
+        { name: "Anime", slug: "phim-hoat-hinh" }
+    ]);
+}
+
+function getFilterConfig() {
+    return JSON.stringify({
+        sort: [
+            { name: "Cũ nhất", value: "oldest" },
+            { name: "Mới nhất", value: "newest" }
+        ]
+    });
+}
+
+// =============================================================================
+// URL FUNCTIONS
+// =============================================================================
+
+function getUrlList(slug, filtersJson) {
+    const filters = JSON.parse(filtersJson || "{}");
+    const page = filters.page || 1;
+
+    if (!slug || slug === "home") {
+        return page > 1
+            ? `${BASE_URL}/page/${page}/`
+            : `${BASE_URL}/`;
+    }
+
+    return page > 1
+        ? `${BASE_URL}/category/${slug}/page/${page}/`
+        : `${BASE_URL}/category/${slug}/`;
+}
+
+function getUrlSearch(keyword, filtersJson) {
+    const filters = JSON.parse(filtersJson || "{}");
+    const page = filters.page || 1;
+
+    return page > 1
+        ? `${BASE_URL}/page/${page}/?s=${encodeURIComponent(keyword)}`
+        : `${BASE_URL}/?s=${encodeURIComponent(keyword)}`;
+}
+
+function getUrlDetail(slug) {
+    if (!slug) return "";
+    if (slug.startsWith("http")) return slug;
+
+    return `${BASE_URL}/${slug}/`;
+}
+
+function getUrlCategories() { return ""; }
+function getUrlCountries() { return ""; }
+function getUrlYears() { return ""; }
+
+
+// =============================================================================
+// PARSE LIST
+// =============================================================================
+
+function parseListResponse(htmlResponse) {
+    const items = [];
+    const regex = /<article.*?>[\s\S]*?<a href="([^"]+)".*?>[\s\S]*?<img.*?src="([^"]+)".*?alt="([^"]+)"/gi;
+
+    let match;
+
+    while ((match = regex.exec(htmlResponse)) !== null) {
+        const link = match[1];
+        const poster = match[2];
+        const title = match[3]
+            .replace(/&#8211;/g, "-")
+            .replace(/&#8217;/g, "'")
+            .trim();
+
+        const slugMatch = link.match(/sieutamphim\.pro\/([^\/]+)\/?/);
+        const slug = slugMatch ? slugMatch[1] : link;
+
+        let year = 0;
+        const yearMatch = title.match(/(19\d{2}|20\d{2})/);
+
+        if (yearMatch) {
+            year = parseInt(yearMatch[1]);
+        }
+
+        items.push({
+            id: slug,
+            title: title,
+            posterUrl: poster,
+            backdropUrl: poster,
+            year: year
+        });
+    }
+
+    return JSON.stringify({
+        items: items,
+        pagination: {
+            currentPage: 1,
+            totalPages: 1
+        }
+    });
+}
+
+function parseSearchResponse(htmlResponse) {
+    return parseListResponse(htmlResponse);
+}
+
+
+// =============================================================================
+// MOVIE DETAIL
+// =============================================================================
+
+function parseMovieDetail(htmlResponse) {
+    try {
+        let title = "";
+        let posterUrl = "";
+        let description = "";
+
+        const titleMatch = htmlResponse.match(
+            /<h1 class="single-title">([^<]+)<\/h1>/i
+        );
+
+        if (titleMatch) {
+            title = titleMatch[1].trim();
+        }
+
+        const posterMatch = htmlResponse.match(
+            /<img[^>]*class="[^"]*wp-post-image[^"]*"[^>]*src="([^"]+)"/i
+        );
+
+        if (posterMatch) {
+            posterUrl = posterMatch[1];
+        }
+
+        const descMatch = htmlResponse.match(
+            /<div class="sigle-post-content-area">([\s\S]*?)<\/div>/i
+        );
+
+        if (descMatch) {
+            description = descMatch[1]
+                .replace(/<[^>]+>/g, "")
+                .trim();
+        }
+
+        let episodes = [];
+        const episodeRegex = /<a href="([^"]*clbpx\.html\?v=[^"]+)".*?>(.*?)<\/a>/gi;
+
+        let ep;
+
+        while ((ep = episodeRegex.exec(htmlResponse)) !== null) {
+            episodes.push({
+                id: ep[1],
+                name: ep[2].replace(/<[^>]+>/g, "").trim() || "Phim",
+                slug: ep[1]
+            });
+        }
+
+        const servers = episodes.length > 0
+            ? [
+                {
+                    name: "Server 1",
+                    episodes: episodes
+                }
+            ]
+            : [];
+
+        return JSON.stringify({
+            id: "",
+            title: title,
+            posterUrl: posterUrl,
+            backdropUrl: posterUrl,
+            description: description,
+            year: 0,
+            rating: 0,
+            quality: "HD",
+            servers: servers,
+            category: "",
+            country: "",
+            director: "",
+            casts: ""
+        });
+
+    } catch (e) {
+        return "null";
+    }
+}
+
+
+// =============================================================================
+// PLAYER
+// =============================================================================
+
+function parseDetailResponse(htmlResponse, fallbackUrl) {
+    try {
+        return JSON.stringify({
+            url: fallbackUrl || "",
+            headers: {
+                Referer: BASE_URL + "/",
+                "User-Agent":
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
+            }
+        });
+    } catch (e) {
+        return JSON.stringify({
+            url: "",
+            headers: {}
+        });
+    }
+}function getPrimaryCategories() {
     return JSON.stringify([
         { name: "Kiếm Hiệp", slug: "phim-bo-kiem-hiep-co-trang" },
         { name: "Tiên Hiệp", slug: "tien-hiep-ngon-tinh" },
