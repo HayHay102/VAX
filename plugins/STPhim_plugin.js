@@ -1,40 +1,209 @@
 // =============================================================================
-// CONFIGURATION & METADATA
+// CONFIG
 // =============================================================================
+
+const BASE_URL = "https://www.sieutamphim.pro";
 
 function getManifest() {
     return JSON.stringify({
-        "id": "STPhim",
-        "name": "Siêu Tầm Phim",
-        "version": "1.0.0",
-        "baseUrl": "https://sieutamphim.pro",
-        "iconUrl": "https://www.sieutamphim.pro/posts/2024/06/cropped-logosieutamphim-192x192.png",
-        "isEnabled": true,
-        "isAdult": false,
-        "type": "MOVIE",
-        "playerType": "embed",
-        "layoutType": "VERTICAL"
+        id: "STPhim",
+        name: "Siêu Tầm Phim",
+        version: "1.0.1",
+        baseUrl: BASE_URL,
+        iconUrl: BASE_URL + "/posts/2024/06/cropped-logosieutamphim-192x192.png",
+        isEnabled: true,
+        isAdult: false,
+        type: "MOVIE",
+        playerType: "embed",
+        layoutType: "VERTICAL"
     });
 }
 
+// =============================================================================
+// HOME
+// =============================================================================
+
 function getHomeSections() {
     return JSON.stringify([
-        { slug: 'phim-le', title: 'Phim Lẻ', type: 'Horizontal', path: 'search/label' },
-        { slug: 'phim-bo', title: 'Phim Bộ', type: 'Horizontal', path: 'category' },
-        { slug: 'tien-hiep-ngon-tinh', title: 'Tiên Hiệp - Thần Thoại', type: 'Horizontal', path: 'category' },
-        { slug: 'ma-kinh-di', title: 'Phim Ma - Kinh Dị', type: 'Horizontal', path: 'category' },
-        { slug: 'thap-nien-90', title: 'Ký Ức Thập Niên 90', type: 'Horizontal', path: 'category' },
-        { slug: 'home', title: 'Mới Cập Nhật', type: 'Grid', path: '' }
+        { slug: "phim-le", title: "Phim Lẻ", type: "Horizontal", path: "search/label" },
+        { slug: "phim-bo", title: "Phim Bộ", type: "Horizontal", path: "search/label" },
+        { slug: "tien-hiep-ngon-tinh", title: "Tiên Hiệp", type: "Horizontal", path: "search/label" },
+        { slug: "ma-kinh-di", title: "Phim Ma", type: "Horizontal", path: "search/label" },
+        { slug: "thap-nien-90", title: "Thập Niên 90", type: "Horizontal", path: "search/label" },
+        { slug: "home", title: "Mới Cập Nhật", type: "Grid", path: "" }
     ]);
 }
 
 function getPrimaryCategories() {
     return JSON.stringify([
-        { name: 'Phim Lẻ', slug: 'phim-le' },
-        { name: 'Tiên Hiệp', slug: 'tien-hiep-ngon-tinh' },
-        { name: 'Tâm Lý', slug: 'tlhd' },
-        { name: 'Ma Kinh Dị', slug: 'ma-kinh-di' },
-        { name: 'Điện Ảnh Châu Á', slug: 'phim-hk-tk' },
+        { name: "Kiếm Hiệp", slug: "phim-bo-kiem-hiep-co-trang" },
+        { name: "Tiên Hiệp", slug: "tien-hiep-ngon-tinh" },
+        { name: "Ma Kinh Dị", slug: "ma-kinh-di" },
+        { name: "Anime", slug: "phim-hoat-hinh" },
+        { name: "TV Series", slug: "phim-tv" }
+    ]);
+}
+
+// =============================================================================
+// URL
+// =============================================================================
+
+function getUrlList(slug, filtersJson) {
+    var filters = JSON.parse(filtersJson || "{}");
+    var page = filters.page || 1;
+
+    if (!slug || slug === "home") {
+        return page > 1
+            ? BASE_URL + "/page/" + page + "/"
+            : BASE_URL + "/";
+    }
+
+    return page > 1
+        ? BASE_URL + "/search/label/" + slug + "/page/" + page + "/"
+        : BASE_URL + "/search/label/" + slug + "/";
+}
+
+function getUrlSearch(keyword, filtersJson) {
+    var filters = JSON.parse(filtersJson || "{}");
+    var page = filters.page || 1;
+
+    return page > 1
+        ? BASE_URL + "/page/" + page + "/?s=" + encodeURIComponent(keyword)
+        : BASE_URL + "/?s=" + encodeURIComponent(keyword);
+}
+
+function getUrlDetail(slug) {
+    if (!slug) return "";
+    if (slug.startsWith("http")) return slug;
+
+    return BASE_URL + "/" + slug + "/";
+}
+
+// =============================================================================
+// LIST PARSER
+// =============================================================================
+
+function parseListResponse(html) {
+    let items = [];
+    
+    let regex = /<article[\s\S]*?<a href="([^"]+)"[\s\S]*?<img[^>]+src="([^"]+)"[^>]+alt="([^"]+)"/gi;
+    let match;
+
+    while ((match = regex.exec(html)) !== null) {
+        let link = match[1];
+        let image = match[2];
+        let title = match[3];
+
+        let slug = link
+            .replace(BASE_URL, "")
+            .replace(/\//g, "")
+            .trim();
+
+        items.push({
+            id: slug,
+            title: title,
+            posterUrl: image,
+            backdropUrl: image
+        });
+    }
+
+    return JSON.stringify({
+        items: items,
+        pagination: {
+            currentPage: 1,
+            totalPages: 999
+        }
+    });
+}
+
+function parseSearchResponse(html) {
+    return parseListResponse(html);
+}
+
+// =============================================================================
+// DETAIL PARSER
+// =============================================================================
+
+function parseMovieDetail(html) {
+    try {
+        let title = "";
+        let poster = "";
+        let description = "";
+
+        let titleMatch = html.match(/<h1[^>]*class="single-title"[^>]*>(.*?)<\/h1>/i);
+        if (titleMatch) {
+            title = titleMatch[1].trim();
+        }
+
+        let posterMatch = html.match(/<meta property="og:image" content="([^"]+)"/i);
+        if (posterMatch) {
+            poster = posterMatch[1];
+        }
+
+        let descMatch = html.match(/<meta property="og:description" content="([^"]+)"/i);
+        if (descMatch) {
+            description = descMatch[1];
+        }
+
+        let episodes = [];
+        let linkRegex = /<a href="(https?:\/\/www\.sieutamphim\.pro\/[^"]+)"/gi;
+        let linkMatch;
+
+        while ((linkMatch = linkRegex.exec(html)) !== null) {
+            episodes.push({
+                id: linkMatch[1],
+                name: "Xem Phim",
+                slug: linkMatch[1]
+            });
+        }
+
+        return JSON.stringify({
+            title: title,
+            posterUrl: poster,
+            backdropUrl: poster,
+            description: description,
+            servers: [
+                {
+                    name: "Server 1",
+                    episodes: episodes
+                }
+            ]
+        });
+
+    } catch (e) {
+        return "null";
+    }
+}
+
+// =============================================================================
+// PLAYER
+// =============================================================================
+
+function parseDetailResponse(html, fallbackUrl) {
+    return JSON.stringify({
+        url: fallbackUrl,
+        headers: {
+            Referer: BASE_URL + "/",
+            "User-Agent": "Mozilla/5.0"
+        }
+    });
+}
+
+// =============================================================================
+// OPTIONAL
+// =============================================================================
+
+function getUrlCategories() {
+    return "";
+}
+
+function getUrlCountries() {
+    return "";
+}
+
+function getUrlYears() {
+    return "";
+}        { name: 'Điện Ảnh Châu Á', slug: 'phim-hk-tk' },
         { name: 'Điện Ảnh Âu Mỹ', slug: 'dien-anh-tay' },
         { name: 'Hàn Quốc', slug: 'drama-hq-nb' },
         { name: 'Anime', slug: 'phim-hoat-hinh' },
