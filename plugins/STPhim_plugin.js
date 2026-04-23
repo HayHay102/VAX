@@ -71,8 +71,8 @@ function getUrlList(slug, filtersJson) {
     }
 
     return page > 1
-        ? `${BASE_URL}/category/${slug}/page/${page}/`
-        : `${BASE_URL}/category/${slug}/`;
+        ? `${BASE_URL}/search/label/${slug}/page/${page}/`
+        : `${BASE_URL}/search/label/${slug}/`;
 }
 
 function getUrlSearch(keyword, filtersJson) {
