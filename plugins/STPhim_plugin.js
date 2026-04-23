@@ -20,17 +20,17 @@ function getManifest() {
 function getHomeSections() {
     return JSON.stringify([
         { slug: 'phim-le', title: 'Phim Lẻ', type: 'Horizontal', path: 'search/label' },
-        { slug: 'phim-bo', title: 'Phim Bộ', type: 'Horizontal', path: 'category' },
-        { slug: 'tien-hiep-ngon-tinh', title: 'Tiên Hiệp - Thần Thoại', type: 'Horizontal', path: 'category' },
-        { slug: 'ma-kinh-di', title: 'Phim Ma - Kinh Dị', type: 'Horizontal', path: 'category' },
-        { slug: 'thap-nien-90', title: 'Ký Ức Thập Niên 90', type: 'Horizontal', path: 'category' },
+        { slug: 'phim-bo', title: 'Phim Bộ', type: 'Horizontal', path: 'search/label' },
+        { slug: 'tien-hiep-ngon-tinh', title: 'Tiên Hiệp - Thần Thoại', type: 'Horizontal', path: 'search/label' },
+        { slug: 'ma-kinh-di', title: 'Phim Ma - Kinh Dị', type: 'Horizontal', path: 'search/label' },
+        { slug: 'thap-nien-90', title: 'Ký Ức Thập Niên 90', type: 'Horizontal', path: 'search/label' },
         { slug: 'home', title: 'Mới Cập Nhật', type: 'Grid', path: '' }
     ]);
 }
 
 function getPrimaryCategories() {
     return JSON.stringify([
-        { name: 'Kiếm Hiệp', slug: 'phim-bo-kiem-hiep-co-trang' },
+        { name: 'Phim Bộ', slug: 'phim-bo' },
         { name: 'Tiên Hiệp', slug: 'tien-hiep-ngon-tinh' },
         { name: 'Tâm Lý', slug: 'tlhd' },
         { name: 'Ma Kinh Dị', slug: 'ma-kinh-di' },
