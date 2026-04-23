@@ -6,9 +6,9 @@ function getManifest() {
     return JSON.stringify({
         "id": "sayhentai",
         "name": "SayHentai",
-        "version": "1.0.1",
-        "baseUrl": "https://sayhentai.vc",
-        "iconUrl": "https://sayhentai.vc/apple-touch-icon.png",
+        "version": "1.0.4",
+        "baseUrl": "https://sayhentai.sh",
+        "iconUrl": "https://sayhentai.sh/favicon-32x32.png",
         "isEnabled": true,
         "isAdult": true,
         "type": "MANGA",
@@ -56,7 +56,7 @@ function getFilterConfig() {
 function getUrlList(slug, filtersJson) {
     var filters = JSON.parse(filtersJson || "{}");
     var page = filters.page || 1;
-    var baseUrl = "https://sayhentai.vc";
+    var baseUrl = "https://sayhentai.sh";
 
     if (filters.category) {
         return baseUrl + "/genre/" + filters.category + "?page=" + page;
@@ -77,16 +77,16 @@ function getUrlSearch(keyword, filtersJson) {
     var filters = JSON.parse(filtersJson || "{}");
     var page = filters.page || 1;
     // WordPress Madara search structure
-    return "https://sayhentai.vc/page/" + page + "/?s=" + encodeURIComponent(keyword) + "&post_type=wp-manga";
+    return "https://sayhentai.sh/page/" + page + "/?s=" + encodeURIComponent(keyword) + "&post_type=wp-manga";
 }
 
 function getUrlDetail(slug) {
     if (!slug) return "";
     if (slug.indexOf("http") === 0) return slug;
-    return "https://sayhentai.vc/" + slug + (slug.endsWith('.html') ? "" : ".html");
+    return "https://sayhentai.sh/" + slug + (slug.endsWith('.html') ? "" : ".html");
 }
 
-function getUrlCategories() { return "https://sayhentai.vc/"; }
+function getUrlCategories() { return "https://sayhentai.sh/"; }
 function getUrlCountries() { return ""; }
 function getUrlYears() { return ""; }
 
@@ -129,7 +129,7 @@ function parseListResponse(html) {
         if (!linkMatch) continue;
 
         var fullUrl = linkMatch[1];
-        var slug = fullUrl.replace("https://sayhentai.vc/", "").replace(/\/$/, "");
+        var slug = fullUrl.replace("https://sayhentai.sh/", "").replace(/\/$/, "");
 
         // Extract Title
         var titleMatch = itemHtml.match(/title="([^"]+)"/i) ||
@@ -141,6 +141,14 @@ function parseListResponse(html) {
             itemHtml.match(/<img[^>]+data-src="([^"]+)"/i) ||
             itemHtml.match(/<img[^>]+data-lazy-src="([^"]+)"/i);
         var thumb = thumbMatch ? thumbMatch[1] : "";
+
+        if (thumb && thumb.indexOf("http") !== 0) {
+            if (thumb.indexOf("/") === 0) {
+                thumb = "https://sayhentai.sh" + thumb;
+            } else {
+                thumb = "https://sayhentai.sh/" + thumb;
+            }
+        }
 
         // Extract Latest Chapter
         var chapterMatch = itemHtml.match(/<span[^>]*class="[^"]*chapter[^"]*"[^>]*>\s*<a[^>]*>([\s\S]*?)<\/a>/i);
@@ -230,7 +238,7 @@ function parseMovieDetail(html) {
         while ((cMatch = chapterRegex.exec(html)) !== null) {
             var cUrl = cMatch[1];
             var cTitle = PluginUtils.cleanText(cMatch[2]);
-            var cSlug = cUrl.replace("https://sayhentai.vc/", "").replace(/\/$/, "");
+            var cSlug = cUrl.replace("https://sayhentai.sh/", "").replace(/\/$/, "");
 
             chapters.push({
                 id: cUrl, // Using full URL as ID for reader extraction
@@ -284,7 +292,7 @@ function parseDetailResponse(html) {
         var imgRegex = /<div[^>]*class="page-break[^"]*"[^>]*>\s*<img[^>]+(?:src|data-src|data-lazy-src)="([^"]+)"/gi;
         var match;
         while ((match = imgRegex.exec(html)) !== null) {
-            images.push(match[1]);
+            images.push(match[1].replace(/&amp;/g, "&"));
         }
 
         // Fallback: search all images in reading-content
@@ -295,7 +303,7 @@ function parseDetailResponse(html) {
                 var fallbackRegex = /<img[^>]+(?:src|data-src|data-lazy-src)="([^"]+)"/gi;
                 var fm;
                 while ((fm = fallbackRegex.exec(readerHtml)) !== null) {
-                    images.push(fm[1]);
+                    images.push(fm[1].replace(/&amp;/g, "&"));
                 }
             }
         }
@@ -304,7 +312,7 @@ function parseDetailResponse(html) {
             images: images,
             headers: {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Referer": "https://sayhentai.vc/"
+                "Referer": "https://sayhentai.sh/"
             }
         });
     } catch (e) {
@@ -317,7 +325,7 @@ function parseCategoriesResponse(html) {
     var catRegex = /<ul[^>]*class="genres-menu[^"]*"[^>]*>([\s\S]*?)<\/ul>/i;
     var block = html.match(catRegex);
     if (block) {
-        var linkRegex = /<a[^>]+href="https:\/\/sayhentai\.world\/genre\/([^"\/]+)"[^>]*>([^<]+)<\/a>/gi;
+        var linkRegex = /<a[^>]+href="https:\/\/sayhentai\.sh\/genre\/([^"\/]+)"[^>]*>([^<]+)<\/a>/gi;
         var m;
         while ((m = linkRegex.exec(block[1])) !== null) {
             categories.push({ name: PluginUtils.cleanText(m[2]), slug: "genre/" + m[1] });

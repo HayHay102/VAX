@@ -6,9 +6,9 @@ function getManifest() {
     return JSON.stringify({
         "id": "ophim",
         "name": "OPhim",
-        "version": "1.0.3",
+        "version": "1.0.4",
         "baseUrl": "https://ophim1.com",
-        "iconUrl": "https://stpaulclinic.vn/vaapp/plugins/ophim.ico",
+        "iconUrl": "https://raw.githubusercontent.com/youngbi/repo/main/plugins/ophim.ico",
         "isEnabled": true,
         "type": "MOVIE"
     });
@@ -215,6 +215,7 @@ function parseMovieDetail(apiResponseJson) {
         return JSON.stringify({
             id: movie.slug,
             title: movie.name,
+            originName: movie.origin_name || "",
             posterUrl: getImageUrl(movie.thumb_url),
             backdropUrl: getImageUrl(movie.poster_url),
             description: (movie.content || "").replace(/<[^>]*>/g, ""),

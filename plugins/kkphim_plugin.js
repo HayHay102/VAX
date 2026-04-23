@@ -8,7 +8,7 @@ function getManifest() {
         "name": "KKPhim",
         "version": "1.0.1",
         "baseUrl": "https://phimapi.com",
-        "iconUrl": "https://stpaulclinic.vn/vaapp/plugins/kkphim.png",
+        "iconUrl": "https://raw.githubusercontent.com/youngbi/repo/main/plugins/kkphim.png",
         "isEnabled": true,
         "type": "MOVIE"
     });
@@ -222,6 +222,7 @@ function parseMovieDetail(apiResponseJson) {
         return JSON.stringify({
             id: movie.slug,
             title: movie.name,
+            originName: movie.origin_name || "",
             posterUrl: getPosterUrl(movie.poster_url),
             backdropUrl: getPosterUrl(movie.thumb_url),
             description: (movie.content || "").replace(/<[^>]*>/g, ""),
