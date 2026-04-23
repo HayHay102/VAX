@@ -30,7 +30,7 @@ function getHomeSections() {
 
 function getPrimaryCategories() {
     return JSON.stringify([
-        { name: 'Kiếm Hiệp', slug: 'phim-bo-kiem-hiep-co-trang' },
+        { name: 'Phim Lẻ', slug: 'phim-le' },
         { name: 'Tiên Hiệp', slug: 'tien-hiep-ngon-tinh' },
         { name: 'Tâm Lý', slug: 'tlhd' },
         { name: 'Ma Kinh Dị', slug: 'ma-kinh-di' },
