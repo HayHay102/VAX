@@ -25,7 +25,7 @@ function getManifest() {
 
 function getHomeSections() {
     return JSON.stringify([
-        { slug: "phim-hk-tk", title: "Phim Châu Á", type: "Horizontal", path: "category" },
+        { slug: "phim-le", title: "Phim Lẻ", type: "Horizontal", path: "search/label" },
         { slug: "phim-bo-kiem-hiep-co-trang", title: "Kiếm Hiệp Cổ Trang", type: "Horizontal", path: "category" },
         { slug: "tien-hiep-ngon-tinh", title: "Tiên Hiệp", type: "Horizontal", path: "category" },
         { slug: "ma-kinh-di", title: "Phim Ma", type: "Horizontal", path: "category" },
