@@ -29,22 +29,22 @@ function getManifest() {
 function getHomeSections() {
     return JSON.stringify([
         {
-            slug: "phim-le",
-            title: "Phim Lẻ",
-            type: "Horizontal",
-            path: "/search/label/Phim%20L%E1%BA%BB"
+            slug: 'phim-le',
+            title: 'Phim Lẻ',
+            type: 'Horizontal',
+            path: '/search/label/Phim%20L%E1%BA%BB'
         },
         {
-            slug: "phim-bo",
-            title: "Phim Bộ",
-            type: "Horizontal",
-            path: "/search/label/Phim%20B%E1%BB%99"
+            slug: 'phim-bo',
+            title: 'Phim Bộ',
+            type: 'Horizontal',
+            path: '/search/label/Phim%20B%E1%BB%99'
         },
         {
-            slug: "hoat-hinh",
-            title: "Hoạt Hình",
-            type: "Horizontal",
-            path: "/search/label/Ho%E1%BA%A1t%20H%C3%ACnh"
+            slug: 'hoat-hinh',
+            title: 'Hoạt Hình',
+            type: 'Horizontal',
+            path: '/search/label/Ho%E1%BA%A1t%20H%C3%ACnh'
         }
     ]);
 }
@@ -74,9 +74,9 @@ function getUrlList(slug, filtersJson) {
         var filters = JSON.parse(filtersJson || "{}");
         var page = filters.page || 1;
 
-        return BASE_URL + "/search/label/" + slug + "?max-results=24&start=" + ((page - 1) * 24);
+        return baseUrl + "/search/label/" + slug + "?max-results=24&start=" + ((page - 1) * 24);
     } catch (e) {
-        return BASE_URL;
+        return baseUrl;
     }
 }
 
@@ -85,13 +85,13 @@ function getUrlSearch(keyword, filtersJson) {
         var filters = JSON.parse(filtersJson || "{}");
         var page = filters.page || 1;
 
-        return BASE_URL +
+        return baseUrl +
             "/search?q=" +
             encodeURIComponent(keyword) +
             "&max-results=24&start=" +
             ((page - 1) * 24);
     } catch (e) {
-        return BASE_URL;
+        return baseUrl;
     }
 }
 
@@ -101,10 +101,10 @@ function getUrlDetail(slug) {
     }
 
     if (slug.includes(".html")) {
-        return BASE_URL + "/" + slug;
+        return baseUrl + "/" + slug;
     }
 
-    return BASE_URL + "/" + slug;
+    return baseUrl + "/" + slug;
 }
 
 function getUrlCategories() { return ""; }
@@ -188,7 +188,7 @@ function parseMovieDetail(html) {
             var epUrl = match[1];
 
             if (!epUrl.startsWith("http")) {
-                epUrl = BASE_URL + epUrl;
+                epUrl = baseUrl + epUrl;
             }
 
             episodes.push({
@@ -242,7 +242,7 @@ function parseDetailResponse(html) {
             return JSON.stringify({
                 url: m3u8Match[0],
                 headers: {
-                    Referer: BASE_URL
+                    Referer: baseUrl
                 },
                 subtitles: []
             });
@@ -254,7 +254,7 @@ function parseDetailResponse(html) {
             return JSON.stringify({
                 url: mp4Match[0],
                 headers: {
-                    Referer: BASE_URL
+                    Referer: baseUrl
                 },
                 subtitles: []
             });
@@ -266,7 +266,7 @@ function parseDetailResponse(html) {
             return JSON.stringify({
                 url: jwMatch[1],
                 headers: {
-                    Referer: BASE_URL
+                    Referer: baseUrl
                 }
             });
         }
