@@ -1,19 +1,20 @@
-// =============================================================================
-// SIÊU TẦM PHIM PLUGIN
-// =============================================================================
+// ========================================================
+// SIÊU TẦM PHIM VAAPP PLUGIN
+// ========================================================
 
-// =============================================================================
-// CONFIG
-// =============================================================================
+const BASE_URL = "https://www.sieutamphim.pro";
 
+// ========================================================
+// MANIFEST
+// ========================================================
 
 function getManifest() {
     return JSON.stringify({
         "id": "STPhim",
         "name": "Siêu Tầm Phim",
         "version": "1.0.1",
-        "baseUrl": "https://www.sieutamphim.pro",
-        "iconUrl": "https://www.sieutamphim.pro/posts/2024/06/cropped-logosieutamphim-192x192.png",
+        "baseUrl": BASE_URL,
+        "iconUrl": BASE_URL + "https://www.sieutamphim.pro/posts/2024/06/cropped-logosieutamphim-192x192.png",
         "isEnabled": true,
         "isAdult": false,
         "type": "MOVIE",
@@ -22,25 +23,29 @@ function getManifest() {
     });
 }
 
+// ========================================================
+// HOME
+// ========================================================
+
 function getHomeSections() {
     return JSON.stringify([
         {
-            slug: 'phim-le',
-            title: 'Phim Lẻ',
-            type: 'Horizontal',
-            path: 'search/label'
+            slug: "phim-le",
+            title: "Phim Lẻ",
+            type: "Horizontal",
+            path: "/search/label/Phim%20L%E1%BA%BB"
         },
         {
-            slug: 'phim-bo',
-            title: 'Phim Bộ',
-            type: 'Horizontal',
-            path: 'search/label'
+            slug: "phim-bo",
+            title: "Phim Bộ",
+            type: "Horizontal",
+            path: "/search/label/Phim%20B%E1%BB%99"
         },
         {
-            slug: 'phim-chieu-rap',
-            title: 'Phim Chiếu Rạp',
-            type: 'Horizontal',
-            path: 'search/label'
+            slug: "hoat-hinh",
+            title: "Hoạt Hình",
+            type: "Horizontal",
+            path: "/search/label/Ho%E1%BA%A1t%20H%C3%ACnh"
         }
     ]);
 }
@@ -61,57 +66,68 @@ function getFilterConfig() {
     });
 }
 
-// =============================================================================
-// URL FUNCTIONS
-// =============================================================================
+// ========================================================
+// URL
+// ========================================================
 
 function getUrlList(slug, filtersJson) {
-    var filters = JSON.parse(filtersJson || "{}");
-    var page = filters.page || 1;
+    try {
+        var filters = JSON.parse(filtersJson || "{}");
+        var page = filters.page || 1;
 
-    return BASE_URL + "/" + slug + "/page/" + page;
+        return BASE_URL + "/search/label/" + slug + "?max-results=24&start=" + ((page - 1) * 24);
+    } catch (e) {
+        return BASE_URL;
+    }
 }
 
 function getUrlSearch(keyword, filtersJson) {
-    var filters = JSON.parse(filtersJson || "{}");
-    var page = filters.page || 1;
+    try {
+        var filters = JSON.parse(filtersJson || "{}");
+        var page = filters.page || 1;
 
-    return BASE_URL + "/search/" +
-        encodeURIComponent(keyword) +
-        "/page/" + page;
+        return BASE_URL +
+            "/search?q=" +
+            encodeURIComponent(keyword) +
+            "&max-results=24&start=" +
+            ((page - 1) * 24);
+    } catch (e) {
+        return BASE_URL;
+    }
 }
 
 function getUrlDetail(slug) {
-    return BASE_URL + "/phim/" + slug;
+    if (slug.startsWith("http")) {
+        return slug;
+    }
+
+    if (slug.includes(".html")) {
+        return BASE_URL + "/" + slug;
+    }
+
+    return BASE_URL + "/" + slug;
 }
 
-function getUrlCategories() {
-    return "";
-}
+function getUrlCategories() { return ""; }
+function getUrlCountries() { return ""; }
+function getUrlYears() { return ""; }
 
-function getUrlCountries() {
-    return "";
-}
-
-function getUrlYears() {
-    return "";
-}
-
-// =============================================================================
-// PARSE LIST
-// =============================================================================
+// ========================================================
+// LIST PARSER
+// ========================================================
 
 function parseListResponse(html) {
     try {
         var items = [];
 
-        var regex = /<a[^>]*href="https:\/\/www\.sieutamphim\.pro\/phim\/([^"]+)"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"[\s\S]*?<h3[^>]*>([^<]+)<\/h3>/g;
+        var regex = /<a[^>]*href="(https:\/\/www\.sieutamphim\.pro\/[^"]+\.html)"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"[\s\S]*?<h2[^>]*>([^<]+)<\/h2>/g;
 
         var match;
+
         while ((match = regex.exec(html)) !== null) {
             items.push({
                 id: match[1],
-                title: match[3].trim(),
+                title: cleanText(match[3]),
                 posterUrl: match[2]
             });
         }
@@ -139,27 +155,56 @@ function parseSearchResponse(html) {
     return parseListResponse(html);
 }
 
-// =============================================================================
-// PARSE MOVIE DETAIL
-// =============================================================================
+// ========================================================
+// MOVIE DETAIL
+// ========================================================
 
 function parseMovieDetail(html) {
     try {
-        var titleMatch = html.match(/<h1[^>]*>(.*?)<\/h1>/);
-        var posterMatch = html.match(/<img[^>]*class="[^"]*poster[^"]*"[^>]*src="([^"]+)"/);
+        var title = "";
+        var poster = "";
+        var description = "";
 
-        var title = titleMatch ? titleMatch[1].trim() : "Không rõ";
-        var poster = posterMatch ? posterMatch[1] : "";
+        var titleMatch = html.match(/<h1[^>]*>(.*?)<\/h1>/);
+        if (titleMatch) {
+            title = cleanText(titleMatch[1]);
+        }
+
+        var posterMatch = html.match(/<meta property="og:image" content="([^"]+)"/);
+        if (posterMatch) {
+            poster = posterMatch[1];
+        }
+
+        var descMatch = html.match(/<meta name="description" content="([^"]+)"/);
+        if (descMatch) {
+            description = cleanText(descMatch[1]);
+        }
 
         var episodes = [];
-        var epRegex = /<a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/g;
 
+        var episodeRegex = /<a[^>]*href="([^"]+\?server=[^"]+&tap=\d+)"[^>]*>([^<]+)<\/a>/g;
         var match;
-        while ((match = epRegex.exec(html)) !== null) {
+
+        while ((match = episodeRegex.exec(html)) !== null) {
+            var epUrl = match[1];
+
+            if (!epUrl.startsWith("http")) {
+                epUrl = BASE_URL + epUrl;
+            }
+
             episodes.push({
-                id: match[1],
-                name: match[2].trim(),
-                slug: match[2].trim()
+                id: epUrl,
+                name: cleanText(match[2]),
+                slug: cleanText(match[2])
+            });
+        }
+
+        // nếu không có tập thì phát trực tiếp
+        if (episodes.length === 0) {
+            episodes.push({
+                id: getCurrentPageUrl(html),
+                name: "Xem phim",
+                slug: "full"
             });
         }
 
@@ -168,10 +213,12 @@ function parseMovieDetail(html) {
             title: title,
             posterUrl: poster,
             backdropUrl: poster,
-            description: "",
+            description: description,
+            quality: "HD",
+            status: "Completed",
             servers: [
                 {
-                    name: "Server 1",
+                    name: "Server HX",
                     episodes: episodes
                 }
             ]
@@ -184,17 +231,17 @@ function parseMovieDetail(html) {
     }
 }
 
-// =============================================================================
-// PARSE VIDEO LINK
-// =============================================================================
+// ========================================================
+// VIDEO PARSER
+// ========================================================
 
 function parseDetailResponse(html) {
     try {
-        var m3u8Match = html.match(/(https?:\/\/[^"' ]+\.m3u8[^"' ]*)/);
-
+        // m3u8
+        var m3u8Match = html.match(/https?:\/\/[^"' ]+\.m3u8[^"' ]*/);
         if (m3u8Match) {
             return JSON.stringify({
-                url: m3u8Match[1],
+                url: m3u8Match[0],
                 headers: {
                     Referer: BASE_URL
                 },
@@ -202,15 +249,35 @@ function parseDetailResponse(html) {
             });
         }
 
-        var mp4Match = html.match(/(https?:\/\/[^"' ]+\.mp4[^"' ]*)/);
-
+        // mp4
+        var mp4Match = html.match(/https?:\/\/[^"' ]+\.mp4[^"' ]*/);
         if (mp4Match) {
             return JSON.stringify({
-                url: mp4Match[1],
+                url: mp4Match[0],
                 headers: {
                     Referer: BASE_URL
                 },
                 subtitles: []
+            });
+        }
+
+        // jwplayer
+        var jwMatch = html.match(/file:\s*["'](https?:\/\/[^"']+)["']/);
+        if (jwMatch) {
+            return JSON.stringify({
+                url: jwMatch[1],
+                headers: {
+                    Referer: BASE_URL
+                }
+            });
+        }
+
+        // iframe
+        var iframeMatch = html.match(/<iframe[^>]+src="([^"]+)"/);
+        if (iframeMatch) {
+            return JSON.stringify({
+                url: iframeMatch[1],
+                isEmbed: true
             });
         }
 
@@ -227,16 +294,78 @@ function parseDetailResponse(html) {
     }
 }
 
-// =============================================================================
-// OPTIONAL EMBED PARSER
-// =============================================================================
+// ========================================================
+// EMBED PARSER
+// ========================================================
 
 function parseEmbedResponse(html, sourceUrl) {
-    return JSON.stringify({
-        url: "",
-        isEmbed: false
-    });
+    try {
+        var m3u8Match = html.match(/https?:\/\/[^"' ]+\.m3u8[^"' ]*/);
+
+        if (m3u8Match) {
+            return JSON.stringify({
+                url: m3u8Match[0],
+                isEmbed: false,
+                headers: {
+                    Referer: sourceUrl
+                }
+            });
+        }
+
+        var mp4Match = html.match(/https?:\/\/[^"' ]+\.mp4[^"' ]*/);
+
+        if (mp4Match) {
+            return JSON.stringify({
+                url: mp4Match[0],
+                isEmbed: false,
+                headers: {
+                    Referer: sourceUrl
+                }
+            });
+        }
+
+        var iframeMatch = html.match(/<iframe[^>]+src="([^"]+)"/);
+
+        if (iframeMatch) {
+            return JSON.stringify({
+                url: iframeMatch[1],
+                isEmbed: true
+            });
+        }
+
+        return JSON.stringify({
+            url: "",
+            isEmbed: false
+        });
+
+    } catch (e) {
+        return JSON.stringify({
+            url: "",
+            isEmbed: false
+        });
+    }
 }
+
+// ========================================================
+// HELPERS
+// ========================================================
+
+function cleanText(text) {
+    if (!text) return "";
+
+    return text
+        .replace(/<[^>]+>/g, "")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .trim();
+}
+
+function getCurrentPageUrl(html) {
+    var match = html.match(/<link rel="canonical" href="([^"]+)"/);
+    return match ? match[1] : "";
+}
+
+// ========================================================
 
 function parseCategoriesResponse(html) {
     return "[]";
