@@ -59,11 +59,14 @@ function getUrlList(slug, filtersJson) {
     try {
         var filters = JSON.parse(filtersJson || "{}");
         var page = filters.page || 1;
-        var baseUrl = "https://www.sieutamphim.pro";
 
-        return baseUrl + "/search/label/" + slug + "/page/" + ((page - 1) * 24);
+        var start = (page - 1) * 24;
+
+        return baseUrl + "/search/label/" + slug +
+            "?max-results=24&start=" + start;
+
     } catch (e) {
-        return baseUrl; + "/"
+        return baseUrl;
     }
 }
 
