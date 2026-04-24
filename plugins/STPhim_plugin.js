@@ -60,8 +60,7 @@ function getUrlList(slug, filtersJson) {
         var page = filters.page || 1;
         var baseUrl = "https://www.sieutamphim.pro";
 
-    // URL rule for typical WP sites
-    if (slug === '' || slug === 'home') {
+    {
         if (page > 1) {
             return baseUrl + "/search/label/" + slug + "/page/" + page + "/";
         }
