@@ -39,7 +39,7 @@ function getHomeSections() {
 function getPrimaryCategories() {
     return JSON.stringify([
         { name: 'IQIYI', slug: 'iqiyi' },
-        { name: 'Netflix, slug: 'netflix' },
+        { name: 'Netflix', slug: 'netflix' },
         { name: 'CGV Cinemas VN', slug: 'cgv-cinemas-vietnam' },
         { name: 'VieON', slug: 'vieon' },
         { name: 'K+', slug: 'kplus' },
