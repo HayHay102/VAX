@@ -93,7 +93,7 @@ function getUrlSearch(keyword, filtersJson) {
             "&max-results=24&start=" +
             ((page - 1) * 24);
     } catch (e) {
-        return baseUrl;
+        return baseUrl + "/?s=" + encodeURIComponent(keyword);
     }
 }
 
