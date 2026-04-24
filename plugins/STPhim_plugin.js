@@ -29,18 +29,21 @@ function getManifest() {
 
 function getHomeSections() {
     return JSON.stringify([
-        { slug: 'phim-moi', title: 'Phim Mới', type: 'Horizontal', path: 'search/label' },
         { slug: 'phim-le', title: 'Phim Lẻ', type: 'Horizontal', path: 'search/label' },
-        { slug: 'phim-bo', title: 'Phim Bộ', type: 'Horizontal', path: 'search/label' }
+        { slug: 'phim-bo', title: 'Phim Bộ', type: 'Horizontal', path: 'search/label' },
+        { slug: 'long-tieng', title: 'Phim Lồng Tiếng', type: 'Horizontal', path: 'search/label' },
+        { slug: 'phim-moi', title: 'Mới Cập Nhật', type: 'Grid', path: 'search/label' }
     ]);
 }
 
 function getPrimaryCategories() {
     return JSON.stringify([
-        { name: 'Phim Bộ', slug: 'phim-bo' },
-        { name: 'Phím Mới', slug: 'phim-moi' },
-        { name: 'Kinh Dị', slug: 'kinh-di' },
-        { name: 'Hoạt Hình', slug: 'hoat-hinh' }
+        { name: 'IQIYI', slug: 'iqiyi' },
+        { name: 'Netflix, slug: 'netflix' },
+        { name: 'CGV Cinemas VN', slug: 'cgv-cinemas-vietnam' },
+        { name: 'VieON', slug: 'vieon' },
+        { name: 'K+', slug: 'kplus' },
+        { name: 'HBO', slug: 'hbo' }
     ]);
 }
 
