@@ -75,12 +75,15 @@ function getUrlSearch(keyword, filtersJson) {
         var filters = JSON.parse(filtersJson || "{}");
         var page = filters.page || 1;
 
+        var start = (page - 1) * 24;
+
         return baseUrl +
-            "/?s=" +
+            "/search?q=" +
             encodeURIComponent(keyword) +
-            ((page - 1) * 24);
+            "&max-results=24&start=" + start;
+
     } catch (e) {
-        return baseUrl + "/?s=" + encodeURIComponent(keyword);
+        return baseUrl;
     }
 }
 
