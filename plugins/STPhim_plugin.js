@@ -10,11 +10,11 @@ const BASE_URL = "https://www.sieutamphim.pro";
 
 function getManifest() {
     return JSON.stringify({
-        id: "stphim",
+        id: "STPhim",
         name: "Siêu Tầm Phim",
         version: "1.0.1",
         baseUrl: BASE_URL,
-        iconUrl: BASE_URL + "/favicon.ico",
+        iconUrl: BASE_URL + "https://www.sieutamphim.pro/posts/2024/06/cropped-logosieutamphim-192x192.png",
         isEnabled: true,
         isAdult: false,
         type: "MOVIE",
@@ -29,19 +29,19 @@ function getHomeSections() {
             slug: "phim-le",
             title: "Phim Lẻ",
             type: "Horizontal",
-            path: "/phim-le"
+            path: "search/label"
         },
         {
             slug: "phim-bo",
             title: "Phim Bộ",
             type: "Horizontal",
-            path: "/phim-bo"
+            path: "search/label"
         },
         {
             slug: "phim-chieu-rap",
             title: "Phim Chiếu Rạp",
             type: "Horizontal",
-            path: "/phim-chieu-rap"
+            path: "search/label"
         }
     ]);
 }
