@@ -108,64 +108,37 @@ function parseListResponse(html) {
         var items = [];
         var seen = {};
 
-        // tách từng bài post của blogger
-        var postRegex = /<div class="blog-posts[\s\S]*?<\/article>/g;
-        var posts = html.match(postRegex);
+        // lấy tất cả link bài viết phim
+        var linkRegex = /href="(https:\/\/www\.sieutamphim\.pro\/\d{4}\/\d{2}\/[^"]+\.html)"/g;
+        var linkMatch;
 
-        // fallback nếu cấu trúc khác
-        if (!posts || posts.length === 0) {
-            posts = html.split('<div class="post-outer');
-        }
-
-        for (var i = 0; i < posts.length; i++) {
-            var block = posts[i];
-
-            if (!block) continue;
-
-            // link phim chính
-            var linkMatch = block.match(
-                /href="(https:\/\/www\.sieutamphim\.pro\/\d{4}\/\d{2}\/[^"]+\.html)"/
-            );
-
-            if (!linkMatch) continue;
-
+        while ((linkMatch = linkRegex.exec(html)) !== null) {
             var movieUrl = linkMatch[1];
 
             if (seen[movieUrl]) continue;
             seen[movieUrl] = true;
 
-            // poster ưu tiên ảnh thật
+            // lấy đoạn html gần link đó để tìm poster + title
+            var startIndex = linkMatch.index;
+            var blockHtml = html.substring(startIndex, startIndex + 3000);
+
+            // poster
             var posterMatch =
-                block.match(/data-src="([^"]+)"/) ||
-                block.match(/data-lazy-src="([^"]+)"/) ||
-                block.match(/src="([^"]+)"/);
+                blockHtml.match(/data-src="([^"]+)"/) ||
+                blockHtml.match(/src="([^"]+)"/);
 
             var poster = posterMatch ? posterMatch[1] : "";
 
-            // bỏ ảnh placeholder lỗi
-            if (
-                poster.includes("img/no-image") ||
-                poster.includes("placeholder") ||
-                poster.includes("blank.gif")
-            ) {
-                poster = "";
-            }
-
-            // title chuẩn hơn
+            // title
             var titleMatch =
-                block.match(/<h2[^>]*class="[^"]*post-title[^"]*"[^>]*>(.*?)<\/h2>/) ||
-                block.match(/<h3[^>]*class="[^"]*post-title[^"]*"[^>]*>(.*?)<\/h3>/) ||
-                block.match(/title="([^"]+)"/) ||
-                block.match(/alt="([^"]+)"/);
+                blockHtml.match(/title="([^"]+)"/) ||
+                blockHtml.match(/alt="([^"]+)"/) ||
+                blockHtml.match(/<h2[^>]*>(.*?)<\/h2>/) ||
+                blockHtml.match(/<h3[^>]*>(.*?)<\/h3>/);
 
             var title = titleMatch
                 ? cleanText(titleMatch[1])
-                : "";
-
-            // bỏ item lỗi
-            if (!title || !poster) {
-                continue;
-            }
+                : "Không rõ tên";
 
             items.push({
                 id: movieUrl,
