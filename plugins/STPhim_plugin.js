@@ -86,7 +86,8 @@ function getUrlSearch(keyword, filtersJson) {
     try {
         var filters = JSON.parse(filtersJson || "{}");
         var page = filters.page || 1;
-
+    // Tự động phân trang khi search (WordPress format)
+    if (page > 1) {
         return baseUrl + "/?s=" + encodeURIComponent(keyword);
     } catch (e) {
         return baseUrl;
