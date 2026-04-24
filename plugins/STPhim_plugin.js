@@ -25,22 +25,22 @@ function getManifest() {
 function getHomeSections() {
     return JSON.stringify([
         {
-            slug: "phim-le",
-            title: "Phim Lẻ",
-            type: "Horizontal",
-            path: "search/label"
+            slug: 'phim-le',
+            title: 'Phim Lẻ',
+            type: 'Horizontal',
+            path: 'search/label'
         },
         {
-            slug: "phim-bo",
-            title: "Phim Bộ",
-            type: "Horizontal",
-            path: "search/label"
+            slug: 'phim-bo',
+            title: 'Phim Bộ',
+            type: 'Horizontal',
+            path: 'search/label'
         },
         {
-            slug: "phim-chieu-rap",
-            title: "Phim Chiếu Rạp",
-            type: "Horizontal",
-            path: "search/label"
+            slug: 'phim-chieu-rap',
+            title: 'Phim Chiếu Rạp',
+            type: 'Horizontal',
+            path: 'search/label'
         }
     ]);
 }
