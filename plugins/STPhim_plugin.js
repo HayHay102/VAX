@@ -36,10 +36,10 @@ function getHomeSections() {
 
 function getPrimaryCategories() {
     return JSON.stringify([
-        { name: "Phim Bộ", slug: "phim-bo" },
-        { name: "Phím Mới", slug: "phim-moi" },
-        { name: "Kinh Dị", slug: "kinh-di" },
-        { name: "Hoạt Hình", slug: "hoat-hinh" }
+        { name: 'Phim Bộ', slug: 'phim-bo' },
+        { name: 'Phím Mới', slug: 'phim-moi' },
+        { name: 'Kinh Dị', slug: 'kinh-di' },
+        { name: 'Hoạt Hình', slug: 'hoat-hinh' }
     ]);
 }
 
