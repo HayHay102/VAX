@@ -107,20 +107,38 @@ function parseListResponse(html) {
     try {
         var items = [];
 
-        var regex = /<a[^>]*href="(https:\/\/www\.sieutamphim\.pro\/[^"]+\.html)"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"[\s\S]*?<h2[^>]*>([^<]+)<\/h2>/g;
+        var regex = /<a[^>]*href="(https:\/\/www\.sieutamphim\.pro\/[^"]+\.html)"[\s\S]*?(?:data-src|src)="([^"]+)"[\s\S]*?(?:title="([^"]+)"|alt="([^"]+)"|<h2[^>]*>(.*?)<\/h2>|<h3[^>]*>(.*?)<\/h3>)/g;
 
         var match;
 
         while ((match = regex.exec(html)) !== null) {
+            var title =
+                match[3] ||
+                match[4] ||
+                match[5] ||
+                match[6] ||
+                "Không rõ tên";
+
             items.push({
                 id: match[1],
-                title: cleanText(match[3]),
+                title: cleanText(title),
                 posterUrl: match[2]
             });
         }
 
+        // loại bỏ phim trùng
+        var uniqueItems = [];
+        var seen = {};
+
+        for (var i = 0; i < items.length; i++) {
+            if (!seen[items[i].id]) {
+                seen[items[i].id] = true;
+                uniqueItems.push(items[i]);
+            }
+        }
+
         return JSON.stringify({
-            items: items,
+            items: uniqueItems,
             pagination: {
                 currentPage: 1,
                 totalPages: 999
