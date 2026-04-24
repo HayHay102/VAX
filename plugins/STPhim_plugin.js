@@ -2,6 +2,7 @@
 // SIÊU TẦM PHIM VAAPP PLUGIN
 // ========================================================
 
+const baseUrl = "https://www.sieutamphim.pro";
 
 // ========================================================
 // MANIFEST
@@ -60,10 +61,7 @@ function getUrlList(slug, filtersJson) {
         var page = filters.page || 1;
         var baseUrl = "https://www.sieutamphim.pro";
 
-// URL rule for typical WP sites
-    if (slug === '' || slug === 'home') {
-        if (page > 1)
-        return baseUrl + "/search/label/" + slug + "/page/" + ((page > 1) * 24);
+        return baseUrl + "/search/label/" + slug + "/page/" + ((page - 1) * 24);
     } catch (e) {
         return baseUrl; + "/"
     }
