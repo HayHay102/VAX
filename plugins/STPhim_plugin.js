@@ -60,36 +60,35 @@ function getUrlList(slug, filtersJson) {
         var page = filters.page || 1;
         var baseUrl = "https://www.sieutamphim.pro";
 
-        return baseUrl + "/search/label/" + slug + "/page/" + ((page - 1) * 24);
-    } catch (e) {
-        return baseUrl;
+    // URL rule for typical WP sites
+    if (slug === '' || slug === 'home') {
+        if (page > 1) {
+            return baseUrl + "/page/" + page + "/";
+        }
+        return baseUrl + "/";
     }
+
+    // Otherwise category
+    if (page > 1) {
+        return baseUrl + "/search/label/" + slug + "/page/" + page + "/";
+    }
+    return baseUrl + "/search/label/" + slug + "/";
 }
 
 function getUrlSearch(keyword, filtersJson) {
-    try {
-        var filters = JSON.parse(filtersJson || "{}");
-        var page = filters.page || 1;
-
-        return baseUrl +
-            "/?s=" +
-            encodeURIComponent(keyword) +
-            ((page - 1) * 24);
-    } catch (e) {
-        return baseUrl + "/?s=" + encodeURIComponent(keyword);
+    var filters = JSON.parse(filtersJson || "{}");
+    var page = filters.page || 1;
+    // Tự động phân trang khi search (WordPress format)
+    if (page > 1) {
+        return "https://www.sieutamphim.pro/page/" + page + "?s=" + encodeURIComponent(keyword);
     }
+    return "https://www.sieutamphim.pro/?s=" + encodeURIComponent(keyword);
 }
 
 function getUrlDetail(slug) {
-    if (slug.startsWith("http")) {
-        return slug;
-    }
-
-    if (slug.includes(".html")) {
-        return baseUrl + "/" + slug;
-    }
-
-    return baseUrl + "/" + slug;
+    if (!slug) return "";
+    if (slug.indexOf("http") === 0) return slug;
+    return "https://www.sieutamphim.pro/" + slug + "/";
 }
 
 function getUrlCategories() { return ""; }
