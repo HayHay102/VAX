@@ -18,7 +18,7 @@ function getManifest() {
         "isAdult": false,
         "type": "MOVIE",
         "layoutType": "VERTICAL",
-        "playerType": "auto"
+        "playerType": "embed"
     });
 }
 
@@ -29,6 +29,12 @@ function getManifest() {
 function getHomeSections() {
     return JSON.stringify([
         {
+            slug: 'phim-moi',
+            title: 'Phim Mới',
+            type: 'Horizontal',
+            path: 'search/label'
+        },
+        {
             slug: 'phim-le',
             title: 'Phim Lẻ',
             type: 'Horizontal',
@@ -38,14 +44,9 @@ function getHomeSections() {
             slug: 'phim-bo',
             title: 'Phim Bộ',
             type: 'Horizontal',
-            path: '/search/label/'
-        },
-        {
-            slug: 'phim-moi',
-            title: 'Phim Mới',
-            type: 'Horizontal',
             path: 'search/label'
         }
+        
     ]);
 }
 
@@ -75,7 +76,7 @@ function getUrlList(slug, filtersJson) {
         var page = filters.page || 1;
         var baseUrl = "https://www.sieutamphim.pro";
 
-        return baseUrl + "/search/label/" + slug + "?max-results=24&start=" + ((page - 1) * 24);
+        return baseUrl + "/search/label/" + slug + "page" + ((page - 1) * 24);
     } catch (e) {
         return baseUrl;
     }
@@ -87,7 +88,7 @@ function getUrlSearch(keyword, filtersJson) {
         var page = filters.page || 1;
 
         return baseUrl +
-            "/search?q=" +
+            "/?s=" +
             encodeURIComponent(keyword) +
             "&max-results=24&start=" +
             ((page - 1) * 24);
