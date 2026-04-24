@@ -9,16 +9,16 @@
 
 function getManifest() {
     return JSON.stringify({
-        id: "STPhim",
-        name: "Siêu Tầm Phim",
-        version: "1.0.1",
-        baseUrl: "https://www.sieutamphim.pro",
-        iconUrl: "https://www.sieutamphim.pro/posts/2024/06/cropped-logosieutamphim-192x192.png",
-        isEnabled: true,
-        isAdult: false,
-        type: "MOVIE",
-        layoutType: "VERTICAL",
-        playerType: "auto"
+        "id": "STPhim",
+        "name": "Siêu Tầm Phim",
+        "version": "1.0.1",
+        "baseUrl": "https://www.sieutamphim.pro",
+        "iconUrl": "https://www.sieutamphim.pro/posts/2024/06/cropped-logosieutamphim-192x192.png",
+        "isEnabled": true,
+        "isAdult": false,
+        "type": "MOVIE",
+        "layoutType": "VERTICAL",
+        "playerType": "auto"
     });
 }
 
