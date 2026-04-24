@@ -78,7 +78,7 @@ function getUrlSearch(keyword, filtersJson) {
         var start = (page - 1) * 24;
 
         return baseUrl +
-            "/search?q=" +
+            "/?s=" +
             encodeURIComponent(keyword) +
             "&max-results=24&start=" + start;
 
@@ -106,39 +106,51 @@ function getUrlYears() { return ""; }
 function parseListResponse(html) {
     try {
         var items = [];
+        var seen = {};
 
-        var regex = /<a[^>]*href="(https:\/\/www\.sieutamphim\.pro\/[^"]+\.html)"[\s\S]*?(?:data-src|src)="([^"]+)"[\s\S]*?(?:title="([^"]+)"|alt="([^"]+)"|<h2[^>]*>(.*?)<\/h2>|<h3[^>]*>(.*?)<\/h3>)/g;
+        // Tách từng block bài viết riêng
+        var blockRegex = /<article[\s\S]*?<\/article>/g;
+        var blocks = html.match(blockRegex) || [];
 
-        var match;
+        for (var i = 0; i < blocks.length; i++) {
+            var block = blocks[i];
 
-        while ((match = regex.exec(html)) !== null) {
-            var title =
-                match[3] ||
-                match[4] ||
-                match[5] ||
-                match[6] ||
-                "Không rõ tên";
+            // lấy đúng link bài viết chính
+            var linkMatch = block.match(/<a[^>]*href="(https:\/\/www\.sieutamphim\.pro\/[^"]+\.html)"/);
+
+            if (!linkMatch) continue;
+
+            var movieUrl = linkMatch[1];
+
+            // bỏ duplicate
+            if (seen[movieUrl]) continue;
+            seen[movieUrl] = true;
+
+            // poster
+            var posterMatch =
+                block.match(/data-src="([^"]+)"/) ||
+                block.match(/src="([^"]+)"/);
+
+            var poster = posterMatch ? posterMatch[1] : "";
+
+            // title
+            var titleMatch =
+                block.match(/title="([^"]+)"/) ||
+                block.match(/alt="([^"]+)"/) ||
+                block.match(/<h2[^>]*>(.*?)<\/h2>/) ||
+                block.match(/<h3[^>]*>(.*?)<\/h3>/);
+
+            var title = titleMatch ? cleanText(titleMatch[1]) : "Không rõ";
 
             items.push({
-                id: match[1],
-                title: cleanText(title),
-                posterUrl: match[2]
+                id: movieUrl,
+                title: title,
+                posterUrl: poster
             });
         }
 
-        // loại bỏ phim trùng
-        var uniqueItems = [];
-        var seen = {};
-
-        for (var i = 0; i < items.length; i++) {
-            if (!seen[items[i].id]) {
-                seen[items[i].id] = true;
-                uniqueItems.push(items[i]);
-            }
-        }
-
         return JSON.stringify({
-            items: uniqueItems,
+            items: items,
             pagination: {
                 currentPage: 1,
                 totalPages: 999
