@@ -17,8 +17,8 @@ function getManifest() {
         "isEnabled": true,
         "isAdult": false,
         "type": "MOVIE",
-        "layoutType": "VERTICAL",
         "playerType": "embed"
+        "layoutType": "VERTICAL",
     });
 }
 
@@ -28,25 +28,9 @@ function getManifest() {
 
 function getHomeSections() {
     return JSON.stringify([
-        {
-            slug: 'phim-moi',
-            title: 'Phim Mới',
-            type: 'Horizontal',
-            path: 'search/label'
-        },
-        {
-            slug: 'phim-le',
-            title: 'Phim Lẻ',
-            type: 'Horizontal',
-            path: 'search/label'
-        },
-        {
-            slug: 'phim-bo',
-            title: 'Phim Bộ',
-            type: 'Horizontal',
-            path: 'search/label'
-        }
-        
+        { slug: 'phim-moi', title: 'Phim Mới', type: 'Horizontal', path: 'search/label' },
+        { slug: 'phim-le', title: 'Phim Lẻ', type: 'Horizontal', path: 'search/label' },
+        { slug: 'phim-bo', title: 'Phim Bộ', type: 'Horizontal', path: 'search/label' }
     ]);
 }
 
