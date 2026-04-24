@@ -42,7 +42,7 @@ function getPrimaryCategories() {
         { name: 'Netflix', slug: 'netflix' },
         { name: 'CGV Cinemas VN', slug: 'cgv-cinemas-vietnam' },
         { name: 'VieON', slug: 'vieon' },
-        { name: 'K+', slug: 'kplus' },
+        { name: 'Kplus', slug: 'kplus' },
         { name: 'HBO', slug: 'hbo' }
     ]);
 }
