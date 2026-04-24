@@ -6,7 +6,6 @@
 // CONFIG
 // =============================================================================
 
-const BASE_URL = "https://www.sieutamphim.pro";
 
 function getManifest() {
     return JSON.stringify({
