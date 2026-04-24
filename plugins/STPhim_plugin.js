@@ -108,39 +108,37 @@ function parseListResponse(html) {
         var items = [];
         var seen = {};
 
-        // Tách từng block bài viết riêng
-        var blockRegex = /<article[\s\S]*?<\/article>/g;
-        var blocks = html.match(blockRegex) || [];
+        // lấy tất cả link bài viết phim
+        var linkRegex = /href="(https:\/\/www\.sieutamphim\.pro\/\d{4}\/\d{2}\/[^"]+\.html)"/g;
+        var linkMatch;
 
-        for (var i = 0; i < blocks.length; i++) {
-            var block = blocks[i];
-
-            // lấy đúng link bài viết chính
-            var linkMatch = block.match(/<a[^>]*href="(https:\/\/www\.sieutamphim\.pro\/[^"]+\.html)"/);
-
-            if (!linkMatch) continue;
-
+        while ((linkMatch = linkRegex.exec(html)) !== null) {
             var movieUrl = linkMatch[1];
 
-            // bỏ duplicate
             if (seen[movieUrl]) continue;
             seen[movieUrl] = true;
 
+            // lấy đoạn html gần link đó để tìm poster + title
+            var startIndex = linkMatch.index;
+            var blockHtml = html.substring(startIndex, startIndex + 3000);
+
             // poster
             var posterMatch =
-                block.match(/data-src="([^"]+)"/) ||
-                block.match(/src="([^"]+)"/);
+                blockHtml.match(/data-src="([^"]+)"/) ||
+                blockHtml.match(/src="([^"]+)"/);
 
             var poster = posterMatch ? posterMatch[1] : "";
 
             // title
             var titleMatch =
-                block.match(/title="([^"]+)"/) ||
-                block.match(/alt="([^"]+)"/) ||
-                block.match(/<h2[^>]*>(.*?)<\/h2>/) ||
-                block.match(/<h3[^>]*>(.*?)<\/h3>/);
+                blockHtml.match(/title="([^"]+)"/) ||
+                blockHtml.match(/alt="([^"]+)"/) ||
+                blockHtml.match(/<h2[^>]*>(.*?)<\/h2>/) ||
+                blockHtml.match(/<h3[^>]*>(.*?)<\/h3>/);
 
-            var title = titleMatch ? cleanText(titleMatch[1]) : "Không rõ";
+            var title = titleMatch
+                ? cleanText(titleMatch[1])
+                : "Không rõ tên";
 
             items.push({
                 id: movieUrl,
