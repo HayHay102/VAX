@@ -32,26 +32,26 @@ function getHomeSections() {
             slug: 'phim-le',
             title: 'Phim Lẻ',
             type: 'Horizontal',
-            path: '/search/label/Phim%20L%E1%BA%BB'
+            path: '/search/label/'
         },
         {
             slug: 'phim-bo',
             title: 'Phim Bộ',
             type: 'Horizontal',
-            path: '/search/label/Phim%20B%E1%BB%99'
+            path: '/search/label/'
         },
         {
             slug: 'hoat-hinh',
             title: 'Hoạt Hình',
             type: 'Horizontal',
-            path: '/search/label/Ho%E1%BA%A1t%20H%C3%ACnh'
+            path: '/search/label/'
         }
     ]);
 }
 
 function getPrimaryCategories() {
     return JSON.stringify([
-        { name: "Hành Động", slug: "hanh-dong" },
+        { name: "Phim Bộ", slug: "phim-bo" },
         { name: "Tình Cảm", slug: "tinh-cam" },
         { name: "Kinh Dị", slug: "kinh-di" },
         { name: "Hoạt Hình", slug: "hoat-hinh" }
