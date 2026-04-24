@@ -38,11 +38,11 @@ function getHomeSections() {
             slug: 'phim-bo',
             title: 'Phim Bộ',
             type: 'Horizontal',
-            path: 'search/label'
+            path: '/search/label/'
         },
         {
-            slug: 'hoat-hinh',
-            title: 'Hoạt Hình',
+            slug: 'phim-moi',
+            title: 'Phim Mới',
             type: 'Horizontal',
             path: 'search/label'
         }
@@ -52,7 +52,7 @@ function getHomeSections() {
 function getPrimaryCategories() {
     return JSON.stringify([
         { name: "Phim Bộ", slug: "phim-bo" },
-        { name: "Tình Cảm", slug: "tinh-cam" },
+        { name: "Phím Mới", slug: "phim-moi" },
         { name: "Kinh Dị", slug: "kinh-di" },
         { name: "Hoạt Hình", slug: "hoat-hinh" }
     ]);
