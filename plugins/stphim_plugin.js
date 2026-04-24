@@ -88,9 +88,11 @@ function getUrlSearch(keyword, filtersJson) {
 }
 
 function getUrlDetail(slug) {
-    if (!slug) return "";
-    if (slug.indexOf("http") === 0) return slug;
-    return "https://www.sieutamphim.pro/" + slug + "/";
+    if (slug.startsWith("http")) {
+        return slug;
+    }
+
+    return baseUrl + "/" + slug;
 }
 
 function getUrlCategories() { return ""; }
