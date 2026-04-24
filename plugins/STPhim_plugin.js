@@ -89,7 +89,7 @@ function getUrlSearch(keyword, filtersJson) {
 
 function getUrlDetail(slug) {
     if (slug.startsWith("http")) {
-        return "https://www.sieutamphim.pro" + slug +"/";
+        return "https://www.sieutamphim.pro/" + slug +"/";
     }
 
     return baseUrl + "/" + slug;
