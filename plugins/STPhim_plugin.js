@@ -92,10 +92,6 @@ function getUrlDetail(slug) {
         return slug;
     }
 
-    if (slug.includes(".html")) {
-        return baseUrl + "/" + slug;
-    }
-
     return baseUrl + "/" + slug;
 }
 
