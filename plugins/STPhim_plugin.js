@@ -87,10 +87,7 @@ function getUrlSearch(keyword, filtersJson) {
         var filters = JSON.parse(filtersJson || "{}");
         var page = filters.page || 1;
 
-        return baseUrl +
-            "/?s=" +
-            encodeURIComponent(keyword) +
-            ((page - 1) * 24);
+        return baseUrl + "/?s=" + encodeURIComponent(keyword);
     } catch (e) {
         return baseUrl;
     }
