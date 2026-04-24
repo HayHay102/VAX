@@ -66,7 +66,7 @@ function getUrlList(slug, filtersJson) {
         var start = (page - 1) * 24;
 
         return baseUrl + "/search/label/" + slug +
-            "?max-results=24&start=" + start;
+            "/page/" + start;
 
     } catch (e) {
         return baseUrl;
