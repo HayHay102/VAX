@@ -10,7 +10,7 @@ const baseUrl = "https://www.sieutamphim.pro";
 
 function getManifest() {
     return JSON.stringify({
-        "id": "STPhim",
+        "id": "stphim",
         "name": "Siêu Tầm Phim",
         "version": "1.0.1",
         "baseUrl": "https://www.sieutamphim.pro",
@@ -55,7 +55,7 @@ function getFilterConfig() {
 }
 
 // ========================================================
-// URL
+// URL GENERATION
 // ========================================================
 
 function getUrlList(slug, filtersJson) {
@@ -89,7 +89,7 @@ function getUrlSearch(keyword, filtersJson) {
 
 function getUrlDetail(slug) {
     if (slug.startsWith("http")) {
-        return slug;
+        return "https://www.sieutamphim.pro" + slug +"/";
     }
 
     return baseUrl + "/" + slug;
