@@ -55,7 +55,7 @@ function getUrlList(slug, filtersJson) {
     if (slug === '/') {
         return "https://www.sieutamphim.pro/search/label/phim-moi/page" + page;
     }
-    return "https://www.sieutamphim.pro/" + slug + "/page/" + page;
+    return "https://www.sieutamphim.pro/search/label/" + slug + "/page/" + page;
 }
 
 function getUrlSearch(keyword, filtersJson) {
