@@ -95,17 +95,43 @@ function getUrlYears() { return ""; }
 function parseListResponse(html) {
     try {
         let items = [];
+        let added = {};
 
-        const regex = /<a[^>]+href="(https:\/\/www\.sieutamphim\.pro\/[^"]+\.html)"[\s\S]*?<img[^>]+src="([^"]+)"[\s\S]*?alt="([^"]+)"/g;
+        // chỉ lấy block phim chính
+        const blockRegex = /<div class="col post-item[\s\S]*?<\/article>/g;
+        const blocks = html.match(blockRegex) || [];
 
-        let match;
+        for (let i = 0; i < blocks.length; i++) {
+            let block = blocks[i];
 
-        while ((match = regex.exec(html)) !== null) {
-            items.push({
-                id: match[1], // full URL -> tránh lỗi click sai phim
-                title: match[3].trim(),
-                posterUrl: match[2]
-            });
+            // link phim
+            let linkMatch = block.match(
+                /href="(https:\/\/www\.sieutamphim\.pro\/\d{4}\/\d{2}\/[^"]+\.html)"/
+            );
+
+            // ảnh
+            let posterMatch = block.match(
+                /<img[^>]+src="([^"]+)"/
+            );
+
+            // title
+            let titleMatch = block.match(
+                /aria-label="([^"]+)"/
+            );
+
+            if (linkMatch) {
+                let url = linkMatch[1];
+
+                // chống trùng
+                if (added[url]) continue;
+                added[url] = true;
+
+                items.push({
+                    id: url,
+                    title: titleMatch ? titleMatch[1].trim() : "Unknown",
+                    posterUrl: posterMatch ? posterMatch[1] : ""
+                });
+            }
         }
 
         return JSON.stringify({
