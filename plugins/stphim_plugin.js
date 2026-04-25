@@ -51,11 +51,11 @@ function getFilterConfig() {
 function getUrlList(slug, filtersJson) {
     var filters = JSON.parse(filtersJson || "{}");
     var page = filters.page || 1;
-    var offset = (page > 1) * 20; // Blogspot thường dùng max-results
+    var offset = (page - 1) * 20; // Blogspot thường dùng max-results
     
     var url = "https://www.sieutamphim.pro/";
     if (url.indexOf('?') === -1) {
-        url += "/search/label/" + slug;
+        url += "/search/label/" + slug + "/page/" + page;
     } else {
         url += "/search/label/" + slug;
     }
@@ -63,7 +63,7 @@ function getUrlList(slug, filtersJson) {
 }
 
 function getUrlSearch(keyword, filtersJson) {
-    return "https://www.sieutamphim.pro/?s=" + encodeURIComponent(keyword);
+    return "https://www.sieutamphim.pro/" + "/page/" + page + "?s=" + encodeURIComponent(keyword);
 }
 
 function getUrlDetail(slug) {
