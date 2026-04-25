@@ -97,41 +97,46 @@ function parseListResponse(html) {
         let items = [];
         let added = {};
 
-        // chỉ lấy block phim chính
-        const blockRegex = /<div class="col post-item[\s\S]*?<\/article>/g;
-        const blocks = html.match(blockRegex) || [];
+        // lấy tất cả link bài phim đúng format năm/tháng/title.html
+        const regex = /<a[^>]+href="(https:\/\/www\.sieutamphim\.pro\/\d{4}\/\d{2}\/[^"]+\.html)"[^>]*>([\s\S]*?)<\/a>/g;
 
-        for (let i = 0; i < blocks.length; i++) {
-            let block = blocks[i];
+        let match;
 
-            // link phim
-            let linkMatch = block.match(
-                /href="(https:\/\/www\.sieutamphim\.pro\/\d{4}\/\d{2}\/[^"]+\.html)"/
-            );
+        while ((match = regex.exec(html)) !== null) {
+            const movieUrl = match[1];
+            const block = match[2];
 
-            // ảnh
-            let posterMatch = block.match(
-                /<img[^>]+src="([^"]+)"/
-            );
+            // chống trùng
+            if (added[movieUrl]) continue;
+            added[movieUrl] = true;
 
-            // title
-            let titleMatch = block.match(
-                /aria-label="([^"]+)"/
-            );
+            // lấy ảnh gần nhất
+            let posterMatch = block.match(/<img[^>]+src="([^"]+)"/i);
 
-            if (linkMatch) {
-                let url = linkMatch[1];
-
-                // chống trùng
-                if (added[url]) continue;
-                added[url] = true;
-
-                items.push({
-                    id: url,
-                    title: titleMatch ? titleMatch[1].trim() : "Unknown",
-                    posterUrl: posterMatch ? posterMatch[1] : ""
-                });
+            if (!posterMatch) {
+                posterMatch = html
+                    .substring(match.index, match.index + 1000)
+                    .match(/<img[^>]+src="([^"]+)"/i);
             }
+
+            // lấy title
+            let titleMatch = block.match(/title="([^"]+)"/i);
+
+            if (!titleMatch) {
+                titleMatch = block.match(/aria-label="([^"]+)"/i);
+            }
+
+            if (!titleMatch) {
+                titleMatch = html
+                    .substring(match.index, match.index + 500)
+                    .match(/title="([^"]+)"/i);
+            }
+
+            items.push({
+                id: movieUrl,
+                title: titleMatch ? titleMatch[1].trim() : "Unknown",
+                posterUrl: posterMatch ? posterMatch[1] : ""
+            });
         }
 
         return JSON.stringify({
