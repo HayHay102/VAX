@@ -52,7 +52,7 @@ function getUrlList(slug, filtersJson) {
     var filters = JSON.parse(filtersJson || "{}");
     var page = filters.page || 1;
     // Nếu là trang chủ (phim-moi)
-    if (slug === 'phim-moi') {
+    if (slug === '/') {
         return "https://www.sieutamphim.pro//search/label/page" + page;
     }
     return "https://www.sieutamphim.pro/search/label/" + slug + "/page/" + page;
