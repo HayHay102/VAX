@@ -75,25 +75,32 @@ function getUrlDetail(slug) {
 function parseListResponse(html) {
     try {
         var items = [];
-        // Regex tìm kiếm các card phim trong danh sách
-        var regex = /<div class="movie-item[^>]*>[\s\S]*?href="\/phim\/([^"]+)" title="([^"]+)"[\s\S]*?src="([^"]+)"/g;
+        // Cải tiến Regex: Tìm linh hoạt hơn, hỗ trợ cả data-src và src thông thường
+        var regex = /<div class="movie-item">[\s\S]*?href="\/phim\/([^"]+)"[\s\S]*?title="([^"]+)"[\s\S]*?(?:src|data-src)="([^"]+)"/g;
         var match;
+        
         while ((match = regex.exec(html)) !== null) {
+            var imgUrl = match[3];
+            if (imgUrl.indexOf('http') !== 0) imgUrl = "https://www.sieutamphim.pro" + imgUrl;
+            
             items.push({
                 id: match[1],
                 title: match[2].trim(),
-                posterUrl: match[3].indexOf('http') === 0 ? match[3] : "https://www.sieutamphim.pro" + match[3]
+                posterUrl: imgUrl
             });
         }
         
-        // Parse phân trang (tìm trang cuối cùng)
-        var totalPages = 1;
-        var pageMatch = html.match(/page=(\d+)"[^>]*>Cuối/);
-        if (pageMatch) totalPages = parseInt(pageMatch[1]);
+        // Nếu dùng regex trên không ra, thử regex dự phòng cho cấu trúc khác
+        if (items.length === 0) {
+            var altRegex = /<a href="\/phim\/([^"]+)" title="([^"]+)">[\s\S]*?src="([^"]+)"/g;
+            while ((match = altRegex.exec(html)) !== null) {
+                items.push({ id: match[1], title: match[2], posterUrl: match[3] });
+            }
+        }
 
         return JSON.stringify({
             items: items,
-            pagination: { currentPage: 1, totalPages: totalPages }
+            pagination: { currentPage: 1, totalPages: 10 } 
         });
     } catch (e) {
         return JSON.stringify({ items: [], pagination: { currentPage: 1, totalPages: 1 } });
@@ -106,18 +113,16 @@ function parseSearchResponse(html) {
 
 function parseMovieDetail(html) {
     try {
-        var title = (html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/) || ["", "Chưa rõ"])[1].trim();
-        var description = (html.match(/<div id="movie-content"[^>]*>([\s\S]*?)<\/div>/) || ["", "Đang cập nhật..."])[1].replace(/<[^>]*>/g, '').trim();
+        var title = (html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/) || ["", ""])[1].replace(/<[^>]*>/g, '').trim();
         var poster = (html.match(/<div class="movie-image">[\s\S]*?src="([^"]+)"/) || ["", ""])[1];
-        
-        var servers = [];
-        var episodeGroups = {};
+        var desc = (html.match(/<div id="movie-content"[^>]*>([\s\S]*?)<\/div>/) || ["", "Đang cập nhật..."])[1].replace(/<[^>]*>/g, '').trim();
 
-        // Tìm tất cả link tập phim: href="/xem-phim/slug/tap-1"
+        var servers = [];
+        var episodes = [];
+        
+        // Lấy danh sách tập phim
         var epRegex = /href="\/xem-phim\/([^"]+)"[^>]*><span>([^<]+)<\/span>/g;
         var epMatch;
-        var episodes = [];
-
         while ((epMatch = epRegex.exec(html)) !== null) {
             episodes.push({
                 id: "https://www.sieutamphim.pro/xem-phim/" + epMatch[1],
@@ -127,69 +132,47 @@ function parseMovieDetail(html) {
         }
 
         if (episodes.length > 0) {
-            servers.push({
-                name: "Vietsub / Thuyết Minh",
-                episodes: episodes
-            });
+            servers.push({ name: "Chính chủ", episodes: episodes });
         }
 
         return JSON.stringify({
-            id: "", 
             title: title,
             posterUrl: poster,
-            description: description,
-            servers: servers,
-            quality: "HD",
-            status: "Hoàn tất"
+            description: desc,
+            servers: servers
         });
     } catch (e) {
-        return JSON.stringify({ title: "Error parsing" });
+        return JSON.stringify({ title: "Lỗi phân giải chi tiết" });
     }
 }
 
 function parseDetailResponse(html) {
-    try {
-        // Tìm link iframe hoặc link m3u8 trong trang xem phim
-        // Thông thường các web này ẩn link trong script hoặc iframe
-        var playerMatch = html.match(/link":"([^"]+)"/) || html.match(/iframe[^>]*src="([^"]+)"/);
-        var videoUrl = "";
-        
-        if (playerMatch) {
-            videoUrl = playerMatch[1].replace(/\\/g, '');
-        }
-
-        // Nếu không thấy link trực tiếp, trả về chính URL đó để App xử lý qua Embed
-        if (!videoUrl) {
-            var currentUrlMatch = html.match(/<link rel="canonical" href="([^"]+)"/);
-            videoUrl = currentUrlMatch ? currentUrlMatch[1] : "";
-        }
-
-        return JSON.stringify({
-            url: videoUrl,
-            headers: {
-                "Referer": "https://www.sieutamphim.pro/",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            },
-            isEmbed: videoUrl.includes("embed") || videoUrl.includes("link") 
-        });
-    } catch (e) {
-        return JSON.stringify({ url: "" });
+    // Tìm link video từ script player
+    var playerMatch = html.match(/link":"([^"]+)"/) || html.match(/iframe[^>]*src="([^"]+)"/);
+    var videoUrl = "";
+    
+    if (playerMatch) {
+        videoUrl = playerMatch[1].replace(/\\/g, '');
+    } else {
+        // Fallback: nếu không tìm thấy link trực tiếp, trả về URL trang hiện tại để App tự xử lý qua WebView/Embed
+        var canonical = html.match(/<link rel="canonical" href="([^"]+)"/);
+        videoUrl = canonical ? canonical[1] : "";
     }
+
+    return JSON.stringify({
+        url: videoUrl,
+        headers: { "Referer": "https://www.sieutamphim.pro/" },
+        isEmbed: true // Luôn bật isEmbed để App tự động bắt link từ iframe
+    });
 }
 
 function parseEmbedResponse(html, sourceUrl) {
-    // Xử lý giải mã link nếu server sử dụng bảo vệ nhiều lớp
     var fileMatch = html.match(/"file"\s*:\s*"(https?[^"]+)"/) || html.match(/source\s*:\s*"(https?[^"]+)"/);
     if (fileMatch) {
         return JSON.stringify({
             url: fileMatch[1].replace(/\\/g, ''),
-            isEmbed: false,
-            mimeType: "application/x-mpegURL"
+            isEmbed: false
         });
     }
     return JSON.stringify({ url: "", isEmbed: false });
 }
-
-function parseCategoriesResponse(html) { return "[]"; }
-function parseCountriesResponse(html) { return "[]"; }
-function parseYearsResponse(html) { return "[]"; }
