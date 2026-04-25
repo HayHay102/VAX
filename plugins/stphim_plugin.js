@@ -76,7 +76,7 @@ function parseListResponse(html) {
     try {
         var items = [];
         // Regex tìm kiếm các card phim trong danh sách
-        var regex = /<div class="movie-item[^>]*>[\s\S]*?href="(https:\/\/www\.sieutamphim\.pro\/\d{4}\/\d{2}\/[^" title="([^"]+)"[\s\S]*?src="([^"]+)"/g;
+        var regex = /<div class="movie-item[^>]*>[\s\S]*?href="(\/\d{4}\/\d{2}\/[^"]+)" title="([^"]+)"[\s\S]*?src="([^"]+)"/g;
         var match;
         while ((match = regex.exec(html)) !== null) {
             items.push({
