@@ -75,35 +75,63 @@ function getUrlDetail(slug) {
 function parseListResponse(html) {
     try {
         var items = [];
-        // Cải tiến Regex: Tìm linh hoạt hơn, hỗ trợ cả data-src và src thông thường
-        var regex = /<div class="movie-item">[\s\S]*?href="\/phim\/([^"]+)"[\s\S]*?title="([^"]+)"[\s\S]*?(?:src|data-src)="([^"]+)"/g;
-        var match;
-        
-        while ((match = regex.exec(html)) !== null) {
-            var imgUrl = match[3];
-            if (imgUrl.indexOf('http') !== 0) imgUrl = "https://www.sieutamphim.pro" + imgUrl;
-            
+        var seen = {};
+
+        // lấy tất cả link bài viết phim
+        var linkRegex = /href="(https:\/\/www\.sieutamphim\.pro\/\d{4}\/\d{2}\/[^"]+\.html)"/g;
+        var linkMatch;
+
+        while ((linkMatch = linkRegex.exec(html)) !== null) {
+            var movieUrl = linkMatch[1];
+
+            if (seen[movieUrl]) continue;
+            seen[movieUrl] = true;
+
+            // lấy đoạn html gần link đó để tìm poster + title
+            var startIndex = linkMatch.index;
+            var blockHtml = html.substring(startIndex, startIndex + 3000);
+
+            // poster
+            var posterMatch =
+                blockHtml.match(/data-src="([^"]+)"/) ||
+                blockHtml.match(/src="([^"]+)"/);
+
+            var poster = posterMatch ? posterMatch[1] : "";
+
+            // title
+            var titleMatch =
+                blockHtml.match(/title="([^"]+)"/) ||
+                blockHtml.match(/alt="([^"]+)"/) ||
+                blockHtml.match(/<h2[^>]*>(.*?)<\/h2>/) ||
+                blockHtml.match(/<h3[^>]*>(.*?)<\/h3>/);
+
+            var title = titleMatch
+                ? cleanText(titleMatch[1])
+                : "Không rõ tên";
+
             items.push({
-                id: match[1],
-                title: match[2].trim(),
-                posterUrl: imgUrl
+                id: movieUrl,
+                title: title,
+                posterUrl: poster
             });
-        }
-        
-        // Nếu dùng regex trên không ra, thử regex dự phòng cho cấu trúc khác
-        if (items.length === 0) {
-            var altRegex = /<a href="\/phim\/([^"]+)" title="([^"]+)">[\s\S]*?src="([^"]+)"/g;
-            while ((match = altRegex.exec(html)) !== null) {
-                items.push({ id: match[1], title: match[2], posterUrl: match[3] });
-            }
         }
 
         return JSON.stringify({
             items: items,
-            pagination: { currentPage: 1, totalPages: 10 } 
+            pagination: {
+                currentPage: 1,
+                totalPages: 999
+            }
         });
+
     } catch (e) {
-        return JSON.stringify({ items: [], pagination: { currentPage: 1, totalPages: 1 } });
+        return JSON.stringify({
+            items: [],
+            pagination: {
+                currentPage: 1,
+                totalPages: 1
+            }
+        });
     }
 }
 
@@ -111,68 +139,226 @@ function parseSearchResponse(html) {
     return parseListResponse(html);
 }
 
+// ========================================================
+// MOVIE DETAIL
+// ========================================================
+
 function parseMovieDetail(html) {
     try {
-        var title = (html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/) || ["", ""])[1].replace(/<[^>]*>/g, '').trim();
-        var poster = (html.match(/<div class="movie-image">[\s\S]*?src="([^"]+)"/) || ["", ""])[1];
-        var desc = (html.match(/<div id="movie-content"[^>]*>([\s\S]*?)<\/div>/) || ["", "Đang cập nhật..."])[1].replace(/<[^>]*>/g, '').trim();
+        var title = "";
+        var poster = "";
+        var description = "";
 
-        var servers = [];
+        var titleMatch = html.match(/<h1[^>]*>(.*?)<\/h1>/);
+        if (titleMatch) {
+            title = cleanText(titleMatch[1]);
+        }
+
+        var posterMatch = html.match(/<meta property="og:image" content="([^"]+)"/);
+        if (posterMatch) {
+            poster = posterMatch[1];
+        }
+
+        var descMatch = html.match(/<meta name="description" content="([^"]+)"/);
+        if (descMatch) {
+            description = cleanText(descMatch[1]);
+        }
+
         var episodes = [];
-        
-        // Lấy danh sách tập phim
-        var epRegex = /href="\/xem-phim\/([^"]+)"[^>]*><span>([^<]+)<\/span>/g;
-        var epMatch;
-        while ((epMatch = epRegex.exec(html)) !== null) {
+
+        var episodeRegex = /<a[^>]*href="([^"]+\?server=[^"]+&tap=\d+)"[^>]*>([^<]+)<\/a>/g;
+        var match;
+
+        while ((match = episodeRegex.exec(html)) !== null) {
+            var epUrl = match[1];
+
+            if (!epUrl.startsWith("http")) {
+                epUrl = baseUrl + epUrl;
+            }
+
             episodes.push({
-                id: "https://www.sieutamphim.pro/xem-phim/" + epMatch[1],
-                name: epMatch[2].trim(),
-                slug: epMatch[1]
+                id: epUrl,
+                name: cleanText(match[2]),
+                slug: cleanText(match[2])
             });
         }
 
-        if (episodes.length > 0) {
-            servers.push({ name: "Chính chủ", episodes: episodes });
+        // nếu không có tập thì phát trực tiếp
+        if (episodes.length === 0) {
+            episodes.push({
+                id: getCurrentPageUrl(html),
+                name: "Xem phim",
+                slug: "full"
+            });
         }
 
         return JSON.stringify({
+            id: "",
             title: title,
             posterUrl: poster,
-            description: desc,
-            servers: servers
+            backdropUrl: poster,
+            description: description,
+            quality: "HD",
+            status: "Completed",
+            servers: [
+                {
+                    name: "Server HX",
+                    episodes: episodes
+                }
+            ]
         });
+
     } catch (e) {
-        return JSON.stringify({ title: "Lỗi phân giải chi tiết" });
+        return JSON.stringify({
+            servers: []
+        });
     }
 }
+
+// ========================================================
+// VIDEO PARSER
+// ========================================================
 
 function parseDetailResponse(html) {
-    // Tìm link video từ script player
-    var playerMatch = html.match(/link":"([^"]+)"/) || html.match(/iframe[^>]*src="([^"]+)"/);
-    var videoUrl = "";
-    
-    if (playerMatch) {
-        videoUrl = playerMatch[1].replace(/\\/g, '');
-    } else {
-        // Fallback: nếu không tìm thấy link trực tiếp, trả về URL trang hiện tại để App tự xử lý qua WebView/Embed
-        var canonical = html.match(/<link rel="canonical" href="([^"]+)"/);
-        videoUrl = canonical ? canonical[1] : "";
-    }
+    try {
+        // m3u8
+        var m3u8Match = html.match(/https?:\/\/[^"' ]+\.m3u8[^"' ]*/);
+        if (m3u8Match) {
+            return JSON.stringify({
+                url: m3u8Match[0],
+                headers: {
+                    Referer: baseUrl
+                },
+                subtitles: []
+            });
+        }
 
-    return JSON.stringify({
-        url: videoUrl,
-        headers: { "Referer": "https://www.sieutamphim.pro/" },
-        isEmbed: true // Luôn bật isEmbed để App tự động bắt link từ iframe
-    });
+        // mp4
+        var mp4Match = html.match(/https?:\/\/[^"' ]+\.mp4[^"' ]*/);
+        if (mp4Match) {
+            return JSON.stringify({
+                url: mp4Match[0],
+                headers: {
+                    Referer: baseUrl
+                },
+                subtitles: []
+            });
+        }
+
+        // jwplayer
+        var jwMatch = html.match(/file:\s*["'](https?:\/\/[^"']+)["']/);
+        if (jwMatch) {
+            return JSON.stringify({
+                url: jwMatch[1],
+                headers: {
+                    Referer: baseUrl
+                }
+            });
+        }
+
+        // iframe
+        var iframeMatch = html.match(/<iframe[^>]+src="([^"]+)"/);
+        if (iframeMatch) {
+            return JSON.stringify({
+                url: iframeMatch[1],
+                isEmbed: true
+            });
+        }
+
+        return JSON.stringify({
+            url: "",
+            headers: {}
+        });
+
+    } catch (e) {
+        return JSON.stringify({
+            url: "",
+            headers: {}
+        });
+    }
 }
 
+// ========================================================
+// EMBED PARSER
+// ========================================================
+
 function parseEmbedResponse(html, sourceUrl) {
-    var fileMatch = html.match(/"file"\s*:\s*"(https?[^"]+)"/) || html.match(/source\s*:\s*"(https?[^"]+)"/);
-    if (fileMatch) {
+    try {
+        var m3u8Match = html.match(/https?:\/\/[^"' ]+\.m3u8[^"' ]*/);
+
+        if (m3u8Match) {
+            return JSON.stringify({
+                url: m3u8Match[0],
+                isEmbed: false,
+                headers: {
+                    Referer: sourceUrl
+                }
+            });
+        }
+
+        var mp4Match = html.match(/https?:\/\/[^"' ]+\.mp4[^"' ]*/);
+
+        if (mp4Match) {
+            return JSON.stringify({
+                url: mp4Match[0],
+                isEmbed: false,
+                headers: {
+                    Referer: sourceUrl
+                }
+            });
+        }
+
+        var iframeMatch = html.match(/<iframe[^>]+src="([^"]+)"/);
+
+        if (iframeMatch) {
+            return JSON.stringify({
+                url: iframeMatch[1],
+                isEmbed: true
+            });
+        }
+
         return JSON.stringify({
-            url: fileMatch[1].replace(/\\/g, ''),
+            url: "",
+            isEmbed: false
+        });
+
+    } catch (e) {
+        return JSON.stringify({
+            url: "",
             isEmbed: false
         });
     }
-    return JSON.stringify({ url: "", isEmbed: false });
+}
+
+// ========================================================
+// HELPERS
+// ========================================================
+
+function cleanText(text) {
+    if (!text) return "";
+
+    return text
+        .replace(/<[^>]+>/g, "")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .trim();
+}
+
+function getCurrentPageUrl(html) {
+    var match = html.match(/<link rel="canonical" href="([^"]+)"/);
+    return match ? match[1] : "";
+}
+
+// ========================================================
+
+function parseCategoriesResponse(html) {
+    return "[]";
+}
+
+function parseCountriesResponse(html) {
+    return "[]";
+}
+
+function parseYearsResponse(html) {
+    return "[]";
 }
