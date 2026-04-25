@@ -51,7 +51,7 @@ function getFilterConfig() {
 function getUrlList(slug, filtersJson) {
     var filters = JSON.parse(filtersJson || "{}");
     var page = filters.page || 1;
-    var offset = (page - 1) * 20; // Blogspot thường dùng max-results
+    var offset = (page > 1) * 20; // Blogspot thường dùng max-results
     
     var url = "https://www.sieutamphim.pro/";
     if (url.indexOf('?') === -1) {
