@@ -73,7 +73,7 @@ function getUrlSearch(keyword, filtersJson) {
     const page = filters.page || 1;
 
     return BASE_URL +
-        "/page/" + page + "/?s=" +
+        "/page/" + page + "?s=" +
         encodeURIComponent(keyword);
 }
 
