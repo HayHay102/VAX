@@ -74,29 +74,36 @@ function getUrlDetail(slug) {
 
 function parseListResponse(html) {
     try {
-        var items = [];
-        // Regex tìm kiếm các card phim trong danh sách
-        var regex = /<div class="movie-item[^>]*>[\s\S]*?href="\/phim\/([^"]+)" title="([^"]+)"[\s\S]*?src="([^"]+)"/g;
-        var match;
+        let items = [];
+
+        const regex = /<a[^>]+href="(https:\/\/www\.sieutamphim\.pro\/[^"]+\.html)"[\s\S]*?<img[^>]+src="([^"]+)"[\s\S]*?alt="([^"]+)"/g;
+
+        let match;
+
         while ((match = regex.exec(html)) !== null) {
             items.push({
-                id: match[1],
-                title: match[2].trim(),
-                posterUrl: match[3].indexOf('http') === 0 ? match[3] : "https://www.sieutamphim.pro" + match[3]
+                id: match[1], // full URL -> tránh lỗi click sai phim
+                title: match[3].trim(),
+                posterUrl: match[2]
             });
         }
-        
-        // Parse phân trang (tìm trang cuối cùng)
-        var totalPages = 1;
-        var pageMatch = html.match(/page=(\d+)"[^>]*>Cuối/);
-        if (pageMatch) totalPages = parseInt(pageMatch[1]);
 
         return JSON.stringify({
             items: items,
-            pagination: { currentPage: 1, totalPages: totalPages }
+            pagination: {
+                currentPage: 1,
+                totalPages: 999
+            }
         });
+
     } catch (e) {
-        return JSON.stringify({ items: [], pagination: { currentPage: 1, totalPages: 1 } });
+        return JSON.stringify({
+            items: [],
+            pagination: {
+                currentPage: 1,
+                totalPages: 1
+            }
+        });
     }
 }
 
