@@ -49,18 +49,27 @@ function getFilterConfig() {
 // =============================================================================
 
 function getUrlList(slug, filtersJson) {
-    var page = JSON.parse(filtersJson || "{}").page || 1;
-    // Blogger pagination thường dùng max-results, ở đây giả định site hỗ trợ query page hoặc dùng mặc định
-    return "https://www.sieutamphim.pro/search/label/" + encodeURIComponent(slug) + "?max-results=20";
+    var filters = JSON.parse(filtersJson || "{}");
+    var page = filters.page || 1;
+    var offset = (page - 1) * 20; // Blogspot thường dùng max-results
+    
+    var url = "https://www.sieutamphim.pro/" + slug;
+    if (url.indexOf('?') === -1) {
+        url += "/search/label/" + "/page/" + page;
+    } else {
+        url += "/search/label/";
+    }
+    return url;
 }
 
 function getUrlSearch(keyword, filtersJson) {
-    return "https://www.sieutamphim.pro/search?q=" + encodeURIComponent(keyword);
+    return "https://www.sieutamphim.pro/?s=" + encodeURIComponent(keyword) + "&max-results=20";
 }
 
 function getUrlDetail(slug) {
-    // Nếu slug đã là URL tuyệt đối thì trả về luôn, nếu không thì ghép với baseUrl
+    // Vì slug bây giờ là path đầy đủ (2026/04/abc.html)
     if (slug.indexOf('http') === 0) return slug;
+    if (slug.indexOf('/') === 0) return "https://www.sieutamphim.pro" + slug;
     return "https://www.sieutamphim.pro/" + slug;
 }
 
@@ -71,32 +80,31 @@ function getUrlDetail(slug) {
 function parseListResponse(html) {
     try {
         var items = [];
-        // Regex bóc tách item phim trong template Blogger (thường nằm trong class post-item hoặc tương tự)
-        // Lấy link, ảnh và tiêu đề
-        var regex = /<div class=['"]post-item['"][\s\S]*?href=['"]([^'"]+)['"][\s\S]*?src=['"]([^'"]+)['"][\s\S]*?alt=['"]([^'"]+)['"]/g;
-        
-        // Backup regex nếu class khác
-        if (html.match(regex) === null) {
-            regex = /<a[^>]*href="([^"]+)"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"[\s\S]*?alt="([^"]+)"/g;
-        }
-
+        // Regex lấy link bài viết, ảnh và tiêu đề từ cấu trúc Blogspot
+        // Tìm các thẻ a chứa link .html và ảnh thumbnail
+        var regex = /<a[^>]*href="https:\/\/www\.sieutamphim\.pro\/([^"]+\.html)"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"[^>]*alt="([^"]+)"/g;
         var match;
         while ((match = regex.exec(html)) !== null) {
-            var url = match[1];
-            var id = url.replace("https://www.sieutamphim.pro/", ""); // Lấy slug
-            items.push({
-                id: url, // Dùng full URL làm ID để dễ truy xuất cho detail
-                title: match[3].trim(),
-                posterUrl: match[2]
-            });
+            var slug = match[1];
+            var img = match[2];
+            var title = match[3];
+
+            // Tránh trùng lặp do Blogspot hay có nhiều link trong 1 post
+            if (!items.some(function(i) { return i.id === slug; })) {
+                items.push({
+                    id: slug,
+                    title: title.trim(),
+                    posterUrl: img
+                });
+            }
         }
         
         return JSON.stringify({
             items: items,
-            pagination: { currentPage: 1, totalPages: 1 }
+            pagination: { currentPage: 1, totalPages: 10 }
         });
     } catch (e) {
-        return JSON.stringify({ items: [], error: e.toString() });
+        return JSON.stringify({ items: [], pagination: { currentPage: 1, totalPages: 1 } });
     }
 }
 
@@ -106,113 +114,100 @@ function parseSearchResponse(html) {
 
 function parseMovieDetail(html) {
     try {
-        var title = "";
-        var titleMatch = html.match(/<h1[^>]*class=['"]post-title['"][^>]*>([\s\S]*?)<\/h1>/);
-        if (titleMatch) title = titleMatch[1].trim();
+        // 1. Lấy Tiêu đề
+        var titleMatch = html.match(/<h1[^>]*class="post-title"[^>]*>([\s\S]*?)<\/h1>/) || html.match(/<title>([\s\S]*?)<\/title>/);
+        var title = titleMatch ? titleMatch[1].replace(/&amp;/g, '&').trim() : "Phim";
 
-        var desc = "";
-        var descMatch = html.match(/<div[^>]*class=['"]post-body['"][^>]*>([\s\S]*?)<\/div>/);
-        if (descMatch) desc = descMatch[1].replace(/<[^>]*>/g, "").substring(0, 300).trim() + "...";
+        // 2. Lấy Mô tả
+        var descMatch = html.match(/<div[^>]*class="post-body[^>]*>([\s\S]*?)<\/div>/);
+        var description = descMatch ? descMatch[1].replace(/<[^>]*>/g, '').substring(0, 300).trim() + "..." : "";
 
-        var poster = "";
-        var posterMatch = html.match(/meta property="og:image" content="([^"]+)"/);
-        if (posterMatch) poster = posterMatch[1];
+        // 3. Lấy Poster
+        var posterMatch = html.match(/<div[^>]*class="post-body"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"/);
+        var poster = posterMatch ? posterMatch[1] : "";
 
-        // Tìm danh sách tập phim dựa theo cấu trúc link bạn cung cấp: ?server=xxx&tap=yyy
+        // 4. Lấy Server và Tập phim
+        // Với Blogspot, link xem thường nằm trong iframe hoặc các nút bấm
         var servers = [];
-        var episodesByServer = {};
+        var episodes = [];
 
-        // Regex tìm các link tập phim
-        var epRegex = /href="([^"]+\?server=([^&]+)&tap=([^"]+))"[^>]*>([\s\S]*?)<\/a>/g;
-        var match;
-        while ((match = epRegex.exec(html)) !== null) {
-            var fullUrl = match[1];
-            var svName = match[2].toUpperCase();
-            var epName = "Tập " + match[3];
-            
-            if (!episodesByServer[svName]) {
-                episodesByServer[svName] = [];
+        // Tìm tất cả iframe trong bài viết
+        var iframeRegex = /<iframe[^>]*src="([^"]+)"/g;
+        var iframeMatch;
+        var count = 1;
+        while ((iframeMatch = iframeRegex.exec(html)) !== null) {
+            var url = iframeMatch[1];
+            // Loại bỏ các iframe quảng cáo hoặc facebook nếu có
+            if (url.indexOf('facebook') === -1 && url.indexOf('google') === -1) {
+                episodes.push({
+                    id: url,
+                    name: "Tập " + count,
+                    slug: "tap-" + count
+                });
+                count++;
             }
-            episodesByServer[svName].push({
-                id: fullUrl, // ID chính là link dẫn đến tập đó
-                name: epName,
-                slug: "tap-" + match[3]
+        }
+
+        // Nếu không có iframe, thử tìm link xem phim trực tiếp (thường web này để ở cuối bài)
+        if (episodes.length === 0) {
+            episodes.push({
+                id: "current_url", // Sẽ xử lý ở parseDetailResponse
+                name: "Full HD",
+                slug: "full"
             });
         }
 
-        // Chuyển object sang array format cho App
-        for (var sv in episodesByServer) {
-            servers.push({
-                name: "Server " + sv,
-                episodes: episodesByServer[sv]
-            });
-        }
-
-        // Nếu không tìm thấy tập phim theo link, thử tạo 1 server mặc định (phim lẻ)
-        if (servers.length === 0) {
-            servers.push({
-                name: "Default",
-                episodes: [{ id: "current_url", name: "Full", slug: "full" }]
-            });
-        }
+        servers.push({
+            name: "Server VIP",
+            episodes: episodes
+        });
 
         return JSON.stringify({
+            id: "", 
             title: title,
             posterUrl: poster,
-            description: desc,
+            description: description,
             servers: servers,
-            status: "Hoàn thành",
-            category: "Phim"
+            quality: "HD",
+            status: "Thuyết Minh"
         });
     } catch (e) {
-        return JSON.stringify({ title: "Lỗi parser", description: e.toString() });
+        return JSON.stringify({ title: "Lỗi phân giải chi tiết" });
     }
 }
 
 function parseDetailResponse(html) {
-    try {
-        // Tìm iframe chứa video (thường các site Blogger nhúng từ hxfile, ok.ru, blogger, v.v.)
-        var iframeMatch = html.match(/<iframe[^>]*src="([^"]+)"/i);
-        var videoUrl = "";
-        
-        if (iframeMatch) {
-            videoUrl = iframeMatch[1];
-            // Nếu là link iframe, trả về để App mở hoặc fetch tiếp qua parseEmbedResponse
-            return JSON.stringify({
-                url: videoUrl,
-                isEmbed: true,
-                headers: { "Referer": "https://www.sieutamphim.pro/" }
-            });
-        }
-
-        // Nếu không thấy iframe, tìm trực tiếp link m3u8 hoặc mp4 trong script (nếu có)
-        var streamMatch = html.match(/["']?file["']?\s*:\s*["']([^"']+\.m3u8[^"']*)["']/);
-        if (streamMatch) {
-            return JSON.stringify({
-                url: streamMatch[1],
-                isEmbed: false,
-                mimeType: "application/x-mpegURL"
-            });
-        }
-
-        return JSON.stringify({ url: "" });
-    } catch (e) {
-        return JSON.stringify({ url: "" });
+    // Nếu ID truyền vào đã là một link iframe trực tiếp
+    // (như link player.php, hoặc cdn...)
+    
+    // Ở đây tôi giả định App truyền URL iframe từ parseMovieDetail vào
+    var videoUrl = "";
+    
+    // Tìm link video trong HTML (Blogspot thường dùng iframe lồng)
+    var linkMatch = html.match(/file:\s*"([^"]+)"/) || html.match(/source\s*src="([^"]+)"/);
+    
+    if (linkMatch) {
+        videoUrl = linkMatch[1];
+    } else {
+        // Nếu không tìm thấy, trả về HTML để App tự dùng WebView (Embed)
+        var iframeMatch = html.match(/<iframe[^>]*src="([^"]+)"/);
+        videoUrl = iframeMatch ? iframeMatch[1] : "";
     }
+
+    return JSON.stringify({
+        url: videoUrl,
+        headers: {
+            "Referer": "https://www.sieutamphim.pro/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        },
+        isEmbed: true // Đặt true để App mở bằng WebView nếu là link iframe
+    });
 }
 
 function parseEmbedResponse(html, sourceUrl) {
-    // Xử lý nếu iframe dẫn đến một trang trung gian khác
-    // Ví dụ: Tìm link stream trực tiếp từ HTML của iframe
-    var fileMatch = html.match(/["']?file["']?\s*:\s*["']([^"']+)["']/);
-    if (fileMatch) {
-        var url = fileMatch[1];
-        return JSON.stringify({
-            url: url,
-            isEmbed: false,
-            mimeType: url.indexOf("m3u8") !== -1 ? "application/x-mpegURL" : "video/mp4"
-        });
-    }
-    
-    return JSON.stringify({ url: sourceUrl, isEmbed: false });
+    return JSON.stringify({ url: "", isEmbed: false });
 }
+
+function parseCategoriesResponse(html) { return "[]"; }
+function parseCountriesResponse(html) { return "[]"; }
+function parseYearsResponse(html) { return "[]"; }
