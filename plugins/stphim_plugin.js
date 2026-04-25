@@ -76,7 +76,7 @@ function parseListResponse(html) {
     try {
         let items = [];
 
-        const regex = /<a[^>]+href="(https:\/\/www\.sieutamphim\.pro\/[^"]+\.html)"[\s\S]*?<img[^>]+src="([^"]+)"[\s\S]*?alt="([^"]+)"/g;
+        var regex = /<a[^>]+href="(https:\/\/www\.sieutamphim\.pro\/[^"]+\.html)"[\s\S]*?<img[^>]+src="([^"]+)"[\s\S]*?alt="([^"]+)"/g;
 
         let match;
 
