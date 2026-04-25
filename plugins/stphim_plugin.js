@@ -1,5 +1,5 @@
 // ========================================================
-// SIÊU TẦM PHIM VAAPP PLUGIN
+// SIÊU TẦM PHIM VAAPP PLUGIN (FIX FULL)
 // ========================================================
 
 const BASE_URL = "https://www.sieutamphim.pro";
@@ -10,16 +10,16 @@ const BASE_URL = "https://www.sieutamphim.pro";
 
 function getManifest() {
     return JSON.stringify({
-        "id": "stphim",
-        "name": "Sưu Tầm Phim",
-        "version": "1.0.1",
-        "baseUrl": "https://www.sieutamphim.pro",
-        "iconUrl": "https://www.sieutamphim.pro/posts/2024/06/cropped-logosieutamphim-192x192.png",
-        "isEnabled": true,
-        "isAdult": false,
-        "type": "MOVIE",
-        "layoutType": "VERTICAL",
-        "playerType": "embed"
+        id: "stphim",
+        name: "Siêu Tầm Phim",
+        version: "1.0.2",
+        baseUrl: BASE_URL,
+        iconUrl: BASE_URL + "/posts/2024/06/cropped-logosieutamphim-192x192.png",
+        isEnabled: true,
+        isAdult: false,
+        type: "MOVIE",
+        layoutType: "VERTICAL",
+        playerType: "embed"
     });
 }
 
@@ -29,13 +29,12 @@ function getManifest() {
 
 function getHomeSections() {
     return JSON.stringify([
-        { slug: 'phim-le', title: 'Phim Lẻ', type: 'Horizontal', path: 'search/label' },
-        { slug: 'phim-bo', title: 'Phim Bộ', type: 'Horizontal', path: 'search/label' },
-        { slug: 'long-tieng', title: 'Phim Lồng Tiếng', type: 'Horizontal', path: 'search/label' },        
-        { slug: 'phim-moi', title: 'Mới Cập Nhật', type: 'Horizontal', path: 'search/label' }
+        { slug: "phim-moi", title: "Phim Mới", type: "Horizontal" },
+        { slug: "phim-bo", title: "Phim Bộ", type: "Horizontal" },
+        { slug: "phim-le", title: "Phim Lẻ", type: "Horizontal" },
+        { slug: "long-tieng", title: "Phim Lồng Tiếng", type: "Horizontal" }
     ]);
 }
-
 // ========================================================
 // CATEGORY
 // ========================================================
@@ -285,8 +284,7 @@ function parseEmbedResponse(html, sourceUrl) {
 
 // ========================================================
 
-function getPrimaryCategories() { return "[]"; }
-function getFilterConfig() { return "{}"; }
+
 function parseCategoriesResponse(html) { return "[]"; }
 function parseCountriesResponse(html) { return "[]"; }
 function parseYearsResponse(html) { return "[]"; }
