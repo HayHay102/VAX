@@ -76,7 +76,7 @@ function parseListResponse(html) {
     try {
         var items = [];
         // Regex tìm kiếm các card phim trong danh sách
-        var regex = /<div class="movie-item[^>]*>[\s\S]*?href="\/phim\/([^"]+)" title="([^"]+)"[\s\S]*?src="([^"]+)"/g;
+        var regex = /<div class="movie-item[^>]*>[\s\S]*?href="(https:\/\/www\.sieutamphim\.pro\/\d{4}\/\d{2}\/[^" title="([^"]+)"[\s\S]*?src="([^"]+)"/g;
         var match;
         while ((match = regex.exec(html)) !== null) {
             items.push({
@@ -114,7 +114,7 @@ function parseMovieDetail(html) {
         var episodeGroups = {};
 
         // Tìm tất cả link tập phim: href="/xem-phim/slug/tap-1"
-        var epRegex = /href="\/([^"]+)"[^>]*><span>([^<]+)<\/span>/g;
+        var epRegex = /href="\/xem-phim\/([^"]+)"[^>]*><span>([^<]+)<\/span>/g;
         var epMatch;
         var episodes = [];
 
