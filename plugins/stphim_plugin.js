@@ -51,22 +51,28 @@ function getFilterConfig() {
 function getUrlList(slug, filtersJson) {
     var filters = JSON.parse(filtersJson || "{}");
     var page = filters.page || 1;
-    // Nếu là trang chủ (phim-moi)
-    if (slug === '/') {
-        return "https://www.sieutamphim.pro//search/label/page" + page;
+    var offset = (page - 1) * 20; // Blogspot thường dùng max-results
+    
+    var url = "https://www.sieutamphim.pro/";
+    if (url.indexOf('?') === -1) {
+        url += "/search/label/" + slug;
+    } else {
+        url += "/search/label/" + slug;
     }
-    return "https://www.sieutamphim.pro/search/label/" + slug + "/page/" + page;
+    return url;
 }
 
 function getUrlSearch(keyword, filtersJson) {
-    var page = JSON.parse(filtersJson || "{}").page || 1;
-    return "https://www.sieutamphim.pro/" + "/page/" + page + "?s=" + encodeURIComponent(keyword);
+    return "https://www.sieutamphim.pro/?s=" + encodeURIComponent(keyword);
 }
 
 function getUrlDetail(slug) {
+    // Vì slug bây giờ là path đầy đủ (2026/04/abc.html)
     if (slug.indexOf('http') === 0) return slug;
-    return "https://www.sieutamphim.pro/search/label/" + slug;
+    if (slug.indexOf('/') === 0) return "https://www.sieutamphim.pro" + slug;
+    return "https://www.sieutamphim.pro/" + slug;
 }
+
 
 // =============================================================================
 // NHÓM 3: PARSER
