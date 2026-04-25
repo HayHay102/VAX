@@ -19,7 +19,7 @@ function getManifest() {
         "isAdult": false,
         "type": "MOVIE",
         "layoutType": "VERTICAL",
-        "playerType": "auto"
+        "playerType": "embed"
     });
 }
 
@@ -73,8 +73,7 @@ function getUrlSearch(keyword, filtersJson) {
     const page = filters.page || 1;
 
     return BASE_URL +
-        "/page/" + page + "?s=" +
-        encodeURIComponent(keyword);
+        "/page/" + page + "?s=" + encodeURIComponent(keyword);
 }
 
 function getUrlDetail(id) {
