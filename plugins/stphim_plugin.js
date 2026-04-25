@@ -63,7 +63,7 @@ function getUrlList(slug, filtersJson) {
 }
 
 function getUrlSearch(keyword, filtersJson) {
-    return "https://www.sieutamphim.pro/" + "/page/" + page + "?s=" + encodeURIComponent(keyword);
+    return "https://www.sieutamphim.pro" + "/page/" + page + "?s=" + encodeURIComponent(keyword);
 }
 
 function getUrlDetail(slug) {
