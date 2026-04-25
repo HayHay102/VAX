@@ -141,10 +141,17 @@ function parseMovieDetail(html) {
         const titleMatch = html.match(/<title>(.*?)<\/title>/i);
         const posterMatch = html.match(/property="og:image" content="([^"]+)"/i);
         const descMatch = html.match(/property="og:description" content="([^"]+)"/i);
+        const urlMatch = html.match(/property="og:url" content="([^"]+)"/i);
 
-        const title = titleMatch ? titleMatch[1].replace(" - Siêu Tầm Phim", "").trim() : "Unknown";
+        const title = titleMatch
+            ? titleMatch[1].replace(" - Siêu Tầm Phim", "").trim()
+            : "Unknown";
+
         const poster = posterMatch ? posterMatch[1] : "";
         const description = descMatch ? descMatch[1] : "";
+
+        // lấy đúng URL hiện tại của phim
+        const movieUrl = urlMatch ? urlMatch[1] : "";
 
         let episodes = [];
 
@@ -153,22 +160,28 @@ function parseMovieDetail(html) {
 
         while ((epMatch = epRegex.exec(html)) !== null) {
             episodes.push({
-                id: window.location.href + "?server=" + epMatch[1] + "&tap=" + epMatch[2],
+                id: movieUrl +
+                    "?server=" +
+                    epMatch[1] +
+                    "&tap=" +
+                    epMatch[2],
+
                 name: epMatch[3].trim(),
                 slug: epMatch[2]
             });
         }
 
+        // phim lẻ
         if (episodes.length === 0) {
             episodes.push({
-                id: window.location.href,
+                id: movieUrl,
                 name: "Full",
                 slug: "full"
             });
         }
 
         return JSON.stringify({
-            id: "",
+            id: movieUrl,
             title: title,
             posterUrl: poster,
             backdropUrl: poster,
@@ -180,13 +193,13 @@ function parseMovieDetail(html) {
                 }
             ],
             quality: "HD",
-            year: 2026,
-            rating: 8.5,
-            status: "Ongoing"
+            status: "Completed"
         });
 
     } catch (e) {
-        return JSON.stringify({});
+        return JSON.stringify({
+            servers: []
+        });
     }
 }
 
