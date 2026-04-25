@@ -95,47 +95,16 @@ function getUrlYears() { return ""; }
 function parseListResponse(html) {
     try {
         let items = [];
-        let added = {};
 
-        // lấy tất cả link bài phim đúng format năm/tháng/title.html
-        const regex = /<a[^>]+href="(https:\/\/www\.sieutamphim\.pro\/\d{4}\/\d{2}\/[^"]+\.html)"[^>]*>([\s\S]*?)<\/a>/g;
+        const regex = /<a[^>]+href="(https:\/\/www\.sieutamphim\.pro\/[^"]+\.html)"[\s\S]*?<img[^>]+src="([^"]+)"[\s\S]*?alt="([^"]+)"/g;
 
         let match;
 
         while ((match = regex.exec(html)) !== null) {
-            const movieUrl = match[1];
-            const block = match[2];
-
-            // chống trùng
-            if (added[movieUrl]) continue;
-            added[movieUrl] = true;
-
-            // lấy ảnh gần nhất
-            let posterMatch = block.match(/<img[^>]+src="([^"]+)"/i);
-
-            if (!posterMatch) {
-                posterMatch = html
-                    .substring(match.index, match.index + 1000)
-                    .match(/<img[^>]+src="([^"]+)"/i);
-            }
-
-            // lấy title
-            let titleMatch = block.match(/title="([^"]+)"/i);
-
-            if (!titleMatch) {
-                titleMatch = block.match(/aria-label="([^"]+)"/i);
-            }
-
-            if (!titleMatch) {
-                titleMatch = html
-                    .substring(match.index, match.index + 500)
-                    .match(/title="([^"]+)"/i);
-            }
-
             items.push({
-                id: movieUrl,
-                title: titleMatch ? titleMatch[1].trim() : "Unknown",
-                posterUrl: posterMatch ? posterMatch[1] : ""
+                id: match[1], // full URL -> tránh lỗi click sai phim
+                title: match[3].trim(),
+                posterUrl: match[2]
             });
         }
 
