@@ -53,11 +53,11 @@ function getUrlList(slug, filtersJson) {
     var page = filters.page || 1;
     var offset = (page - 1) * 20; // Blogspot thường dùng max-results
     
-    var url = "https://www.sieutamphim.pro/" + slug;
+    var url = "https://www.sieutamphim.pro/" + slug + "/";
     if (url.indexOf('?') === -1) {
-        url += "/search/label/" + "/page/" + page;
+        url += "search/label" + "/page/" + page;
     } else {
-        url += "/search/label/";
+        url += "search/label";
     }
     return url;
 }
