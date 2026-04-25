@@ -55,15 +55,15 @@ function getUrlList(slug, filtersJson) {
     
     var url = "https://www.sieutamphim.pro/";
     if (url.indexOf('?') === -1) {
-        url += "?max-results=20" + slug;
+        url += "/search/label/" + slug;
     } else {
-        url += "&max-results=20" + slug;
+        url += "/search/label/" + slug;
     }
     return url;
 }
 
 function getUrlSearch(keyword, filtersJson) {
-    return "https://www.sieutamphim.pro/search?q=" + encodeURIComponent(keyword) + "&max-results=20";
+    return "https://www.sieutamphim.pro/?s=" + encodeURIComponent(keyword);
 }
 
 function getUrlDetail(slug) {
