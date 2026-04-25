@@ -51,26 +51,21 @@ function getFilterConfig() {
 function getUrlList(slug, filtersJson) {
     var filters = JSON.parse(filtersJson || "{}");
     var page = filters.page || 1;
-    var offset = (page - 1) * 20; // Blogspot thường dùng max-results
-    
-    var url = "https://www.sieutamphim.pro/";
-    if (url.indexOf('?') === -1) {
-        url += "search/label/" + slug + "/page/" + page;
-    } else {
-        url += "search/label/";
+    // Nếu là trang chủ (phim-moi)
+    if (slug === '/') {
+        return "https://www.sieutamphim.pro/search/label/phim-moi/page" + page;
     }
-    return url;
+    return "https://www.sieutamphim.pro/" + slug + "/page/" + page;
 }
 
 function getUrlSearch(keyword, filtersJson) {
-    return "https://www.sieutamphim.pro/?s=" + encodeURIComponent(keyword) + "&max-results=20";
+    var page = JSON.parse(filtersJson || "{}").page || 1;
+    return "https://www.sieutamphim.pro/tim-kiem?keyword=" + encodeURIComponent(keyword) + "&page=" + page;
 }
 
 function getUrlDetail(slug) {
-    // Vì slug bây giờ là path đầy đủ (2026/04/abc.html)
     if (slug.indexOf('http') === 0) return slug;
-    if (slug.indexOf('/') === 0) return "https://www.sieutamphim.pro" + slug;
-    return "https://www.sieutamphim.pro/" + slug;
+    return "https://www.sieutamphim.pro/search/label/" + slug;
 }
 
 // =============================================================================
@@ -80,28 +75,25 @@ function getUrlDetail(slug) {
 function parseListResponse(html) {
     try {
         var items = [];
-        // Regex lấy link bài viết, ảnh và tiêu đề từ cấu trúc Blogspot
-        // Tìm các thẻ a chứa link .html và ảnh thumbnail
-        var regex = /<a[^>]*href="https:\/\/www\.sieutamphim\.pro\/([^"]+\.html)"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"[^>]*alt="([^"]+)"/g;
+        // Regex tìm kiếm các card phim trong danh sách
+        var regex = /<div class="movie-item[^>]*>[\s\S]*?href="\/phim\/([^"]+)" title="([^"]+)"[\s\S]*?src="([^"]+)"/g;
         var match;
         while ((match = regex.exec(html)) !== null) {
-            var slug = match[1];
-            var img = match[2];
-            var title = match[3];
-
-            // Tránh trùng lặp do Blogspot hay có nhiều link trong 1 post
-            if (!items.some(function(i) { return i.id === slug; })) {
-                items.push({
-                    id: slug,
-                    title: title.trim(),
-                    posterUrl: img
-                });
-            }
+            items.push({
+                id: match[1],
+                title: match[2].trim(),
+                posterUrl: match[3].indexOf('http') === 0 ? match[3] : "https://www.sieutamphim.pro" + match[3]
+            });
         }
         
+        // Parse phân trang (tìm trang cuối cùng)
+        var totalPages = 1;
+        var pageMatch = html.match(/page=(\d+)"[^>]*>Cuối/);
+        if (pageMatch) totalPages = parseInt(pageMatch[1]);
+
         return JSON.stringify({
             items: items,
-            pagination: { currentPage: 1, totalPages: 10 }
+            pagination: { currentPage: 1, totalPages: totalPages }
         });
     } catch (e) {
         return JSON.stringify({ items: [], pagination: { currentPage: 1, totalPages: 1 } });
@@ -114,53 +106,32 @@ function parseSearchResponse(html) {
 
 function parseMovieDetail(html) {
     try {
-        // 1. Lấy Tiêu đề
-        var titleMatch = html.match(/<h1[^>]*class="post-title"[^>]*>([\s\S]*?)<\/h1>/) || html.match(/<title>([\s\S]*?)<\/title>/);
-        var title = titleMatch ? titleMatch[1].replace(/&amp;/g, '&').trim() : "Phim";
-
-        // 2. Lấy Mô tả
-        var descMatch = html.match(/<div[^>]*class="post-body[^>]*>([\s\S]*?)<\/div>/);
-        var description = descMatch ? descMatch[1].replace(/<[^>]*>/g, '').substring(0, 300).trim() + "..." : "";
-
-        // 3. Lấy Poster
-        var posterMatch = html.match(/<div[^>]*class="post-body"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"/);
-        var poster = posterMatch ? posterMatch[1] : "";
-
-        // 4. Lấy Server và Tập phim
-        // Với Blogspot, link xem thường nằm trong iframe hoặc các nút bấm
+        var title = (html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/) || ["", "Chưa rõ"])[1].trim();
+        var description = (html.match(/<div id="movie-content"[^>]*>([\s\S]*?)<\/div>/) || ["", "Đang cập nhật..."])[1].replace(/<[^>]*>/g, '').trim();
+        var poster = (html.match(/<div class="movie-image">[\s\S]*?src="([^"]+)"/) || ["", ""])[1];
+        
         var servers = [];
+        var episodeGroups = {};
+
+        // Tìm tất cả link tập phim: href="/xem-phim/slug/tap-1"
+        var epRegex = /href="\/xem-phim\/([^"]+)"[^>]*><span>([^<]+)<\/span>/g;
+        var epMatch;
         var episodes = [];
 
-        // Tìm tất cả iframe trong bài viết
-        var iframeRegex = /<iframe[^>]*src="([^"]+)"/g;
-        var iframeMatch;
-        var count = 1;
-        while ((iframeMatch = iframeRegex.exec(html)) !== null) {
-            var url = iframeMatch[1];
-            // Loại bỏ các iframe quảng cáo hoặc facebook nếu có
-            if (url.indexOf('facebook') === -1 && url.indexOf('google') === -1) {
-                episodes.push({
-                    id: url,
-                    name: "Tập " + count,
-                    slug: "tap-" + count
-                });
-                count++;
-            }
-        }
-
-        // Nếu không có iframe, thử tìm link xem phim trực tiếp (thường web này để ở cuối bài)
-        if (episodes.length === 0) {
+        while ((epMatch = epRegex.exec(html)) !== null) {
             episodes.push({
-                id: "current_url", // Sẽ xử lý ở parseDetailResponse
-                name: "Full HD",
-                slug: "full"
+                id: "https://www.sieutamphim.pro/xem-phim/" + epMatch[1],
+                name: epMatch[2].trim(),
+                slug: epMatch[1]
             });
         }
 
-        servers.push({
-            name: "Server VIP",
-            episodes: episodes
-        });
+        if (episodes.length > 0) {
+            servers.push({
+                name: "Vietsub / Thuyết Minh",
+                episodes: episodes
+            });
+        }
 
         return JSON.stringify({
             id: "", 
@@ -169,42 +140,53 @@ function parseMovieDetail(html) {
             description: description,
             servers: servers,
             quality: "HD",
-            status: "Thuyết Minh"
+            status: "Hoàn tất"
         });
     } catch (e) {
-        return JSON.stringify({ title: "Lỗi phân giải chi tiết" });
+        return JSON.stringify({ title: "Error parsing" });
     }
 }
 
 function parseDetailResponse(html) {
-    // Nếu ID truyền vào đã là một link iframe trực tiếp
-    // (như link player.php, hoặc cdn...)
-    
-    // Ở đây tôi giả định App truyền URL iframe từ parseMovieDetail vào
-    var videoUrl = "";
-    
-    // Tìm link video trong HTML (Blogspot thường dùng iframe lồng)
-    var linkMatch = html.match(/file:\s*"([^"]+)"/) || html.match(/source\s*src="([^"]+)"/);
-    
-    if (linkMatch) {
-        videoUrl = linkMatch[1];
-    } else {
-        // Nếu không tìm thấy, trả về HTML để App tự dùng WebView (Embed)
-        var iframeMatch = html.match(/<iframe[^>]*src="([^"]+)"/);
-        videoUrl = iframeMatch ? iframeMatch[1] : "";
-    }
+    try {
+        // Tìm link iframe hoặc link m3u8 trong trang xem phim
+        // Thông thường các web này ẩn link trong script hoặc iframe
+        var playerMatch = html.match(/link":"([^"]+)"/) || html.match(/iframe[^>]*src="([^"]+)"/);
+        var videoUrl = "";
+        
+        if (playerMatch) {
+            videoUrl = playerMatch[1].replace(/\\/g, '');
+        }
 
-    return JSON.stringify({
-        url: videoUrl,
-        headers: {
-            "Referer": "https://www.sieutamphim.pro/",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        },
-        isEmbed: true // Đặt true để App mở bằng WebView nếu là link iframe
-    });
+        // Nếu không thấy link trực tiếp, trả về chính URL đó để App xử lý qua Embed
+        if (!videoUrl) {
+            var currentUrlMatch = html.match(/<link rel="canonical" href="([^"]+)"/);
+            videoUrl = currentUrlMatch ? currentUrlMatch[1] : "";
+        }
+
+        return JSON.stringify({
+            url: videoUrl,
+            headers: {
+                "Referer": "https://www.sieutamphim.pro/",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            isEmbed: videoUrl.includes("embed") || videoUrl.includes("link") 
+        });
+    } catch (e) {
+        return JSON.stringify({ url: "" });
+    }
 }
 
 function parseEmbedResponse(html, sourceUrl) {
+    // Xử lý giải mã link nếu server sử dụng bảo vệ nhiều lớp
+    var fileMatch = html.match(/"file"\s*:\s*"(https?[^"]+)"/) || html.match(/source\s*:\s*"(https?[^"]+)"/);
+    if (fileMatch) {
+        return JSON.stringify({
+            url: fileMatch[1].replace(/\\/g, ''),
+            isEmbed: false,
+            mimeType: "application/x-mpegURL"
+        });
+    }
     return JSON.stringify({ url: "", isEmbed: false });
 }
 
