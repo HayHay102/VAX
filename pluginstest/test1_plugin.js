@@ -5,6 +5,27 @@
 const BASE_URL = "https://www.sieutamphim.pro";
 
 // ========================================================
+// FIX HTML ENTITY TITLE
+// ========================================================
+
+function decodeHtmlEntities(str) {
+    if (!str) return "";
+
+    return str
+        .replace(/&#8211;/g, "-")
+        .replace(/&#8212;/g, "-")
+        .replace(/&#8220;/g, '"')
+        .replace(/&#8221;/g, '"')
+        .replace(/&#8216;/g, "'")
+        .replace(/&#8217;/g, "'")
+        .replace(/&#038;/g, "&")
+        .replace(/&amp;/g, "&")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&nbsp;/g, " ")
+        .trim();
+}
+// ========================================================
 // MANIFEST
 // ========================================================
 
@@ -168,23 +189,6 @@ function parseListResponse(html) {
     }
 }
 
-function decodeHtmlEntities(str) {
-    if (!str) return "";
-
-    return str
-        .replace(/&#8211;/g, "-")
-        .replace(/&#8212;/g, "-")
-        .replace(/&#8220;/g, '"')
-        .replace(/&#8221;/g, '"')
-        .replace(/&#8216;/g, "'")
-        .replace(/&#8217;/g, "'")
-        .replace(/&#038;/g, "&")
-        .replace(/&amp;/g, "&")
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .replace(/&nbsp;/g, " ")
-        .trim();
-}
 function parseSearchResponse(html) {
     return parseListResponse(html);
 }
