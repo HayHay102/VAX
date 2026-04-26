@@ -5,27 +5,6 @@
 const BASE_URL = "https://www.sieutamphim.pro";
 
 // ========================================================
-// FIX HTML ENTITY TITLE
-// ========================================================
-
-function decodeHtmlEntities(str) {
-    if (!str) return "";
-
-    return str
-        .replace(/&#8211;/g, "-")
-        .replace(/&#8212;/g, "-")
-        .replace(/&#8220;/g, '"')
-        .replace(/&#8221;/g, '"')
-        .replace(/&#8216;/g, "'")
-        .replace(/&#8217;/g, "'")
-        .replace(/&#038;/g, "&")
-        .replace(/&amp;/g, "&")
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .replace(/&nbsp;/g, " ")
-        .trim();
-}
-// ========================================================
 // MANIFEST
 // ========================================================
 
@@ -43,6 +22,7 @@ function getManifest() {
         "playerType": "embed"
     });
 }
+
 // ========================================================
 // HOME
 // ========================================================
@@ -194,6 +174,28 @@ function parseSearchResponse(html) {
 }
 
 // ========================================================
+// FIX HTML ENTITY TITLE
+// ========================================================
+
+function decodeHtmlEntities(str) {
+    if (!str) return "";
+
+    return str
+        .replace(/&#8211;/g, "-")
+        .replace(/&#8212;/g, "-")
+        .replace(/&#8220;/g, '"')
+        .replace(/&#8221;/g, '"')
+        .replace(/&#8216;/g, "'")
+        .replace(/&#8217;/g, "'")
+        .replace(/&#038;/g, "&")
+        .replace(/&amp;/g, "&")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&nbsp;/g, " ")
+        .trim();
+}
+
+// ========================================================
 // PARSE DETAIL
 // ========================================================
 
@@ -217,30 +219,39 @@ function parseMovieDetail(html) {
             "";
 
         let episodes = [];
-        let usedEp = {};
+let usedEp = {};
 
-        const epRegex = /href="([^"]+\?server=[^"]+tap=\d+)"/gi;
-        let epMatch;
+// lấy toàn bộ link có chứa ?server= và ?tap=
+const epRegex = /<a[^>]+href="([^"]*?\?[^"]*server=[^"]*?tap=[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
 
-        while ((epMatch = epRegex.exec(html)) !== null) {
-            let epUrl = epMatch[1];
+let epMatch;
 
-            if (!epUrl.startsWith("http")) {
-                epUrl = BASE_URL + epUrl;
-            }
+while ((epMatch = epRegex.exec(html)) !== null) {
+    let epUrl = epMatch[1];
+    let epName = epMatch[2];
 
-            if (!usedEp[epUrl]) {
-                usedEp[epUrl] = true;
+    if (!epUrl.startsWith("http")) {
+        epUrl = BASE_URL + epUrl;
+    }
 
-                let epNum = episodes.length + 1;
+    if (usedEp[epUrl]) continue;
+    usedEp[epUrl] = true;
 
-                episodes.push({
-                    id: epUrl,
-                    name: "Tập " + epNum,
-                    slug: String(epNum)
-                });
-            }
-        }
+    // xoá html tag trong tên tập
+    epName = epName.replace(/<[^>]*>/g, "").trim();
+
+    if (!epName) {
+        epName = "Tập " + (episodes.length + 1);
+    }
+
+    epName = decodeHtmlEntities(epName);
+
+    episodes.push({
+        id: epUrl,
+        name: epName,
+        slug: String(episodes.length + 1)
+    });
+}
 
         // phim lẻ
         if (episodes.length === 0) {
