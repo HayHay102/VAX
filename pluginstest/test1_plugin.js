@@ -87,7 +87,7 @@ function getUrlCountries() { return ""; }
 function getUrlYears() { return ""; }
 
 // ========================================================
-// PARSE LIST
+// PARSE LIST (FIX CLICK SAI PHIM)
 // ========================================================
 
 function parseListResponse(html) {
@@ -95,12 +95,14 @@ function parseListResponse(html) {
         let items = [];
         let used = {};
 
+        // tách từng block phim
         const blockRegex = /<div[^>]*class="[^"]*box-image[^"]*"[\s\S]*?<\/div>\s*<\/div>/gi;
         let block;
 
         while ((block = blockRegex.exec(html)) !== null) {
             let blockHtml = block[0];
 
+            // link phim
             let urlMatch = blockHtml.match(/<a[^>]+href="([^"]+\.html)"/i);
             if (!urlMatch) continue;
 
@@ -113,6 +115,7 @@ function parseListResponse(html) {
             if (used[url]) continue;
             used[url] = true;
 
+            // title
             let titleMatch =
                 blockHtml.match(/alt="([^"]+)"/i) ||
                 blockHtml.match(/title="([^"]+)"/i);
@@ -121,6 +124,7 @@ function parseListResponse(html) {
                 ? decodeHtmlEntities(titleMatch[1])
                 : "Unknown";
 
+            // poster (ưu tiên nhiều kiểu)
             let posterMatch =
                 blockHtml.match(/data-lazy-src="([^"]+)"/i) ||
                 blockHtml.match(/data-src="([^"]+)"/i) ||
@@ -129,10 +133,12 @@ function parseListResponse(html) {
 
             let poster = posterMatch ? posterMatch[1] : "";
 
+            // nếu srcset -> lấy ảnh đầu tiên
             if (poster.includes(",")) {
                 poster = poster.split(",")[0].trim().split(" ")[0];
             }
 
+            // fix protocol //
             if (poster.startsWith("//")) {
                 poster = "https:" + poster;
             }
@@ -168,7 +174,7 @@ function parseSearchResponse(html) {
 }
 
 // ========================================================
-// FIX HTML ENTITY
+// FIX HTML ENTITY TITLE
 // ========================================================
 
 function decodeHtmlEntities(str) {
@@ -213,69 +219,55 @@ function parseMovieDetail(html) {
             "";
 
         let servers = [];
-        let usedEp = {};
 
-        const groupRegex = /<div[^>]*class="[^"]*episodeGroup[^"]*"[^>]*>/gi;
-        let groupMatch;
+        // tìm object js chứa episode data
+        const scriptRegex = /<script[\s\S]*?<\/script>/gi;
+        let scriptMatch;
 
-        while ((groupMatch = groupRegex.exec(html)) !== null) {
-            let tagHtml = groupMatch[0];
+        while ((scriptMatch = scriptRegex.exec(html)) !== null) {
+            let scriptContent = scriptMatch[0];
 
-            let serverMatch = tagHtml.match(/data-server=["']([^"']+)["']/i);
-            let episodesMatch = tagHtml.match(/data-episodes=["']([\s\S]*?)["']/i);
+            // tìm tất cả server
+            const serverRegex = /server["']?\s*:\s*["']([^"']+)["']/gi;
+            let serverMatch;
 
-            if (!serverMatch || !episodesMatch) continue;
+            while ((serverMatch = serverRegex.exec(scriptContent)) !== null) {
+                let serverName = serverMatch[1];
+                let episodes = [];
 
-            let serverName = serverMatch[1];
-            let rawEpisodes = episodesMatch[1];
+                // tìm danh sách tập
+                const epRegex = /["'](?:name|title)["']?\s*:\s*["']([^"']+)["']/gi;
+                let epMatch;
 
-            let episodes = [];
+                while ((epMatch = epRegex.exec(scriptContent)) !== null) {
+                    let epName = decodeHtmlEntities(epMatch[1]);
 
-            const epRegex = /&quot;([^"]+?)&quot;/g;
-            let epMatch;
+                    if (!epName) continue;
 
-            while ((epMatch = epRegex.exec(rawEpisodes)) !== null) {
-                let epName = epMatch[1];
+                    let epUrl =
+                        movieUrl +
+                        "?server=" +
+                        encodeURIComponent(serverName) +
+                        "&tap=" +
+                        (episodes.length + 1);
 
-                epName = decodeHtmlEntities(epName)
-                    .replace(/\\n/g, "")
-                    .replace(/\\r/g, "")
-                    .trim();
-
-                if (
-                    !epName ||
-                    epName.length < 2 ||
-                    /^[^a-zA-Z0-9À-ỹ]+$/.test(epName)
-                ) {
-                    continue;
+                    episodes.push({
+                        id: epUrl,
+                        name: epName,
+                        slug: String(episodes.length + 1)
+                    });
                 }
 
-                let epUrl =
-                    movieUrl +
-                    "?server=" +
-                    encodeURIComponent(serverName) +
-                    "&tap=" +
-                    (episodes.length + 1);
-
-                if (usedEp[epUrl]) continue;
-                usedEp[epUrl] = true;
-
-                episodes.push({
-                    id: epUrl,
-                    name: epName,
-                    slug: String(episodes.length + 1)
-                });
-            }
-
-            if (episodes.length > 0) {
-                servers.push({
-                    name: serverName.toUpperCase(),
-                    episodes: episodes
-                });
+                if (episodes.length > 0) {
+                    servers.push({
+                        name: serverName.toUpperCase(),
+                        episodes: episodes
+                    });
+                }
             }
         }
 
-        // fallback phim lẻ
+        // fallback nếu không có server
         if (servers.length === 0) {
             servers.push({
                 name: "Server 1",
@@ -369,14 +361,7 @@ function parseEmbedResponse(html, sourceUrl) {
 
 // ========================================================
 
-function parseCategoriesResponse(html) {
-    return "[]";
-}
 
-function parseCountriesResponse(html) {
-    return "[]";
-}
-
-function parseYearsResponse(html) {
-    return "[]";
-}
+function parseCategoriesResponse(html) { return "[]"; }
+function parseCountriesResponse(html) { return "[]"; }
+function parseYearsResponse(html) { return "[]"; }
