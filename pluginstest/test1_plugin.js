@@ -218,90 +218,92 @@ function parseMovieDetail(html) {
             (html.match(/<meta property="og:url" content="([^"]+)"/i) || [])[1] ||
             "";
 
-let episodes = [];
-let usedEp = {};
+        let servers = [];
+        let usedEp = {};
 
-// lấy toàn bộ block episodeGroup trước
-const blockRegex = /<div[^>]*class="[^"]*episodeGroup[^"]*"[\s\S]*?<\/div>/gi;
+        const groupRegex = /<div[^>]*class="[^"]*episodeGroup[^"]*"[^>]*>/gi;
+        let groupMatch;
 
-let blockMatch;
+        while ((groupMatch = groupRegex.exec(html)) !== null) {
+            let tagHtml = groupMatch[0];
 
-while ((blockMatch = blockRegex.exec(html)) !== null) {
-    let blockHtml = blockMatch[0];
+            let serverMatch = tagHtml.match(/data-server=["']([^"']+)["']/i);
+            let episodesMatch = tagHtml.match(/data-episodes=["']([\s\S]*?)["']/i);
 
-    // lấy server
-    let serverMatch = blockHtml.match(/data-server=["']([^"']+)["']/i);
+            if (!serverMatch || !episodesMatch) continue;
 
-    // lấy data-episodes
-    let episodesMatch = blockHtml.match(/data-episodes=["']([\s\S]*?)["']/i);
+            let serverName = serverMatch[1];
+            let rawEpisodes = episodesMatch[1];
 
-    if (!serverMatch || !episodesMatch) continue;
+            let episodes = [];
 
-    let serverName = serverMatch[1];
-    let rawEpisodes = episodesMatch[1];
+            const epRegex = /&quot;([^"]+?)&quot;/g;
+            let epMatch;
 
-    try {
-        rawEpisodes = rawEpisodes
-            .replace(/&quot;/g, '"')
-            .replace(/&#039;/g, "'")
-            .replace(/&amp;/g, "&")
-            .replace(/&#8211;/g, "-")
-            .trim();
+            while ((epMatch = epRegex.exec(rawEpisodes)) !== null) {
+                let epName = epMatch[1];
 
-        let epList = JSON.parse(rawEpisodes);
+                epName = decodeHtmlEntities(epName)
+                    .replace(/\\n/g, "")
+                    .replace(/\\r/g, "")
+                    .trim();
 
-        for (let i = 0; i < epList.length; i++) {
-            let epName = epList[i];
+                if (
+                    !epName ||
+                    epName.length < 2 ||
+                    /^[^a-zA-Z0-9À-ỹ]+$/.test(epName)
+                ) {
+                    continue;
+                }
 
-            if (typeof epName !== "string") continue;
+                let epUrl =
+                    movieUrl +
+                    "?server=" +
+                    encodeURIComponent(serverName) +
+                    "&tap=" +
+                    (episodes.length + 1);
 
-            epName = decodeHtmlEntities(epName);
+                if (usedEp[epUrl]) continue;
+                usedEp[epUrl] = true;
 
-            let epUrl =
-                movieUrl +
-                "?server=" +
-                encodeURIComponent(serverName) +
-                "&tap=" +
-                (i + 1);
+                episodes.push({
+                    id: epUrl,
+                    name: epName,
+                    slug: String(episodes.length + 1)
+                });
+            }
 
-            if (usedEp[epUrl]) continue;
-            usedEp[epUrl] = true;
-
-            episodes.push({
-                id: epUrl,
-                name: epName || ("Tập " + (i + 1)),
-                slug: String(i + 1)
-            });
+            if (episodes.length > 0) {
+                servers.push({
+                    name: serverName.toUpperCase(),
+                    episodes: episodes
+                });
+            }
         }
 
-    } catch (err) {
-        continue;
-    }
-}
-
-        // phim lẻ
-        if (episodes.length === 0) {
-            episodes.push({
-                id: movieUrl,
-                name: "Full",
-                slug: "full"
+        // fallback phim lẻ
+        if (servers.length === 0) {
+            servers.push({
+                name: "Server 1",
+                episodes: [
+                    {
+                        id: movieUrl,
+                        name: "Full",
+                        slug: "full"
+                    }
+                ]
             });
         }
 
         return JSON.stringify({
             id: movieUrl,
             title: decodeHtmlEntities(
-    title.replace(" - Siêu Tầm Phim", "").trim()
-),
+                title.replace(" - Siêu Tầm Phim", "").trim()
+            ),
             posterUrl: poster,
             backdropUrl: poster,
             description: description,
-            servers: [
-                {
-                    name: "Server 1",
-                    episodes: episodes
-                }
-            ],
+            servers: servers,
             quality: "HD",
             status: "Completed"
         });
@@ -312,7 +314,6 @@ while ((blockMatch = blockRegex.exec(html)) !== null) {
         });
     }
 }
-
 // ========================================================
 // PARSE VIDEO
 // ========================================================
