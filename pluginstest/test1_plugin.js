@@ -87,7 +87,7 @@ function getUrlCountries() { return ""; }
 function getUrlYears() { return ""; }
 
 // ========================================================
-// PARSE LIST (FIX CLICK SAI PHIM)
+// PARSE LIST
 // ========================================================
 
 function parseListResponse(html) {
@@ -95,14 +95,12 @@ function parseListResponse(html) {
         let items = [];
         let used = {};
 
-        // tách từng block phim
         const blockRegex = /<div[^>]*class="[^"]*box-image[^"]*"[\s\S]*?<\/div>\s*<\/div>/gi;
         let block;
 
         while ((block = blockRegex.exec(html)) !== null) {
             let blockHtml = block[0];
 
-            // link phim
             let urlMatch = blockHtml.match(/<a[^>]+href="([^"]+\.html)"/i);
             if (!urlMatch) continue;
 
@@ -115,7 +113,6 @@ function parseListResponse(html) {
             if (used[url]) continue;
             used[url] = true;
 
-            // title
             let titleMatch =
                 blockHtml.match(/alt="([^"]+)"/i) ||
                 blockHtml.match(/title="([^"]+)"/i);
@@ -124,7 +121,6 @@ function parseListResponse(html) {
                 ? decodeHtmlEntities(titleMatch[1])
                 : "Unknown";
 
-            // poster (ưu tiên nhiều kiểu)
             let posterMatch =
                 blockHtml.match(/data-lazy-src="([^"]+)"/i) ||
                 blockHtml.match(/data-src="([^"]+)"/i) ||
@@ -133,12 +129,10 @@ function parseListResponse(html) {
 
             let poster = posterMatch ? posterMatch[1] : "";
 
-            // nếu srcset -> lấy ảnh đầu tiên
             if (poster.includes(",")) {
                 poster = poster.split(",")[0].trim().split(" ")[0];
             }
 
-            // fix protocol //
             if (poster.startsWith("//")) {
                 poster = "https:" + poster;
             }
@@ -174,7 +168,7 @@ function parseSearchResponse(html) {
 }
 
 // ========================================================
-// FIX HTML ENTITY TITLE
+// FIX HTML ENTITY
 // ========================================================
 
 function decodeHtmlEntities(str) {
@@ -314,6 +308,7 @@ function parseMovieDetail(html) {
         });
     }
 }
+
 // ========================================================
 // PARSE VIDEO
 // ========================================================
@@ -374,7 +369,14 @@ function parseEmbedResponse(html, sourceUrl) {
 
 // ========================================================
 
+function parseCategoriesResponse(html) {
+    return "[]";
+}
 
-function parseCategoriesResponse(html) { return "[]"; }
-function parseCountriesResponse(html) { return "[]"; }
-function parseYearsResponse(html) { return "[]"; }
+function parseCountriesResponse(html) {
+    return "[]";
+}
+
+function parseYearsResponse(html) {
+    return "[]";
+}
