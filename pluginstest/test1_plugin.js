@@ -242,8 +242,9 @@ function parseMovieDetail(html) {
                     episodes: episodes
                 }
             ],
-            quality: "HD",
-            status: "Completed"
+            quality: movie.quality || "",
+            year: movie.year || 0,
+            status: movie.status || ""
         });
 
     } catch (e) {
