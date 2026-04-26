@@ -179,7 +179,7 @@ function parseSearchResponse(html) {
 function parseMovieDetail(html) {
     try {
         const title =
-            (html.match(/<meta property="article:tag" content="([^"]+)"/i) || [])[1] ||
+            (html.match(/<meta property="og:title" content="([^"]+)"/i) || [])[1] ||
             (html.match(/<title>(.*?)<\/title>/i) || [])[1] ||
             "Unknown";
 
