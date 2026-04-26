@@ -94,29 +94,59 @@ function parseListResponse(html) {
         let items = [];
         let used = {};
 
-        // chỉ lấy block phim thật
-        const regex = /<div[^>]*class="[^"]*box-image[^"]*"[\s\S]*?<a[^>]+href="([^"]+\.html)"[\s\S]*?<img[^>]+(?:data-src|src)="([^"]+)"[\s\S]*?(?:alt|title)="([^"]+)"/gi;
+        // tách từng block phim
+        const blockRegex = /<div[^>]*class="[^"]*box-image[^"]*"[\s\S]*?<\/div>\s*<\/div>/gi;
+        let block;
 
-        let match;
+        while ((block = blockRegex.exec(html)) !== null) {
+            let blockHtml = block[0];
 
-        while ((match = regex.exec(html)) !== null) {
-            let url = match[1];
-            let image = match[2];
-            let title = match[3];
+            // link phim
+            let urlMatch = blockHtml.match(/<a[^>]+href="([^"]+\.html)"/i);
+            if (!urlMatch) continue;
+
+            let url = urlMatch[1];
 
             if (!url.startsWith("http")) {
                 url = BASE_URL + url;
             }
 
-            if (!used[url]) {
-                used[url] = true;
+            if (used[url]) continue;
+            used[url] = true;
 
-                items.push({
-                    id: url,          // đúng URL phim
-                    title: title.trim(),
-                    posterUrl: image
-                });
+            // title
+            let titleMatch =
+                blockHtml.match(/alt="([^"]+)"/i) ||
+                blockHtml.match(/title="([^"]+)"/i);
+
+            let title = titleMatch
+                ? titleMatch[1].trim()
+                : "Unknown";
+
+            // poster (ưu tiên nhiều kiểu)
+            let posterMatch =
+                blockHtml.match(/data-lazy-src="([^"]+)"/i) ||
+                blockHtml.match(/data-src="([^"]+)"/i) ||
+                blockHtml.match(/src="([^"]+)"/i) ||
+                blockHtml.match(/srcset="([^"]+)"/i);
+
+            let poster = posterMatch ? posterMatch[1] : "";
+
+            // nếu srcset -> lấy ảnh đầu tiên
+            if (poster.includes(",")) {
+                poster = poster.split(",")[0].trim().split(" ")[0];
             }
+
+            // fix protocol //
+            if (poster.startsWith("//")) {
+                poster = "https:" + poster;
+            }
+
+            items.push({
+                id: url,
+                title: title,
+                posterUrl: poster
+            });
         }
 
         return JSON.stringify({
