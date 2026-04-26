@@ -221,36 +221,51 @@ function parseMovieDetail(html) {
         let episodes = [];
 let usedEp = {};
 
-// lấy toàn bộ link có chứa ?server= và ?tap=
-const epRegex = /<a[^>]+href="([^"]*?\?[^"]*server=[^"]*?tap=[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
+// lấy block episode thật của site
+const groupRegex = /<div[^>]*class="[^"]*episodeGroup[^"]*"[^>]*data-server="([^"]+)"[^>]*data-episodes="([^"]+)"/gi;
 
-let epMatch;
+let groupMatch;
 
-while ((epMatch = epRegex.exec(html)) !== null) {
-    let epUrl = epMatch[1];
-    let epName = epMatch[2];
+while ((groupMatch = groupRegex.exec(html)) !== null) {
+    let serverName = groupMatch[1];
+    let rawEpisodes = groupMatch[2];
 
-    if (!epUrl.startsWith("http")) {
-        epUrl = BASE_URL + epUrl;
+    try {
+        // decode html entity
+        rawEpisodes = rawEpisodes
+            .replace(/&quot;/g, '"')
+            .replace(/&#8211;/g, "-")
+            .replace(/&amp;/g, "&");
+
+        let epList = JSON.parse(rawEpisodes);
+
+        for (let i = 0; i < epList.length; i++) {
+            let epName = epList[i];
+
+            if (typeof epName !== "string") continue;
+
+            epName = decodeHtmlEntities(epName);
+
+            let epUrl =
+                movieUrl +
+                "?server=" +
+                encodeURIComponent(serverName) +
+                "&tap=" +
+                (i + 1);
+
+            if (usedEp[epUrl]) continue;
+            usedEp[epUrl] = true;
+
+            episodes.push({
+                id: epUrl,
+                name: epName,
+                slug: String(i + 1)
+            });
+        }
+
+    } catch (e) {
+        continue;
     }
-
-    if (usedEp[epUrl]) continue;
-    usedEp[epUrl] = true;
-
-    // xoá html tag trong tên tập
-    epName = epName.replace(/<[^>]*>/g, "").trim();
-
-    if (!epName) {
-        epName = "Tập " + (episodes.length + 1);
-    }
-
-    epName = decodeHtmlEntities(epName);
-
-    episodes.push({
-        id: epUrl,
-        name: epName,
-        slug: String(episodes.length + 1)
-    });
 }
 
         // phim lẻ
