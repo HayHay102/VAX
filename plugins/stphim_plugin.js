@@ -10,7 +10,7 @@ const BASE_URL = "https://www.sieutamphim.pro";
 
 function getManifest() {
     return JSON.stringify({
-        "id": "test1",
+        "id": "stphim",
         "name": "Sưu Tầm Phim",
         "version": "1.0.1",
         "baseUrl": "https://www.sieutamphim.pro",
