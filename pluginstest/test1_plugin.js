@@ -219,58 +219,59 @@ function parseMovieDetail(html) {
             "";
 
         let servers = [];
+        let usedServer = {};
 
-        // tìm object js chứa episode data
-        const scriptRegex = /<script[\s\S]*?<\/script>/gi;
-        let scriptMatch;
+        // tìm từng block server riêng
+        const serverBlockRegex =
+            /server["']?\s*:\s*["']([^"']+)["'][\s\S]*?episodes["']?\s*:\s*\[(.*?)\]/gi;
 
-        while ((scriptMatch = scriptRegex.exec(html)) !== null) {
-            let scriptContent = scriptMatch[0];
+        let serverMatch;
 
-            // tìm tất cả server
-            const serverRegex = /server["']?\s*:\s*["']([^"']+)["']/gi;
-            let serverMatch;
+        while ((serverMatch = serverBlockRegex.exec(html)) !== null) {
+            let serverName = serverMatch[1];
+            let episodeBlock = serverMatch[2];
 
-            while ((serverMatch = serverRegex.exec(scriptContent)) !== null) {
-                let serverName = serverMatch[1];
-                let episodes = [];
+            if (usedServer[serverName]) continue;
+            usedServer[serverName] = true;
 
-                // tìm danh sách tập
-                const epRegex = /["'](?:name|title)["']?\s*:\s*["']([^"']+)["']/gi;
-                let epMatch;
+            let episodes = [];
 
-                while ((epMatch = epRegex.exec(scriptContent)) !== null) {
-                    let epName = decodeHtmlEntities(epMatch[1]);
+            const epRegex =
+                /["'](?:name|title)["']?\s*:\s*["']([^"']+)["']/gi;
 
-                    if (!epName) continue;
+            let epMatch;
 
-                    let epUrl =
-                        movieUrl +
-                        "?server=" +
-                        encodeURIComponent(serverName) +
-                        "&tap=" +
-                        (episodes.length + 1);
+            while ((epMatch = epRegex.exec(episodeBlock)) !== null) {
+                let epName = decodeHtmlEntities(epMatch[1]).trim();
 
-                    episodes.push({
-                        id: epUrl,
-                        name: epName,
-                        slug: String(episodes.length + 1)
-                    });
-                }
+                if (!epName) continue;
 
-                if (episodes.length > 0) {
-                    servers.push({
-                        name: serverName.toUpperCase(),
-                        episodes: episodes
-                    });
-                }
+                let epUrl =
+                    movieUrl +
+                    "?server=" +
+                    encodeURIComponent(serverName) +
+                    "&tap=" +
+                    (episodes.length + 1);
+
+                episodes.push({
+                    id: epUrl,
+                    name: epName,
+                    slug: String(episodes.length + 1)
+                });
+            }
+
+            if (episodes.length > 0) {
+                servers.push({
+                    name: serverName,
+                    episodes: episodes
+                });
             }
         }
 
-        // fallback nếu không có server
+        // fallback phim lẻ
         if (servers.length === 0) {
             servers.push({
-                name: "Server 1",
+                name: "Default",
                 episodes: [
                     {
                         id: movieUrl,
