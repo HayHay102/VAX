@@ -120,7 +120,7 @@ function parseListResponse(html) {
                 blockHtml.match(/title="([^"]+)"/i);
 
             let title = titleMatch
-                ? titleMatch[1].trim()
+                ? decodeHtmlEntities(titleMatch[1])
                 : "Unknown";
 
             // poster (ưu tiên nhiều kiểu)
@@ -232,7 +232,9 @@ function parseMovieDetail(html) {
 
         return JSON.stringify({
             id: movieUrl,
-            title: title.replace(" - Siêu Tầm Phim", "").trim(),
+            title: decodeHtmlEntities(
+    title.replace(" - Siêu Tầm Phim", "").trim()
+),
             posterUrl: poster,
             backdropUrl: poster,
             description: description,
