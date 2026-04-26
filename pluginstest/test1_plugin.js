@@ -218,24 +218,35 @@ function parseMovieDetail(html) {
             (html.match(/<meta property="og:url" content="([^"]+)"/i) || [])[1] ||
             "";
 
-        let episodes = [];
+let episodes = [];
 let usedEp = {};
 
-// lấy block episode thật của site
-const groupRegex = /<div[^>]*class="[^"]*episodeGroup[^"]*"[^>]*data-server="([^"]+)"[^>]*data-episodes="([^"]+)"/gi;
+// lấy toàn bộ block episodeGroup trước
+const blockRegex = /<div[^>]*class="[^"]*episodeGroup[^"]*"[\s\S]*?<\/div>/gi;
 
-let groupMatch;
+let blockMatch;
 
-while ((groupMatch = groupRegex.exec(html)) !== null) {
-    let serverName = groupMatch[1];
-    let rawEpisodes = groupMatch[2];
+while ((blockMatch = blockRegex.exec(html)) !== null) {
+    let blockHtml = blockMatch[0];
+
+    // lấy server
+    let serverMatch = blockHtml.match(/data-server=["']([^"']+)["']/i);
+
+    // lấy data-episodes
+    let episodesMatch = blockHtml.match(/data-episodes=["']([\s\S]*?)["']/i);
+
+    if (!serverMatch || !episodesMatch) continue;
+
+    let serverName = serverMatch[1];
+    let rawEpisodes = episodesMatch[1];
 
     try {
-        // decode html entity
         rawEpisodes = rawEpisodes
             .replace(/&quot;/g, '"')
+            .replace(/&#039;/g, "'")
+            .replace(/&amp;/g, "&")
             .replace(/&#8211;/g, "-")
-            .replace(/&amp;/g, "&");
+            .trim();
 
         let epList = JSON.parse(rawEpisodes);
 
@@ -258,12 +269,12 @@ while ((groupMatch = groupRegex.exec(html)) !== null) {
 
             episodes.push({
                 id: epUrl,
-                name: epName,
+                name: epName || ("Tập " + (i + 1)),
                 slug: String(i + 1)
             });
         }
 
-    } catch (e) {
+    } catch (err) {
         continue;
     }
 }
