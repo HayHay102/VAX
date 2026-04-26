@@ -30,6 +30,13 @@
             "iconUrl": "https://raw.githubusercontent.com/youngbi/repo/main/plugins/hh3d.ico"
         },
         {
+            "id": "stphim",
+            "name": "Siêu Tầm Phim",
+            "version": "1.0.0",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/stphim_plugin.js",
+            "iconUrl": "https://www.sieutamphim.pro/posts/2024/06/cropped-logosieutamphim-192x192.png"
+        }
+        {
             "id": "clbpx",
             "name": "CLB Phim Xưa",
             "version": "1.0.6",
