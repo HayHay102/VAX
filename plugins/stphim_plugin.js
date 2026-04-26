@@ -28,10 +28,10 @@ function getManifest() {
 
 function getHomeSections() {
     return JSON.stringify([
-        { slug: "phim-moi", title: "Phim Mới", type: "Horizontal" },
         { slug: "phim-bo", title: "Phim Bộ", type: "Horizontal" },
         { slug: "phim-le", title: "Phim Lẻ", type: "Horizontal" },
-        { slug: "long-tieng", title: "Phim Lồng Tiếng", type: "Horizontal" }
+        { slug: "long-tieng", title: "Phim Lồng Tiếng", type: "Horizontal" },
+        { slug: "phim-moi", title: "Mới cập nhật", type: "Grid" }
     ]);
 }
 // ========================================================
