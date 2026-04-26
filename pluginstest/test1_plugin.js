@@ -243,7 +243,6 @@ function parseMovieDetail(html) {
                 }
             ],
             quality: movie.quality || "",
-            year: movie.year || 0,
             status: movie.status || ""
         });
 
