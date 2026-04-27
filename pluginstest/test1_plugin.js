@@ -246,27 +246,15 @@ while ((match = groupRegex.exec(html)) !== null) {
 if (epMatch) {
     let rawEpisodes = epMatch[1];
 
-    rawEpisodes = decodeHtmlEntities(rawEpisodes);
+    // source thật của Siêu Tầm Phim:
+    // {&quot;xxxxx&quot;,&quot;1&quot;}
+    // {&quot;xxxxx&quot;,&quot;2&quot;}
+    // {&quot;xxxxx&quot;,&quot;3&quot;}
 
-    // thử parse JSON array thật
-    try {
-        let parsed = JSON.parse(rawEpisodes);
+    let epMatches = rawEpisodes.match(/,&quot;\d+&quot;\s*}/g);
 
-        if (Array.isArray(parsed)) {
-            epCount = parsed.length;
-        }
-    } catch (e) {
-        // fallback regex đếm tập
-        let matches =
-            rawEpisodes.match(/Tập\s*\d+/gi) ||
-            rawEpisodes.match(/Episode\s*\d+/gi) ||
-            rawEpisodes.match(/EP\s*\d+/gi) ||
-            rawEpisodes.match(/"[^"]+"/g) ||
-            rawEpisodes.match(/'[^']+'/g);
-
-        if (matches) {
-            epCount = matches.length;
-        }
+    if (epMatches && epMatches.length > 0) {
+        epCount = epMatches.length;
     }
 }
 
