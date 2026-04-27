@@ -219,53 +219,56 @@ function parseMovieDetail(html) {
             (html.match(/<meta property="og:url" content="([^"]+)"/i) || [])[1] ||
             "";
 
-// ======================================================
+/// ======================================================
 // 🎯 LẤY DANH SÁCH TẬP TỪ data-episodes
 // ======================================================
 
 let episodeList = [];
 
 try {
-    let matches;
-    let regex = /data-episodes=["']([\s\S]*?)["']/gi;
+    let matches = html.match(/data-episodes=["']([\s\S]*?)["']/gi);
 
-    while ((matches = regex.exec(html)) !== null) {
-        let raw = matches[1];
+    if (matches) {
+        for (let i = 0; i < matches.length; i++) {
 
-        // decode HTML entities
-        raw = raw
-            .replace(/&quot;/g, '"')
-            .replace(/&#39;/g, "'")
-            .replace(/&amp;/g, "&");
+            let raw = matches[i].match(/data-episodes=["']([\s\S]*?)["']/i);
+            if (!raw) continue;
 
-        // convert { } → [ ] để thành JSON hợp lệ
-        raw = raw.replace(/{/g, "[").replace(/}/g, "]");
+            let data = raw[1];
 
-        let parsed;
-        try {
-            parsed = JSON.parse(raw);
-        } catch (e) {
-            continue;
-        }
+            // decode HTML entities
+            data = data
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'")
+                .replace(/&amp;/g, "&");
 
-        for (let i = 0; i < parsed.length; i++) {
-            let epName = parsed[i][1];
+            // convert object giả → array
+            data = data.replace(/{/g, "[").replace(/}/g, "]");
 
-            // tránh trùng tập
-            if (!episodeList.includes(epName)) {
-                episodeList.push(epName);
+            let parsed;
+
+            try {
+                parsed = JSON.parse(data);
+            } catch (e) {
+                continue;
+            }
+
+            for (let j = 0; j < parsed.length; j++) {
+                let epName = parsed[j][1];
+
+                // tránh trùng tập
+                if (!episodeList.includes(epName)) {
+                    episodeList.push(epName);
+                }
             }
         }
     }
 
 } catch (e) {}
 
-// ======================================================
-// 🎬 FALLBACK NẾU KHÔNG CÓ data-episodes
-// ======================================================
-
+// fallback nếu lỗi
 if (episodeList.length === 0) {
-    episodeList.push("Full");
+    episodeList.push("1");
 }
 
 // ======================================================
@@ -291,22 +294,20 @@ while ((match = serverRegex.exec(html)) !== null) {
 
     let episodes = [];
 
-    for (let i = 1; i <= epCount; i++) {
-        episodes.push({
-            id:
-                movieUrl +
-                "?server=" +
-                encodeURIComponent(serverId) +
-                "&tap=" +
-                i,
-            name: epCount === 1 ? "Full" : "Tập " + i,
-            slug: String(i)
-        });
-    }
+    let episodes = [];
 
-    servers.push({
-        name: serverId.toUpperCase(),
-        episodes: episodes
+for (let i = 0; i < episodeList.length; i++) {
+    let epName = episodeList[i];
+
+    episodes.push({
+        id:
+            movieUrl +
+            "?server=" +
+            encodeURIComponent(serverId) +
+            "&tap=" +
+            encodeURIComponent(epName),
+        name: epName === "Full" ? "Full" : "Tập " + epName,
+        slug: epName
     });
 }
 
