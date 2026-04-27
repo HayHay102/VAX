@@ -201,111 +201,123 @@ function decodeHtmlEntities(str) {
 
 function parseMovieDetail(html) {
     try {
-        // ===== BASIC INFO =====
+        // ===== BASIC =====
         const title =
-            (html.match(/<meta property="og:title" content="([^"]+)"/i) || [])[1] ||
-            (html.match(/<title>(.*?)<\/title>/i) || [])[1] ||
-            "Unknown";
+            (html.match(/og:title" content="([^"]+)"/i) || [])[1] || "Unknown";
 
         const poster =
-            (html.match(/<meta property="og:image" content="([^"]+)"/i) || [])[1] ||
-            "";
+            (html.match(/og:image" content="([^"]+)"/i) || [])[1] || "";
 
         const description =
-            (html.match(/<meta property="og:description" content="([^"]+)"/i) || [])[1] ||
-            "";
+            (html.match(/og:description" content="([^"]+)"/i) || [])[1] || "";
 
         const movieUrl =
-            (html.match(/<meta property="og:url" content="([^"]+)"/i) || [])[1] ||
-            "";
+            (html.match(/og:url" content="([^"]+)"/i) || [])[1] || "";
 
         // ======================================================
-        // 🔥 LẤY TẤT CẢ SERVER
-        // ======================================================
-
-        let serverList = [];
-        let serverRegex = /data-server=["']([^"']+)["']/gi;
-        let sm;
-
-        while ((sm = serverRegex.exec(html)) !== null) {
-            serverList.push(sm[1]);
-        }
-
-        // ======================================================
-        // 🔥 LẤY TẤT CẢ data-episodes
-        // ======================================================
-
-        let episodeBlocks = [];
-        let epRegex = /data-episodes=["']([\s\S]*?)["']/gi;
-        let em;
-
-        while ((em = epRegex.exec(html)) !== null) {
-            episodeBlocks.push(em[1]);
-        }
-
-        // ======================================================
-        // 🔥 GHÉP SERVER ↔ EPISODES
+        // 🔥 LẤY DANH SÁCH SERVER (GIỮ NGUYÊN LOGIC CŨ)
         // ======================================================
 
         let servers = [];
-        let max = Math.max(serverList.length, episodeBlocks.length);
+        let usedServer = {};
 
-        for (let i = 0; i < max; i++) {
-            let serverId = serverList[i] || ("hx" + (i + 1));
-            let raw = episodeBlocks[i];
+        let serverRegex = /data-server=["']([^"']+)["']/gi;
+        let match;
 
-            if (!raw) continue;
+        let serverList = [];
 
-            // ===== decode HTML =====
+        while ((match = serverRegex.exec(html)) !== null) {
+            let serverId = match[1];
+
+            if (usedServer[serverId]) continue;
+            usedServer[serverId] = true;
+
+            serverList.push(serverId);
+        }
+
+        // ======================================================
+        // 🔥 LẤY 1 BLOCK data-episodes (CHUẨN NHẤT)
+        // ======================================================
+
+        let epMatch = html.match(/data-episodes=["']([\s\S]*?)["']/i);
+
+        let episodes = [];
+
+        if (epMatch) {
+            let raw = epMatch[1];
+
             raw = raw
                 .replace(/&quot;/g, '"')
                 .replace(/&#39;/g, "'")
                 .replace(/&amp;/g, "&");
 
-            // ===== convert fake JSON =====
             raw = raw.replace(/{/g, "[").replace(/}/g, "]");
 
             let parsed;
+
             try {
                 parsed = JSON.parse(raw);
             } catch (e) {
-                continue;
+                parsed = [];
             }
 
-            let episodes = [];
-
-            for (let j = 0; j < parsed.length; j++) {
-                let epName = parsed[j][1];
+            for (let i = 0; i < parsed.length; i++) {
+                let epName = parsed[i][1];
 
                 if (!epName) continue;
 
                 episodes.push({
-                    id:
-                        movieUrl +
-                        "?server=" +
-                        encodeURIComponent(serverId) +
-                        "&tap=" +
-                        encodeURIComponent(epName),
-                    name:
-                        epName === "Full"
-                            ? "Full"
-                            : epName.startsWith("Tập")
-                            ? epName
-                            : "Tập " + epName,
+                    name: epName,
                     slug: epName
-                });
-            }
-
-            if (episodes.length > 0) {
-                servers.push({
-                    name: serverId.toUpperCase(),
-                    episodes: episodes
                 });
             }
         }
 
         // ======================================================
-        // ⚠️ FALLBACK (PHÒNG TRƯỜNG HỢP HTML KHÔNG CÓ)
+        // 🔥 BUILD SERVER + EPISODES
+        // ======================================================
+
+        for (let i = 0; i < serverList.length; i++) {
+            let serverId = serverList[i];
+
+            let eps = [];
+
+            if (episodes.length > 0) {
+                // dùng data-episodes thật
+                for (let j = 0; j < episodes.length; j++) {
+                    let epName = episodes[j].name;
+
+                    eps.push({
+                        id:
+                            movieUrl +
+                            "?server=" +
+                            encodeURIComponent(serverId) +
+                            "&tap=" +
+                            encodeURIComponent(epName),
+                        name:
+                            epName === "Full"
+                                ? "Full"
+                                : "Tập " + epName,
+                        slug: epName
+                    });
+                }
+            } else {
+                // fallback nếu không có data-episodes
+                eps.push({
+                    id: movieUrl,
+                    name: "Full",
+                    slug: "full"
+                });
+            }
+
+            servers.push({
+                name: serverId.toUpperCase(),
+                episodes: eps
+            });
+        }
+
+        // ======================================================
+        // ⚠️ fallback nếu KHÔNG có server
         // ======================================================
 
         if (servers.length === 0) {
@@ -322,14 +334,9 @@ function parseMovieDetail(html) {
         }
 
         // ======================================================
-        // 🎬 RETURN
-        // ======================================================
-
         return JSON.stringify({
             id: movieUrl,
-            title: decodeHtmlEntities(
-                title.replace(" - Siêu Tầm Phim", "").trim()
-            ),
+            title: title,
             posterUrl: poster,
             backdropUrl: poster,
             description: description,
@@ -339,9 +346,7 @@ function parseMovieDetail(html) {
         });
 
     } catch (e) {
-        return JSON.stringify({
-            servers: []
-        });
+        return JSON.stringify({ servers: [] });
     }
 }
 
