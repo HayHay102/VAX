@@ -201,6 +201,7 @@ function decodeHtmlEntities(str) {
 
 function parseMovieDetail(html) {
     try {
+        // ===== BASIC INFO =====
         const title =
             (html.match(/<meta property="og:title" content="([^"]+)"/i) || [])[1] ||
             (html.match(/<title>(.*?)<\/title>/i) || [])[1] ||
@@ -218,89 +219,53 @@ function parseMovieDetail(html) {
             (html.match(/<meta property="og:url" content="([^"]+)"/i) || [])[1] ||
             "";
 
-        let servers = [];
-let usedServer = {};
+        // ======================================================
+        // 🎯 LẤY SỐ TẬP (QUAN TRỌNG NHẤT)
+        // ======================================================
 
-// lấy toàn bộ tag có episodeGroup
-const groupRegex = /<div[^>]*episodeGroup[^>]*>/gi;
-let match;
+        let epCount = 1;
 
-while ((match = groupRegex.exec(html)) !== null) {
-    let tagHtml = match[0];
+        // ✔️ ưu tiên từ title: Status: 366 / 366
+        let matchTitle = html.match(/Status:\s*(\d+)\s*\//i);
+        if (matchTitle) {
+            epCount = parseInt(matchTitle[1]);
+        }
 
-    // lấy server linh hoạt hơn
-    let serverMatch = tagHtml.match(/data-server=['"]([^'"]+)['"]/i);
+        // ✔️ fallback từ description
+        if (epCount === 1) {
+            let matchDesc = html.match(/Số Tập Phát Sóng\s*:\s*(\d+)/i);
+            if (matchDesc) {
+                epCount = parseInt(matchDesc[1]);
+            }
+        }
 
-    if (!serverMatch) continue;
+        // safety
+        if (!epCount || epCount <= 0) epCount = 1;
 
-    let serverId = serverMatch[1];
+        // ======================================================
+        // 🎬 TẠO DANH SÁCH TẬP
+        // ======================================================
 
-    if (usedServer[serverId]) continue;
-    usedServer[serverId] = true;
+        let episodes = [];
 
-    // lấy data-episodes nếu có
-    let epCount = 1;
-
-// lấy toàn bộ data-episodes từ html gốc thay vì tagHtml
-let serverBlockRegex = new RegExp(
-    'data-server=["\']' + serverId + '["\'][\\s\\S]*?data-episodes="([\\s\\S]*?)"\\s*>',
-    "i"
-);
-
-let epBlockMatch = html.match(serverBlockRegex);
-
-if (epBlockMatch) {
-    let rawEpisodes = epBlockMatch[1];
-
-    // đếm đúng số tập:
-    // ,"1"}
-    // ,"2"}
-    // ,"3"}
-    let epMatches = rawEpisodes.match(/,&quot;\d+&quot;\s*}/g);
-
-    if (epMatches && epMatches.length > 0) {
-        epCount = epMatches.length;
-    }
-}
-
-    if (epCount <= 0) {
-        epCount = 1;
-    }
-
-    let episodes = [];
-
-    for (let i = 1; i <= epCount; i++) {
-        episodes.push({
-            id:
-                movieUrl +
-                "?server=" +
-                encodeURIComponent(serverId) +
-                "&tap=" +
-                i,
-            name: epCount === 1 ? "Full" : "Tập " + i,
-            slug: String(i)
-        });
-    }
-
-    servers.push({
-        name: serverId.toUpperCase(),
-        episodes: episodes
-    });
-}
-
-        // phim lẻ fallback
-        if (servers.length === 0) {
-            servers.push({
-                name: "Default",
-                episodes: [
-                    {
-                        id: movieUrl,
-                        name: "Full",
-                        slug: "full"
-                    }
-                ]
+        for (let i = 1; i <= epCount; i++) {
+            episodes.push({
+                id: movieUrl + "?tap=" + i,
+                name: epCount === 1 ? "Full" : "Tập " + i,
+                slug: String(i)
             });
         }
+
+        let servers = [
+            {
+                name: "Default",
+                episodes: episodes
+            }
+        ];
+
+        // ======================================================
+        // 🎯 RETURN
+        // ======================================================
 
         return JSON.stringify({
             id: movieUrl,
@@ -312,7 +277,7 @@ if (epBlockMatch) {
             description: description,
             servers: servers,
             quality: "HD",
-            status: "Completed"
+            status: epCount > 1 ? "Ongoing" : "Completed"
         });
 
     } catch (e) {
