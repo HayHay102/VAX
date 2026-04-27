@@ -243,16 +243,32 @@ while ((match = groupRegex.exec(html)) !== null) {
 
     let epCount = 1;
 
-    if (epMatch) {
-        let rawEpisodes = epMatch[1];
+if (epMatch) {
+    let rawEpisodes = epMatch[1];
 
-        // đếm số tập
-        let quoteCount = (rawEpisodes.match(/&quot;/g) || []).length;
+    rawEpisodes = decodeHtmlEntities(rawEpisodes);
 
-        if (quoteCount > 0) {
-            epCount = Math.floor(quoteCount / 2);
+    // thử parse JSON array thật
+    try {
+        let parsed = JSON.parse(rawEpisodes);
+
+        if (Array.isArray(parsed)) {
+            epCount = parsed.length;
+        }
+    } catch (e) {
+        // fallback regex đếm tập
+        let matches =
+            rawEpisodes.match(/Tập\s*\d+/gi) ||
+            rawEpisodes.match(/Episode\s*\d+/gi) ||
+            rawEpisodes.match(/EP\s*\d+/gi) ||
+            rawEpisodes.match(/"[^"]+"/g) ||
+            rawEpisodes.match(/'[^']+'/g);
+
+        if (matches) {
+            epCount = matches.length;
         }
     }
+}
 
     if (epCount <= 0) {
         epCount = 1;
