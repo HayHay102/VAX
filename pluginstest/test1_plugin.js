@@ -201,119 +201,128 @@ function decodeHtmlEntities(str) {
 
 function parseMovieDetail(html) {
     try {
-        // ================= BASIC =================
+        // ===== BASIC INFO =====
         const title =
-            (html.match(/og:title" content="([^"]+)"/i) || [])[1] || "Unknown";
+            (html.match(/<meta property="og:title" content="([^"]+)"/i) || [])[1] ||
+            (html.match(/<title>(.*?)<\/title>/i) || [])[1] ||
+            "Unknown";
 
         const poster =
-            (html.match(/og:image" content="([^"]+)"/i) || [])[1] || "";
+            (html.match(/<meta property="og:image" content="([^"]+)"/i) || [])[1] ||
+            "";
 
         const description =
-            (html.match(/og:description" content="([^"]+)"/i) || [])[1] || "";
+            (html.match(/<meta property="og:description" content="([^"]+)"/i) || [])[1] ||
+            "";
 
         const movieUrl =
-            (html.match(/og:url" content="([^"]+)"/i) || [])[1] || "";
+            (html.match(/<meta property="og:url" content="([^"]+)"/i) || [])[1] ||
+            "";
+
+// ======================================================
+// 🎯 LẤY SỐ TẬP
+// ======================================================
+
+let epCount = 1;
+
+// từ title
+let matchTitle = html.match(/Status:\s*(\d+)\s*\//i);
+if (matchTitle) {
+    epCount = parseInt(matchTitle[1]);
+}
+
+// fallback từ description
+if (epCount === 1) {
+    let matchDesc = html.match(/Số Tập Phát Sóng\s*:\s*(\d+)/i);
+    if (matchDesc) {
+        epCount = parseInt(matchDesc[1]);
+    }
+}
+
+// ======================================================
+// 🎯 PARSE SERVER (GIỮ LẠI LOGIC CŨ NHƯNG SỬA NHẸ)
+// ======================================================
+
+let servers = [];
+let usedServer = {};
+
+// tìm tất cả data-server trong HTML (KHÔNG cần episodeGroup nữa)
+let serverRegex = /data-server=["']([^"']+)["']/gi;
+let match;
+
+while ((match = serverRegex.exec(html)) !== null) {
+    let serverId = match[1];
+
+    if (usedServer[serverId]) continue;
+    usedServer[serverId] = true;
+
+    // ==================================================
+    // 🎬 TẠO EPISODE CHO MỖI SERVER
+    // ==================================================
+
+    let episodes = [];
+
+    for (let i = 1; i <= epCount; i++) {
+        episodes.push({
+            id:
+                movieUrl +
+                "?server=" +
+                encodeURIComponent(serverId) +
+                "&tap=" +
+                i,
+            name: epCount === 1 ? "Full" : "Tập " + i,
+            slug: String(i)
+        });
+    }
+
+    servers.push({
+        name: serverId.toUpperCase(),
+        episodes: episodes
+    });
+}
+
+// ======================================================
+// ⚠️ FALLBACK NẾU KHÔNG CÓ SERVER
+// ======================================================
+
+if (servers.length === 0) {
+    let episodes = [];
+
+    for (let i = 1; i <= epCount; i++) {
+        episodes.push({
+            id: movieUrl + "?tap=" + i,
+            name: epCount === 1 ? "Full" : "Tập " + i,
+            slug: String(i)
+        });
+    }
+
+    servers.push({
+        name: "Default",
+        episodes: episodes
+    });
+}
 
         // ======================================================
-        // 🔥 TÁCH TỪNG BLOCK CÓ data-server
+        // 🎯 RETURN
         // ======================================================
 
-        let servers = [];
-        let used = {};
-
-        const blockRegex = /<[^>]+data-server=["'][^"']+["'][^>]*data-episodes=["'][\s\S]*?["'][^>]*>/gi;
-
-        let block;
-
-        while ((block = blockRegex.exec(html)) !== null) {
-            let tag = block[0];
-
-            // ================= SERVER =================
-            let serverMatch = tag.match(/data-server=["']([^"']+)["']/i);
-            if (!serverMatch) continue;
-
-            let serverId = serverMatch[1];
-
-            if (used[serverId]) continue;
-            used[serverId] = true;
-
-            // ================= EPISODES RAW =================
-            let epMatch = tag.match(/data-episodes=["']([\s\S]*?)["']/i);
-            if (!epMatch) continue;
-
-            let raw = epMatch[1];
-
-            // ================= DECODE =================
-            raw = raw
-                .replace(/&quot;/g, '"')
-                .replace(/&#39;/g, "'")
-                .replace(/&amp;/g, "&");
-
-            // ================= FIX JSON =================
-            raw = raw.replace(/{/g, "[").replace(/}/g, "]");
-
-            let parsed;
-
-            try {
-                parsed = JSON.parse(raw);
-            } catch (e) {
-                continue;
-            }
-
-            // ================= BUILD EPISODES =================
-            let episodes = [];
-
-            for (let i = 0; i < parsed.length; i++) {
-                let epName = parsed[i][1];
-
-                episodes.push({
-                    id:
-                        movieUrl +
-                        "?server=" +
-                        encodeURIComponent(serverId) +
-                        "&tap=" +
-                        encodeURIComponent(epName),
-                    name: epName === "Full" ? "Full" : "Tập " + epName,
-                    slug: epName
-                });
-            }
-
-            if (episodes.length > 0) {
-                servers.push({
-                    name: serverId.toUpperCase(),
-                    episodes: episodes
-                });
-            }
-        }
-
-        // ================= FALLBACK =================
-        if (servers.length === 0) {
-            servers.push({
-                name: "Default",
-                episodes: [
-                    {
-                        id: movieUrl,
-                        name: "Full",
-                        slug: "full"
-                    }
-                ]
-            });
-        }
-
-        // ================= RETURN =================
         return JSON.stringify({
             id: movieUrl,
-            title: decodeHtmlEntities(title),
+            title: decodeHtmlEntities(
+                title.replace(" - Siêu Tầm Phim", "").trim()
+            ),
             posterUrl: poster,
             backdropUrl: poster,
             description: description,
             servers: servers,
             quality: "HD",
-            status: "Completed"
+            status: epCount > 1 ? "Ongoing" : "Completed"
         });
 
     } catch (e) {
-        return JSON.stringify({ servers: [] });
+        return JSON.stringify({
+            servers: []
+        });
     }
 }
 
