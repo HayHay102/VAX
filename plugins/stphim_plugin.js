@@ -1,11 +1,11 @@
 // ========================================================
-// SIÊU TẦM PHIM VAAPP PLUGIN (FIX FULL)
+// SIÊU TẦM PHIM VAAPP PLUGIN (ʚʚ Ƭ Ɗųƴ ɞɞ)
 // ========================================================
 
 const BASE_URL = "https://www.sieutamphim.pro";
 
 // ========================================================
-// MANIFEST
+// CONFIGURATION & METADATA
 // ========================================================
 
 function getManifest() {
@@ -19,7 +19,7 @@ function getManifest() {
         "isAdult": false,
         "type": "MOVIE",
         "layoutType": "VERTICAL",
-        "playerType": "embed"
+        "playerType": "auto"
     });
 }
 
@@ -32,6 +32,7 @@ function getHomeSections() {
         { slug: "phim-bo", title: "Phim Bộ", type: "Horizontal" },
         { slug: "phim-le", title: "Phim Lẻ", type: "Horizontal" },
         { slug: "long-tieng", title: "Phim Lồng Tiếng", type: "Horizontal" },
+        { slug: "phim-viet-nam", title: "Phim Việt Nam", type: "Horizontal" },
         { slug: "phim-moi", title: "Mới cập nhật", type: "Grid" }
     ]);
 }
@@ -41,11 +42,14 @@ function getHomeSections() {
 
 function getPrimaryCategories() {
     return JSON.stringify([
-        { name: 'IQIYI', slug: 'iqiyi' },
-        { name: 'Netflix', slug: 'netflix' },
-        { name: 'CGV Cinemas VN', slug: 'cgv-cinemas-vietnam' },
         { name: 'VieON', slug: 'vieon' },
-        { name: 'Kplus', slug: 'kplus' }
+        { name: 'Netflix', slug: 'netflix' },
+        { name: 'Phim Việt Nam', slug: 'phim-viet-nam' },
+        { name: 'IQIYI', slug: 'iqiyi' },
+        { name: 'CGV CinemasVN', slug: 'cgv-cinemas-vietnam' },
+        { name: 'Galaxy Play', slug: 'galaxy-play' },
+        { name: 'Kplus', slug: 'kplus' },
+        { name: 'HBO', slug: 'hbo' }
     ]);
 }
 
@@ -57,7 +61,7 @@ function getFilterConfig() {
 }
 
 // ========================================================
-// URL
+// URL GENERATION
 // ========================================================
 
 function getUrlList(slug, filtersJson) {
@@ -87,7 +91,7 @@ function getUrlCountries() { return ""; }
 function getUrlYears() { return ""; }
 
 // ========================================================
-// PARSE LIST (FIX CLICK SAI PHIM)
+// PARSE LIST
 // ========================================================
 
 function parseListResponse(html) {
@@ -218,55 +222,99 @@ function parseMovieDetail(html) {
             (html.match(/<meta property="og:url" content="([^"]+)"/i) || [])[1] ||
             "";
 
-        let episodes = [];
-        let usedEp = {};
+        let servers = [];
+let usedServer = {};
 
-        const epRegex = /href="([^"]+\?server=[^"]+tap=\d+)"/gi;
-        let epMatch;
+// lấy toàn bộ tag có episodeGroup
+const groupRegex = /<div[^>]*episodeGroup[^>]*>/gi;
+let match;
 
-        while ((epMatch = epRegex.exec(html)) !== null) {
-            let epUrl = epMatch[1];
+while ((match = groupRegex.exec(html)) !== null) {
+    let tagHtml = match[0];
 
-            if (!epUrl.startsWith("http")) {
-                epUrl = BASE_URL + epUrl;
-            }
+    // lấy server linh hoạt hơn
+    let serverMatch = tagHtml.match(/data-server=['"]([^'"]+)['"]/i);
 
-            if (!usedEp[epUrl]) {
-                usedEp[epUrl] = true;
+    if (!serverMatch) continue;
 
-                let epNum = episodes.length + 1;
+    let serverId = serverMatch[1];
 
-                episodes.push({
-                    id: epUrl,
-                    name: "Tập " + epNum,
-                    slug: String(epNum)
-                });
-            }
-        }
+    if (usedServer[serverId]) continue;
+    usedServer[serverId] = true;
 
-        // phim lẻ
-        if (episodes.length === 0) {
-            episodes.push({
-                id: movieUrl,
-                name: "Full",
-                slug: "full"
+    // lấy data-episodes nếu có
+    let epCount = 1;
+
+// lấy toàn bộ data-episodes từ html gốc thay vì tagHtml
+let serverBlockRegex = new RegExp(
+    'data-server=["\']' + serverId + '["\'][\\s\\S]*?data-episodes="([\\s\\S]*?)"\\s*>',
+    "i"
+);
+
+let epBlockMatch = html.match(serverBlockRegex);
+
+if (epBlockMatch) {
+    let rawEpisodes = epBlockMatch[1];
+
+    // đếm đúng số tập:
+    // ,"1"}
+    // ,"2"}
+    // ,"3"}
+    let epMatches = rawEpisodes.match(/,&quot;\d+&quot;\s*}/g);
+
+    if (epMatches && epMatches.length > 0) {
+        epCount = epMatches.length;
+    }
+}
+
+    if (epCount <= 0) {
+        epCount = 1;
+    }
+
+    let episodes = [];
+
+    for (let i = 1; i <= epCount; i++) {
+        episodes.push({
+            id:
+                movieUrl +
+                "?server=" +
+                encodeURIComponent(serverId) +
+                "&tap=" +
+                i,
+            name: epCount === 1 ? "Full" : "Tập " + i,
+            slug: String(i)
+        });
+    }
+
+    servers.push({
+        name: serverId.toUpperCase(),
+        episodes: episodes
+    });
+}
+
+        // phim lẻ fallback
+        if (servers.length === 0) {
+            servers.push({
+                name: "Default",
+                episodes: [
+                    {
+                        id: movieUrl,
+                        name: "Full",
+                        slug: "full"
+                    }
+                ]
             });
         }
 
         return JSON.stringify({
             id: movieUrl,
             title: decodeHtmlEntities(
-    title.replace(" - Siêu Tầm Phim", "").trim()
-),
+                title.replace(" - Siêu Tầm Phim", "").trim()
+            ),
             posterUrl: poster,
             backdropUrl: poster,
             description: description,
-            servers: [
-                {
-                    name: "Server 1",
-                    episodes: episodes
-                }
-            ],
+            servers: servers,
             quality: "HD",
             status: "Completed"
         });
