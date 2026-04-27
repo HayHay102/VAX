@@ -31,8 +31,8 @@ function getHomeSections() {
     return JSON.stringify([
         { slug: "phim-bo", title: "Phim Bộ", type: "Horizontal" },
         { slug: "phim-le", title: "Phim Lẻ", type: "Horizontal" },
+        { slug: "cgv-cinemas-vietnam", title: "CGV Cinemas Việt Nam", type: "Horizontal" },
         { slug: "long-tieng", title: "Phim Lồng Tiếng", type: "Horizontal" },
-        { slug: "phim-viet-nam", title: "Phim Việt Nam", type: "Horizontal" },
         { slug: "phim-moi", title: "Mới cập nhật", type: "Grid" }
     ]);
 }
@@ -46,7 +46,6 @@ function getPrimaryCategories() {
         { name: 'Netflix', slug: 'netflix' },
         { name: 'Phim Việt Nam', slug: 'phim-viet-nam' },
         { name: 'IQIYI', slug: 'iqiyi' },
-        { name: 'CGV CinemasVN', slug: 'cgv-cinemas-vietnam' },
         { name: 'Galaxy Play', slug: 'galaxy-play' },
         { name: 'Kplus', slug: 'kplus' },
         { name: 'HBO', slug: 'hbo' }
