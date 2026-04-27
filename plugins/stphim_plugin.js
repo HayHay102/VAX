@@ -48,8 +48,8 @@ function getPrimaryCategories() {
         { name: 'Kplus', slug: 'kplus' },
         { name: 'HBO', slug: 'hbo' },
         { name: 'Phim Việt Nam', slug: 'phim-viet-nam' },
-        { name: 'Phim Hàn quốc', slug: 'phim-han-quoc' },
-        { name: 'Phim Trung Quốc', slug: 'phim-trung-quoc' },
+        { name: 'Phim Hàn Quốc', slug: 'phim-han-quoc' },
+        { name: 'Phim Trung quốc', slug: 'phim-trung-quoc' },
         { name: 'Phim Nhật Bản', slug: 'phim-nhat-ban' }
     ]);
 }
