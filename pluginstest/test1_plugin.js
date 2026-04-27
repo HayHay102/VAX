@@ -278,7 +278,7 @@ function parseMovieDetail(html) {
                 continue;
             }
         }
-
+console.log("EPISODES:", episodes.length);
         // ======================================================
         // 🔥 3. BUILD SERVER + EPISODES
         // ======================================================
@@ -364,7 +364,7 @@ function parseMovieDetail(html) {
         });
     }
 }
-console.log("EPISODES:", episodes.length);
+
 // ========================================================
 // PARSE VIDEO
 // ========================================================
