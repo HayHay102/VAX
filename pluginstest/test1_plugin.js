@@ -294,8 +294,6 @@ while ((match = serverRegex.exec(html)) !== null) {
 
     let episodes = [];
 
-    let episodes = [];
-
 for (let i = 0; i < episodeList.length; i++) {
     let epName = episodeList[i];
 
@@ -310,7 +308,6 @@ for (let i = 0; i < episodeList.length; i++) {
         slug: epName
     });
 }
-
 // ======================================================
 // ⚠️ FALLBACK NẾU KHÔNG CÓ SERVER
 // ======================================================
