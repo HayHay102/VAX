@@ -251,7 +251,7 @@ function parseMovieDetail(html) {
         let max = Math.max(serverList.length, episodeBlocks.length);
 
         for (let i = 0; i < max; i++) {
-            let serverId = serverList[i] || ("sv" + (i + 1));
+            let serverId = serverList[i] || ("hx" + (i + 1));
             let raw = episodeBlocks[i];
 
             if (!raw) continue;
