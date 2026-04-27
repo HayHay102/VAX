@@ -341,7 +341,8 @@ if (servers.length === 0) {
         ]
     });
 }
-
+console.log("serverList:", serverList);
+console.log("episodeBlocks:", episodeBlocks);
 // ========================================================
 // PARSE VIDEO
 // ========================================================
