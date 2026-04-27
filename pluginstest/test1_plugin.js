@@ -364,7 +364,7 @@ function parseMovieDetail(html) {
         });
     }
 }
-
+console.log("EPISODES:", episodes.length);
 // ========================================================
 // PARSE VIDEO
 // ========================================================
