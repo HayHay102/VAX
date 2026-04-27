@@ -201,94 +201,70 @@ function decodeHtmlEntities(str) {
 
 function parseMovieDetail(html) {
     try {
-        // ======================================================
-        // 🎬 BASIC INFO
-        // ======================================================
-
+        // ================= BASIC =================
         const title =
-            (html.match(/<meta property="og:title" content="([^"]+)"/i) || [])[1] ||
-            (html.match(/<title>(.*?)<\/title>/i) || [])[1] ||
-            "Unknown";
+            (html.match(/og:title" content="([^"]+)"/i) || [])[1] || "Unknown";
 
         const poster =
-            (html.match(/<meta property="og:image" content="([^"]+)"/i) || [])[1] ||
-            "";
+            (html.match(/og:image" content="([^"]+)"/i) || [])[1] || "";
 
         const description =
-            (html.match(/<meta property="og:description" content="([^"]+)"/i) || [])[1] ||
-            "";
+            (html.match(/og:description" content="([^"]+)"/i) || [])[1] || "";
 
         const movieUrl =
-            (html.match(/<meta property="og:url" content="([^"]+)"/i) || [])[1] ||
-            "";
+            (html.match(/og:url" content="([^"]+)"/i) || [])[1] || "";
 
         // ======================================================
-        // 🔥 FUNCTION PARSE data-episodes
-        // ======================================================
-
-        function extractEpisodes(html, serverId) {
-            try {
-                let regex = new RegExp(
-                    'data-server=["\']' + serverId + '["\'][\\s\\S]*?data-episodes="([\\s\\S]*?)"',
-                    "i"
-                );
-
-                let match = html.match(regex);
-                if (!match) return [];
-
-                let raw = match[1];
-
-                // decode HTML
-                raw = raw
-                    .replace(/&quot;/g, '"')
-                    .replace(/&#39;/g, "'")
-                    .replace(/&amp;/g, "&");
-
-                // convert fake object → array
-                raw = raw.replace(/{/g, "[").replace(/}/g, "]");
-
-                let parsed = JSON.parse(raw);
-
-                let episodes = [];
-
-                for (let i = 0; i < parsed.length; i++) {
-                    let epName = parsed[i][1];
-
-                    episodes.push({
-                        name: epName,
-                        slug: epName
-                    });
-                }
-
-                return episodes;
-
-            } catch (e) {
-                return [];
-            }
-        }
-
-        // ======================================================
-        // 🎯 PARSE SERVER + EPISODES
+        // 🔥 TÁCH TỪNG BLOCK CÓ data-server
         // ======================================================
 
         let servers = [];
-        let usedServer = {};
+        let used = {};
 
-        let serverRegex = /data-server=["']([^"']+)["']/gi;
-        let match;
+        const blockRegex = /<[^>]+data-server=["'][^"']+["'][^>]*data-episodes=["'][\s\S]*?["'][^>]*>/gi;
 
-        while ((match = serverRegex.exec(html)) !== null) {
-            let serverId = match[1];
+        let block;
 
-            if (usedServer[serverId]) continue;
-            usedServer[serverId] = true;
+        while ((block = blockRegex.exec(html)) !== null) {
+            let tag = block[0];
 
-            let rawEpisodes = extractEpisodes(html, serverId);
+            // ================= SERVER =================
+            let serverMatch = tag.match(/data-server=["']([^"']+)["']/i);
+            if (!serverMatch) continue;
 
+            let serverId = serverMatch[1];
+
+            if (used[serverId]) continue;
+            used[serverId] = true;
+
+            // ================= EPISODES RAW =================
+            let epMatch = tag.match(/data-episodes=["']([\s\S]*?)["']/i);
+            if (!epMatch) continue;
+
+            let raw = epMatch[1];
+
+            // ================= DECODE =================
+            raw = raw
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'")
+                .replace(/&amp;/g, "&");
+
+            // ================= FIX JSON =================
+            raw = raw.replace(/{/g, "[").replace(/}/g, "]");
+
+            let parsed;
+
+            try {
+                parsed = JSON.parse(raw);
+            } catch (e) {
+                continue;
+            }
+
+            // ================= BUILD EPISODES =================
             let episodes = [];
 
-            for (let i = 0; i < rawEpisodes.length; i++) {
-                let epName = rawEpisodes[i].name;
+            for (let i = 0; i < parsed.length; i++) {
+                let epName = parsed[i][1];
 
                 episodes.push({
                     id:
@@ -310,10 +286,7 @@ function parseMovieDetail(html) {
             }
         }
 
-        // ======================================================
-        // ⚠️ FALLBACK (PHÒNG TRƯỜNG HỢP SITE LỖI)
-        // ======================================================
-
+        // ================= FALLBACK =================
         if (servers.length === 0) {
             servers.push({
                 name: "Default",
@@ -327,15 +300,10 @@ function parseMovieDetail(html) {
             });
         }
 
-        // ======================================================
-        // 🎬 RETURN
-        // ======================================================
-
+        // ================= RETURN =================
         return JSON.stringify({
             id: movieUrl,
-            title: decodeHtmlEntities(
-                title.replace(" - Siêu Tầm Phim", "").trim()
-            ),
+            title: decodeHtmlEntities(title),
             posterUrl: poster,
             backdropUrl: poster,
             description: description,
@@ -345,9 +313,7 @@ function parseMovieDetail(html) {
         });
 
     } catch (e) {
-        return JSON.stringify({
-            servers: []
-        });
+        return JSON.stringify({ servers: [] });
     }
 }
 
