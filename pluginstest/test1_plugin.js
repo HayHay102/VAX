@@ -219,50 +219,60 @@ function parseMovieDetail(html) {
             "";
 
         let servers = [];
-        let usedServer = {};
+        let serverIds = {};
+        let usedEpisodes = {};
 
-        // tìm từng block server riêng
-        const serverBlockRegex =
-            /server["']?\s*:\s*["']([^"']+)["'][\s\S]*?episodes["']?\s*:\s*\[(.*?)\]/gi;
-
+        // lấy tất cả server id
+        const serverRegex = /data-server=["']([^"']+)["']/gi;
         let serverMatch;
 
-        while ((serverMatch = serverBlockRegex.exec(html)) !== null) {
-            let serverName = serverMatch[1];
-            let episodeBlock = serverMatch[2];
+        while ((serverMatch = serverRegex.exec(html)) !== null) {
+            let serverId = serverMatch[1];
 
-            if (usedServer[serverName]) continue;
-            usedServer[serverName] = true;
+            if (!serverId || serverIds[serverId]) continue;
+            serverIds[serverId] = true;
 
             let episodes = [];
 
-            const epRegex =
-                /["'](?:name|title)["']?\s*:\s*["']([^"']+)["']/gi;
+            // tìm tập của server đó
+            const epRegex = new RegExp(
+                "\\?server=" + serverId + "&tap=([0-9]+)[^\"']*[^>]*>(.*?)<",
+                "gi"
+            );
 
             let epMatch;
 
-            while ((epMatch = epRegex.exec(episodeBlock)) !== null) {
-                let epName = decodeHtmlEntities(epMatch[1]).trim();
+            while ((epMatch = epRegex.exec(html)) !== null) {
+                let epNum = epMatch[1];
+                let epName = epMatch[2];
 
-                if (!epName) continue;
+                epName = epName
+                    .replace(/<[^>]*>/g, "")
+                    .trim();
+
+                epName = decodeHtmlEntities(epName);
 
                 let epUrl =
                     movieUrl +
                     "?server=" +
-                    encodeURIComponent(serverName) +
+                    encodeURIComponent(serverId) +
                     "&tap=" +
-                    (episodes.length + 1);
+                    epNum;
+
+                if (usedEpisodes[epUrl]) continue;
+                usedEpisodes[epUrl] = true;
 
                 episodes.push({
                     id: epUrl,
-                    name: epName,
-                    slug: String(episodes.length + 1)
+                    name: epName || ("Tập " + epNum),
+                    slug: epNum
                 });
             }
 
+            // nếu server có tập thì thêm vào
             if (episodes.length > 0) {
                 servers.push({
-                    name: serverName,
+                    name: serverId.toUpperCase(),
                     episodes: episodes
                 });
             }
