@@ -239,18 +239,23 @@ while ((match = groupRegex.exec(html)) !== null) {
     usedServer[serverId] = true;
 
     // lấy data-episodes nếu có
-    let epMatch = tagHtml.match(/data-episodes=['"]([\s\S]*?)['"]/i);
-
     let epCount = 1;
 
-if (epMatch) {
-    let rawEpisodes = epMatch[1];
+// lấy toàn bộ data-episodes từ html gốc thay vì tagHtml
+let serverBlockRegex = new RegExp(
+    'data-server=["\']' + serverId + '["\'][\\s\\S]*?data-episodes="([\\s\\S]*?)"\\s*>',
+    "i"
+);
 
-    // source thật của Siêu Tầm Phim:
-    // {&quot;xxxxx&quot;,&quot;1&quot;}
-    // {&quot;xxxxx&quot;,&quot;2&quot;}
-    // {&quot;xxxxx&quot;,&quot;3&quot;}
+let epBlockMatch = html.match(serverBlockRegex);
 
+if (epBlockMatch) {
+    let rawEpisodes = epBlockMatch[1];
+
+    // đếm đúng số tập:
+    // ,"1"}
+    // ,"2"}
+    // ,"3"}
     let epMatches = rawEpisodes.match(/,&quot;\d+&quot;\s*}/g);
 
     if (epMatches && epMatches.length > 0) {
