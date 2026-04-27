@@ -219,51 +219,65 @@ function parseMovieDetail(html) {
             "";
 
         let servers = [];
-        let usedServer = {};
+let usedServer = {};
 
-        const groupRegex =
-            /<div[^>]*class="[^"]*episodeGroup[^"]*"[^>]*data-server="([^"]+)"[^>]*data-episodes="([^"]*)"/gi;
+// lấy toàn bộ tag có episodeGroup
+const groupRegex = /<div[^>]*episodeGroup[^>]*>/gi;
+let match;
 
-        let match;
+while ((match = groupRegex.exec(html)) !== null) {
+    let tagHtml = match[0];
 
-        while ((match = groupRegex.exec(html)) !== null) {
-            let serverId = match[1];
-            let rawEpisodes = match[2];
+    // lấy server linh hoạt hơn
+    let serverMatch = tagHtml.match(/data-server=['"]([^'"]+)['"]/i);
 
-            if (usedServer[serverId]) continue;
-            usedServer[serverId] = true;
+    if (!serverMatch) continue;
 
-            let episodes = [];
+    let serverId = serverMatch[1];
 
-            // đếm số episode thật
-            let epCount = (rawEpisodes.match(/&quot;/g) || []).length;
+    if (usedServer[serverId]) continue;
+    usedServer[serverId] = true;
 
-            // mỗi tập thường có 2 dấu quote → chia đôi
-            epCount = Math.floor(epCount / 2);
+    // lấy data-episodes nếu có
+    let epMatch = tagHtml.match(/data-episodes=['"]([\s\S]*?)['"]/i);
 
-            // fallback nếu đếm lỗi
-            if (epCount <= 0) {
-                epCount = 1;
-            }
+    let epCount = 1;
 
-            for (let i = 1; i <= epCount; i++) {
-                episodes.push({
-                    id:
-                        movieUrl +
-                        "?server=" +
-                        encodeURIComponent(serverId) +
-                        "&tap=" +
-                        i,
-                    name: "Tập " + i,
-                    slug: String(i)
-                });
-            }
+    if (epMatch) {
+        let rawEpisodes = epMatch[1];
 
-            servers.push({
-                name: serverId.toUpperCase(),
-                episodes: episodes
-            });
+        // đếm số tập
+        let quoteCount = (rawEpisodes.match(/&quot;/g) || []).length;
+
+        if (quoteCount > 0) {
+            epCount = Math.floor(quoteCount / 2);
         }
+    }
+
+    if (epCount <= 0) {
+        epCount = 1;
+    }
+
+    let episodes = [];
+
+    for (let i = 1; i <= epCount; i++) {
+        episodes.push({
+            id:
+                movieUrl +
+                "?server=" +
+                encodeURIComponent(serverId) +
+                "&tap=" +
+                i,
+            name: epCount === 1 ? "Full" : "Tập " + i,
+            slug: String(i)
+        });
+    }
+
+    servers.push({
+        name: serverId.toUpperCase(),
+        episodes: episodes
+    });
+}
 
         // phim lẻ fallback
         if (servers.length === 0) {
