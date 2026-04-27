@@ -223,22 +223,48 @@ function parseMovieDetail(html) {
 // 🎯 LẤY SỐ TẬP
 // ======================================================
 
-let epCount = 1;
+function extractEpisodesFromDataEpisodes(html, serverId) {
+    try {
+        let regex = new RegExp(
+            'data-server=["\']' + serverId + '["\'][\\s\\S]*?data-episodes="([\\s\\S]*?)"',
+            "i"
+        );
 
-// từ title
-let matchTitle = html.match(/Status:\s*(\d+)\s*\//i);
-if (matchTitle) {
-    epCount = parseInt(matchTitle[1]);
-}
+        let match = html.match(regex);
+        if (!match) return [];
 
-// fallback từ description
-if (epCount === 1) {
-    let matchDesc = html.match(/Số Tập Phát Sóng\s*:\s*(\d+)/i);
-    if (matchDesc) {
-        epCount = parseInt(matchDesc[1]);
+        let raw = match[1];
+
+        // decode HTML entities
+        raw = raw
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&amp;/g, "&");
+
+        // FIX format thành JSON hợp lệ
+        // từ: [ {"xxx","1"}, {"xxx","2"} ]
+        // thành: [ ["xxx","1"], ["xxx","2"] ]
+        raw = raw.replace(/{/g, "[").replace(/}/g, "]");
+
+        let parsed = JSON.parse(raw);
+
+        let episodes = [];
+
+        for (let i = 0; i < parsed.length; i++) {
+            let epName = parsed[i][1]; // <-- QUAN TRỌNG
+
+            episodes.push({
+                name: epName,
+                slug: epName
+            });
+        }
+
+        return episodes;
+
+    } catch (e) {
+        return [];
     }
 }
-
 // ======================================================
 // 🎯 PARSE SERVER (GIỮ LẠI LOGIC CŨ NHƯNG SỬA NHẸ)
 // ======================================================
