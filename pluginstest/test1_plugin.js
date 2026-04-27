@@ -201,33 +201,35 @@ function decodeHtmlEntities(str) {
 
 function parseMovieDetail(html) {
     try {
-        // ===== BASIC =====
+        // ================= BASIC =================
         const title =
-            (html.match(/og:title" content="([^"]+)"/i) || [])[1] || "Unknown";
+            (html.match(/<meta property="og:title" content="([^"]+)"/i) || [])[1] ||
+            (html.match(/<title>(.*?)<\/title>/i) || [])[1] ||
+            "Unknown";
 
         const poster =
-            (html.match(/og:image" content="([^"]+)"/i) || [])[1] || "";
+            (html.match(/<meta property="og:image" content="([^"]+)"/i) || [])[1] ||
+            "";
 
         const description =
-            (html.match(/og:description" content="([^"]+)"/i) || [])[1] || "";
+            (html.match(/<meta property="og:description" content="([^"]+)"/i) || [])[1] ||
+            "";
 
         const movieUrl =
-            (html.match(/og:url" content="([^"]+)"/i) || [])[1] || "";
+            (html.match(/<meta property="og:url" content="([^"]+)"/i) || [])[1] ||
+            "";
 
         // ======================================================
-        // 🔥 LẤY DANH SÁCH SERVER (GIỮ NGUYÊN LOGIC CŨ)
+        // 🔥 1. LẤY SERVER (GIỮ LOGIC CŨ)
         // ======================================================
-
-        let servers = [];
-        let usedServer = {};
-
-        let serverRegex = /data-server=["']([^"']+)["']/gi;
-        let match;
 
         let serverList = [];
+        let usedServer = {};
+        let serverRegex = /data-server=["']([^"']+)["']/gi;
+        let sm;
 
-        while ((match = serverRegex.exec(html)) !== null) {
-            let serverId = match[1];
+        while ((sm = serverRegex.exec(html)) !== null) {
+            let serverId = sm[1];
 
             if (usedServer[serverId]) continue;
             usedServer[serverId] = true;
@@ -236,54 +238,58 @@ function parseMovieDetail(html) {
         }
 
         // ======================================================
-        // 🔥 LẤY 1 BLOCK data-episodes (CHUẨN NHẤT)
+        // 🔥 2. LẤY TẤT CẢ EPISODES TỪ data-episodes
         // ======================================================
 
-        let epMatch = html.match(/data-episodes=["']([\s\S]*?)["']/i);
-
         let episodes = [];
+        let epRegex = /data-episodes=["']([\s\S]*?)["']/gi;
+        let em;
 
-        if (epMatch) {
-            let raw = epMatch[1];
-
-            raw = raw
-                .replace(/&quot;/g, '"')
-                .replace(/&#39;/g, "'")
-                .replace(/&amp;/g, "&");
-
-            raw = raw.replace(/{/g, "[").replace(/}/g, "]");
-
-            let parsed;
+        while ((em = epRegex.exec(html)) !== null) {
+            let raw = em[1];
 
             try {
-                parsed = JSON.parse(raw);
+                // decode HTML entities
+                raw = raw
+                    .replace(/&quot;/g, '"')
+                    .replace(/&#39;/g, "'")
+                    .replace(/&amp;/g, "&");
+
+                // convert fake JSON → valid JSON
+                raw = raw.replace(/{/g, "[").replace(/}/g, "]");
+
+                let parsed = JSON.parse(raw);
+
+                for (let i = 0; i < parsed.length; i++) {
+                    let epName = parsed[i][1];
+
+                    if (!epName) continue;
+
+                    // tránh trùng tập
+                    if (!episodes.find(e => e.slug === epName)) {
+                        episodes.push({
+                            name: epName,
+                            slug: epName
+                        });
+                    }
+                }
+
             } catch (e) {
-                parsed = [];
-            }
-
-            for (let i = 0; i < parsed.length; i++) {
-                let epName = parsed[i][1];
-
-                if (!epName) continue;
-
-                episodes.push({
-                    name: epName,
-                    slug: epName
-                });
+                continue;
             }
         }
 
         // ======================================================
-        // 🔥 BUILD SERVER + EPISODES
+        // 🔥 3. BUILD SERVER + EPISODES
         // ======================================================
+
+        let servers = [];
 
         for (let i = 0; i < serverList.length; i++) {
             let serverId = serverList[i];
-
             let eps = [];
 
             if (episodes.length > 0) {
-                // dùng data-episodes thật
                 for (let j = 0; j < episodes.length; j++) {
                     let epName = episodes[j].name;
 
@@ -297,12 +303,14 @@ function parseMovieDetail(html) {
                         name:
                             epName === "Full"
                                 ? "Full"
+                                : epName.startsWith("Tập")
+                                ? epName
                                 : "Tập " + epName,
                         slug: epName
                     });
                 }
             } else {
-                // fallback nếu không có data-episodes
+                // fallback nếu không parse được data-episodes
                 eps.push({
                     id: movieUrl,
                     name: "Full",
@@ -317,7 +325,7 @@ function parseMovieDetail(html) {
         }
 
         // ======================================================
-        // ⚠️ fallback nếu KHÔNG có server
+        // ⚠️ FALLBACK nếu không có server
         // ======================================================
 
         if (servers.length === 0) {
@@ -334,9 +342,14 @@ function parseMovieDetail(html) {
         }
 
         // ======================================================
+        // 🎬 RETURN
+        // ======================================================
+
         return JSON.stringify({
             id: movieUrl,
-            title: title,
+            title: decodeHtmlEntities(
+                title.replace(" - Siêu Tầm Phim", "").trim()
+            ),
             posterUrl: poster,
             backdropUrl: poster,
             description: description,
@@ -346,7 +359,9 @@ function parseMovieDetail(html) {
         });
 
     } catch (e) {
-        return JSON.stringify({ servers: [] });
+        return JSON.stringify({
+            servers: []
+        });
     }
 }
 
