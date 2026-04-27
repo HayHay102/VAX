@@ -219,66 +219,53 @@ function parseMovieDetail(html) {
             "";
 
         let servers = [];
-        let serverIds = {};
-        let usedEpisodes = {};
+        let usedServer = {};
 
-        // lấy tất cả server id
-        const serverRegex = /data-server=["']([^"']+)["']/gi;
-        let serverMatch;
+        const groupRegex =
+            /<div[^>]*class="[^"]*episodeGroup[^"]*"[^>]*data-server="([^"]+)"[^>]*data-episodes="([^"]*)"/gi;
 
-        while ((serverMatch = serverRegex.exec(html)) !== null) {
-            let serverId = serverMatch[1];
+        let match;
 
-            if (!serverId || serverIds[serverId]) continue;
-            serverIds[serverId] = true;
+        while ((match = groupRegex.exec(html)) !== null) {
+            let serverId = match[1];
+            let rawEpisodes = match[2];
+
+            if (usedServer[serverId]) continue;
+            usedServer[serverId] = true;
 
             let episodes = [];
 
-            // tìm tập của server đó
-            const epRegex = new RegExp(
-                "\\?server=" + serverId + "&tap=([0-9]+)[^\"']*[^>]*>(.*?)<",
-                "gi"
-            );
+            // đếm số episode thật
+            let epCount = (rawEpisodes.match(/&quot;/g) || []).length;
 
-            let epMatch;
+            // mỗi tập thường có 2 dấu quote → chia đôi
+            epCount = Math.floor(epCount / 2);
 
-            while ((epMatch = epRegex.exec(html)) !== null) {
-                let epNum = epMatch[1];
-                let epName = epMatch[2];
+            // fallback nếu đếm lỗi
+            if (epCount <= 0) {
+                epCount = 1;
+            }
 
-                epName = epName
-                    .replace(/<[^>]*>/g, "")
-                    .trim();
-
-                epName = decodeHtmlEntities(epName);
-
-                let epUrl =
-                    movieUrl +
-                    "?server=" +
-                    encodeURIComponent(serverId) +
-                    "&tap=" +
-                    epNum;
-
-                if (usedEpisodes[epUrl]) continue;
-                usedEpisodes[epUrl] = true;
-
+            for (let i = 1; i <= epCount; i++) {
                 episodes.push({
-                    id: epUrl,
-                    name: epName || ("Tập " + epNum),
-                    slug: epNum
+                    id:
+                        movieUrl +
+                        "?server=" +
+                        encodeURIComponent(serverId) +
+                        "&tap=" +
+                        i,
+                    name: "Tập " + i,
+                    slug: String(i)
                 });
             }
 
-            // nếu server có tập thì thêm vào
-            if (episodes.length > 0) {
-                servers.push({
-                    name: serverId.toUpperCase(),
-                    episodes: episodes
-                });
-            }
+            servers.push({
+                name: serverId.toUpperCase(),
+                episodes: episodes
+            });
         }
 
-        // fallback phim lẻ
+        // phim lẻ fallback
         if (servers.length === 0) {
             servers.push({
                 name: "Default",
