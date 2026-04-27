@@ -246,7 +246,7 @@ function parseMovieDetail(html) {
 
                 if (episodes.length > 0) {
                     servers.push({
-                        name: "SV1",
+                        name: "hx",
                         episodes: episodes
                     });
                 }
