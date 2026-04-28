@@ -49,7 +49,7 @@ function getPrimaryCategories() {
         { name: 'HBO', slug: 'hbo' },
         { name: 'Phim Việt Nam', slug: 'phim-viet-nam' },
         { name: 'Phim Hàn Quốc', slug: 'phim-han-quoc' },
-        { name: 'Phim Trung quốc', slug: 'phim-trung-quoc' },
+        { name: 'Phim trung quốc', slug: 'phim-trung-quoc' },
         { name: 'Phim Nhật Bản', slug: 'phim-nhat-ban' }
     ]);
 }
@@ -223,77 +223,79 @@ function parseMovieDetail(html) {
             (html.match(/<meta property="og:url" content="([^"]+)"/i) || [])[1] ||
             "";
 
+        // =================================================
+        // PARSE SERVER + EPISODES
+        // =================================================
         let servers = [];
-let usedServer = {};
+        let usedServer = {};
 
-// lấy toàn bộ tag có episodeGroup
-const groupRegex = /<div[^>]*episodeGroup[^>]*>/gi;
-let match;
+        // lấy từng block episodeGroup
+        const groupRegex =
+            /class="episodeGroup"[^>]*data-server="([^"]+)"[^>]*data-episodes='([^']+)'/gi;
 
-while ((match = groupRegex.exec(html)) !== null) {
-    let tagHtml = match[0];
+        let match;
 
-    // lấy server linh hoạt hơn
-    let serverMatch = tagHtml.match(/data-server=['"]([^'"]+)['"]/i);
+        while ((match = groupRegex.exec(html)) !== null) {
+            const serverId = match[1];
+            const episodeRaw = match[2];
 
-    if (!serverMatch) continue;
+            if (usedServer[serverId]) continue;
+            usedServer[serverId] = true;
 
-    let serverId = serverMatch[1];
+            let episodes = [];
 
-    if (usedServer[serverId]) continue;
-    usedServer[serverId] = true;
+            try {
+                // lấy tên tập trong data-episodes
+                const epRegex = /"([^"]+)"\s*}/g;
+                let epMatch;
+                let usedEpisode = {};
 
-    // lấy data-episodes nếu có
-    let epCount = 1;
+                while ((epMatch = epRegex.exec(episodeRaw)) !== null) {
+                    const epName = epMatch[1];
 
-// lấy toàn bộ data-episodes từ html gốc thay vì tagHtml
-let serverBlockRegex = new RegExp(
-    'data-server=["\']' + serverId + '["\'][\\s\\S]*?data-episodes="([\\s\\S]*?)"\\s*>',
-    "i"
-);
+                    if (usedEpisode[epName]) continue;
+                    usedEpisode[epName] = true;
 
-let epBlockMatch = html.match(serverBlockRegex);
+                    episodes.push({
+                        id:
+                            movieUrl +
+                            "?server=" +
+                            encodeURIComponent(serverId) +
+                            "&tap=" +
+                            encodeURIComponent(epName),
 
-if (epBlockMatch) {
-    let rawEpisodes = epBlockMatch[1];
+                        name:
+                            epName.toLowerCase() === "full"
+                                ? "Full"
+                                : "Tập " + epName,
 
-    // đếm đúng số tập:
-    // ,"1"}
-    // ,"2"}
-    // ,"3"}
-    let epMatches = rawEpisodes.match(/,&quot;\d+&quot;\s*}/g);
+                        slug: epName
+                    });
+                }
 
-    if (epMatches && epMatches.length > 0) {
-        epCount = epMatches.length;
-    }
-}
+            } catch (e) {}
 
-    if (epCount <= 0) {
-        epCount = 1;
-    }
+            // fallback nếu parse lỗi
+            if (episodes.length === 0) {
+                episodes.push({
+                    id:
+                        movieUrl +
+                        "?server=" +
+                        encodeURIComponent(serverId),
+                    name: "Full",
+                    slug: "full"
+                });
+            }
 
-    let episodes = [];
+            servers.push({
+                name: serverId.toUpperCase(),
+                episodes: episodes
+            });
+        }
 
-    for (let i = 1; i <= epCount; i++) {
-        episodes.push({
-            id:
-                movieUrl +
-                "?server=" +
-                encodeURIComponent(serverId) +
-                "&tap=" +
-                i,
-            name: epCount === 1 ? "Full" : "Tập " + i,
-            slug: String(i)
-        });
-    }
-
-    servers.push({
-        name: serverId.toUpperCase(),
-        episodes: episodes
-    });
-}
-
-        // phim lẻ fallback
+        // =================================================
+        // fallback nếu không có server
+        // =================================================
         if (servers.length === 0) {
             servers.push({
                 name: "Default",
@@ -307,6 +309,9 @@ if (epBlockMatch) {
             });
         }
 
+        // =================================================
+        // RETURN
+        // =================================================
         return JSON.stringify({
             id: movieUrl,
             title: decodeHtmlEntities(
