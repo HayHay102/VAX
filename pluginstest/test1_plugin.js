@@ -201,9 +201,6 @@ function decodeHtmlEntities(str) {
 
 function parseMovieDetail(html) {
     try {
-        // =========================
-        // BASIC INFO
-        // =========================
         const title =
             (html.match(/<meta property="og:title" content="([^"]+)"/i) || [])[1] ||
             (html.match(/<title>(.*?)<\/title>/i) || [])[1] ||
@@ -334,58 +331,52 @@ function parseMovieDetail(html) {
 // PARSE VIDEO
 // ========================================================
 
-function parseDetailResponse(html) {
+function parseDetailResponse(html, url) {
+    log("Parsing Stream for: " + url);
     try {
-        let iframe = html.match(/<iframe[^>]+src="([^"]+)"/i);
-
-        if (iframe) {
-            return JSON.stringify({
-                url: iframe[1],
-                headers: {
-                    Referer: BASE_URL
-                },
-                isEmbed: true
-            });
+        if (url.includes("?id=") && url.includes("&server=")) {
+            var postId = (url.match(/id=(\d+)/) || [])[1];
+            var server = (url.match(/server=([^&]+)/) || [])[1];
+            var tap = (url.match(/tap=(\d+)/) || [])[1];
+            
+            if (postId && server && tap) {
+                var playerUrl = BASE_URL + "/p/player.html?id=" + postId + "&server=" + server + "&tap=" + tap;
+                log("Constructed Player URL: " + playerUrl);
+                return JSON.stringify({
+                    url: playerUrl,
+                    headers: { "Referer": BASE_URL + "/" },
+                    isEmbed: true
+                });
+            }
         }
 
-        let m3u8 = html.match(/(https?:\/\/[^"' ]+\.m3u8[^"' ]*)/i);
+        var iframeMatch = html.match(/<iframe[^>]*src="([^"]+)"/i);
+        if (iframeMatch) {
+            var embedUrl = iframeMatch[1];
+            log("Found iframe in HTML: " + embedUrl);
+            if (embedUrl.startsWith("//")) embedUrl = "https:" + embedUrl;
+            if (embedUrl === url || embedUrl.length < 5) {
+                return JSON.stringify({ url: url, isEmbed: true, headers: { "Referer": BASE_URL } });
+            }
+            return JSON.stringify({ url: embedUrl, headers: { "Referer": BASE_URL }, isEmbed: true });
+        }
 
+        var m3u8 = html.match(/(https?:\/\/[^"' ]+\.m3u8[^"' ]*)/i);
         if (m3u8) {
-            return JSON.stringify({
-                url: m3u8[1],
-                mimeType: "application/x-mpegURL",
-                isEmbed: false
-            });
+            log("Found direct M3U8: " + m3u8[1]);
+            return JSON.stringify({ url: m3u8[1], mimeType: "application/x-mpegURL", isEmbed: false });
         }
 
-        let mp4 = html.match(/(https?:\/\/[^"' ]+\.mp4[^"' ]*)/i);
-
-        if (mp4) {
-            return JSON.stringify({
-                url: mp4[1],
-                isEmbed: false
-            });
-        }
-
-        return JSON.stringify({
-            url: "",
-            isEmbed: false
-        });
-
-    } catch (e) {
-        return JSON.stringify({
-            url: "",
-            isEmbed: false
-        });
+        log("No stream found, returning fallback URL");
+        return JSON.stringify({ url: url, isEmbed: true, headers: { "Referer": BASE_URL } });
+    } catch (e) { 
+        log("Error in parseDetailResponse: " + e.message);
+        return JSON.stringify({ url: "", isEmbed: false }); 
     }
 }
 
-// ========================================================
-// EMBED
-// ========================================================
-
 function parseEmbedResponse(html, sourceUrl) {
-    return parseDetailResponse(html);
+    return parseDetailResponse(html, sourceUrl);
 }
 
 // ========================================================
