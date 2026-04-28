@@ -422,7 +422,7 @@ function parseDetailResponse(html) {
     }
 }
 
-function parseEmbedResponse(html, sourceUrl) {function parseEmbedResponse(html, sourceUrl) {
+function parseEmbedResponse(html, sourceUrl) {
     try {
         // m3u8
         let m3u8Match = html.match(
@@ -474,10 +474,7 @@ function parseEmbedResponse(html, sourceUrl) {function parseEmbedResponse(html, 
         });
     }
 }
-
-// ========================================================
-
-
+  
 function parseCategoriesResponse(html) { return "[]"; }
 function parseCountriesResponse(html) { return "[]"; }
 function parseYearsResponse(html) { return "[]"; }
