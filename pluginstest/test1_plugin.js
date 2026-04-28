@@ -376,9 +376,9 @@ function parseDetailResponse(html) {
         if (iframeMatch) {
             let iframeUrl = iframeMatch[1];
 
-            if (iframeUrl.startsWith("//")) {
-                iframeUrl = "https:" + iframeUrl;
-            }
+            if (iframeUrl.indexOf("//") === 0) {
+    iframeUrl = "https:" + iframeUrl;
+}
 
             return JSON.stringify({
                 url: iframeUrl,
