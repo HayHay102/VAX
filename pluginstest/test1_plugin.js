@@ -333,33 +333,18 @@ function parseMovieDetail(html) {
 
 function parseDetailResponse(html) {
     try {
+
         // =========================
-        // 1. Tìm link m3u8 trực tiếp
+        // 1. direct m3u8
         // =========================
-        let m3u8Match = html.match(
+        let m3u8 = html.match(
             /(https?:\/\/[^"' ]+\.m3u8[^"' ]*)/i
         );
 
-        if (m3u8Match) {
+        if (m3u8) {
             return JSON.stringify({
-                url: m3u8Match[1],
-                headers: {
-                    Referer: "https://www.sieutamphim.pro/"
-                },
-                mimeType: "application/x-mpegURL"
-            });
-        }
-
-        // =========================
-        // 2. Tìm link mp4 trực tiếp
-        // =========================
-        let mp4Match = html.match(
-            /(https?:\/\/[^"' ]+\.mp4[^"' ]*)/i
-        );
-
-        if (mp4Match) {
-            return JSON.stringify({
-                url: mp4Match[1],
+                url: m3u8[1],
+                mimeType: "application/x-mpegURL",
                 headers: {
                     Referer: "https://www.sieutamphim.pro/"
                 }
@@ -367,21 +352,37 @@ function parseDetailResponse(html) {
         }
 
         // =========================
-        // 3. Tìm iframe player
+        // 2. direct mp4
         // =========================
-        let iframeMatch = html.match(
+        let mp4 = html.match(
+            /(https?:\/\/[^"' ]+\.mp4[^"' ]*)/i
+        );
+
+        if (mp4) {
+            return JSON.stringify({
+                url: mp4[1],
+                headers: {
+                    Referer: "https://www.sieutamphim.pro/"
+                }
+            });
+        }
+
+        // =========================
+        // 3. iframe
+        // =========================
+        let iframe = html.match(
             /<iframe[^>]+src="([^"]+)"/i
         );
 
-        if (iframeMatch) {
-            let iframeUrl = iframeMatch[1];
+        if (iframe) {
+            let url = iframe[1];
 
-            if (iframeUrl.indexOf("//") === 0) {
-    iframeUrl = "https:" + iframeUrl;
-}
+            if (url.startsWith("//")) {
+                url = "https:" + url;
+            }
 
             return JSON.stringify({
-                url: iframeUrl,
+                url: url,
                 isEmbed: true,
                 headers: {
                     Referer: "https://www.sieutamphim.pro/"
@@ -390,7 +391,26 @@ function parseDetailResponse(html) {
         }
 
         // =========================
-        // 4. JWPlayer source
+        // 4. ajax endpoint
+        // =========================
+        let ajaxMatch = html.match(
+            /data-id="([^"]+)"/i
+        );
+
+        if (ajaxMatch) {
+            return JSON.stringify({
+                url:
+                    "https://www.sieutamphim.pro/wp-admin/admin-ajax.php?action=load_player&id=" +
+                    ajaxMatch[1],
+                isEmbed: true,
+                headers: {
+                    Referer: "https://www.sieutamphim.pro/"
+                }
+            });
+        }
+
+        // =========================
+        // 5. jwplayer source
         // =========================
         let fileMatch = html.match(
             /file\s*:\s*"([^"]+)"/i
@@ -399,16 +419,10 @@ function parseDetailResponse(html) {
         if (fileMatch) {
             return JSON.stringify({
                 url: fileMatch[1],
-                headers: {
-                    Referer: "https://www.sieutamphim.pro/"
-                },
                 mimeType: "application/x-mpegURL"
             });
         }
 
-        // =========================
-        // 5. Không mở web nữa
-        // =========================
         return JSON.stringify({
             url: "",
             headers: {}
@@ -424,32 +438,47 @@ function parseDetailResponse(html) {
 
 function parseEmbedResponse(html, sourceUrl) {
     try {
-        // m3u8
-        let m3u8Match = html.match(
+
+        let m3u8 = html.match(
             /(https?:\/\/[^"' ]+\.m3u8[^"' ]*)/i
         );
 
-        if (m3u8Match) {
+        if (m3u8) {
             return JSON.stringify({
-                url: m3u8Match[1],
+                url: m3u8[1],
                 isEmbed: false,
                 mimeType: "application/x-mpegURL"
             });
         }
 
-        // mp4
-        let mp4Match = html.match(
+        let mp4 = html.match(
             /(https?:\/\/[^"' ]+\.mp4[^"' ]*)/i
         );
 
-        if (mp4Match) {
+        if (mp4) {
             return JSON.stringify({
-                url: mp4Match[1],
+                url: mp4[1],
                 isEmbed: false
             });
         }
 
-        // source/file json
+        let iframe = html.match(
+            /<iframe[^>]+src="([^"]+)"/i
+        );
+
+        if (iframe) {
+            let url = iframe[1];
+
+            if (url.startsWith("//")) {
+                url = "https:" + url;
+            }
+
+            return JSON.stringify({
+                url: url,
+                isEmbed: true
+            });
+        }
+
         let fileMatch = html.match(
             /["']file["']\s*:\s*["']([^"']+)["']/i
         );
