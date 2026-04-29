@@ -331,124 +331,27 @@ function parseMovieDetail(html) {
 // PARSE VIDEO
 // ========================================================
 
-function parseDetailResponse(html) {
+function parseDetailResponse(htmlResponse, fallbackUrl) {
     try {
+        var streamUrl = fallbackUrl || "";
 
-        // direct m3u8
-        let m3u8 = html.match(/(https?:\/\/[^"' ]+\.m3u8[^"' ]*)/i);
-        if (m3u8) {
-            return JSON.stringify({
-                url: m3u8[1],
-                mimeType: "application/x-mpegURL"
-            });
-        }
-
-        // direct mp4
-        let mp4 = html.match(/(https?:\/\/[^"' ]+\.mp4[^"' ]*)/i);
-        if (mp4) {
-            return JSON.stringify({
-                url: mp4[1]
-            });
-        }
-
-        // tìm embed.html?url=
-        let embedMatch = html.match(
-            /embed\.html\?url=([^"'&<>\s]+)/i
-        );
-
-        if (embedMatch) {
-            let realUrl = embedMatch[1];
-
-            try {
-                realUrl = decodeURIComponent(realUrl);
-            } catch (e) {}
-
-            // nếu decode ra m3u8/mp4 thì phát luôn
-            if (
-                realUrl.includes(".m3u8") ||
-                realUrl.includes(".mp4")
-            ) {
-                return JSON.stringify({
-                    url: realUrl,
-                    mimeType: realUrl.includes(".m3u8")
-                        ? "application/x-mpegURL"
-                        : undefined
-                });
-            }
-
-            // nếu vẫn là link khác thì mở embed tiếp
-            return JSON.stringify({
-                url: realUrl,
-                isEmbed: true
-            });
-        }
-
-        // fallback srcdoc decode
-        let srcdoc = html.match(/srcdoc=["']([\s\S]*?)["']/i);
-
-        if (srcdoc) {
-            let content = srcdoc[1]
-                .replace(/&quot;/g, '"')
-                .replace(/&#39;/g, "'")
-                .replace(/&lt;/g, "<")
-                .replace(/&gt;/g, ">")
-                .replace(/&amp;/g, "&");
-
-            let videoMatch = content.match(
-                /(https?:\/\/[^"' ]+\.(m3u8|mp4)[^"' ]*)/i
-            );
-
-            if (videoMatch) {
-                return JSON.stringify({
-                    url: videoMatch[1],
-                    mimeType: videoMatch[1].includes(".m3u8")
-                        ? "application/x-mpegURL"
-                        : undefined
-                });
-            }
-        }
+        var customJs = "var style = document.createElement('style');" +
+            "style.innerHTML = '#playback { display: none !important; }';" +
+            "document.head.appendChild(style);";
 
         return JSON.stringify({
-            url: "",
-            headers: {}
+            url: streamUrl,
+            headers: {
+                "Referer": "https://www.sieutamphim.pro/",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Custom-Js": customJs
+            }
         });
-
-    } catch (e) {
-        return JSON.stringify({
-            url: "",
-            headers: {}
-        });
+    } catch (error) {
+        return JSON.stringify({ url: "", headers: {} });
     }
 }
 
-function parseEmbedResponse(html) {
-    try {
-        let video = html.match(
-            /(https?:\/\/[^"' ]+\.(m3u8|mp4)[^"' ]*)/i
-        );
-
-        if (video) {
-            return JSON.stringify({
-                url: video[1],
-                isEmbed: false,
-                mimeType: video[1].includes(".m3u8")
-                    ? "application/x-mpegURL"
-                    : undefined
-            });
-        }
-
-        return JSON.stringify({
-            url: "",
-            isEmbed: false
-        });
-
-    } catch (e) {
-        return JSON.stringify({
-            url: "",
-            isEmbed: false
-        });
-    }
-}
   
 function parseCategoriesResponse(html) { return "[]"; }
 function parseCountriesResponse(html) { return "[]"; }
