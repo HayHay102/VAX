@@ -334,65 +334,57 @@ function parseMovieDetail(html) {
 function parseDetailResponse(html) {
     try {
 
-        // =========================
-        // 1. direct m3u8
-        // =========================
-        let m3u8 = html.match(
-            /(https?:\/\/[^"' ]+\.m3u8[^"' ]*)/i
-        );
-
+        // direct m3u8
+        let m3u8 = html.match(/(https?:\/\/[^"' ]+\.m3u8[^"' ]*)/i);
         if (m3u8) {
             return JSON.stringify({
                 url: m3u8[1],
-                mimeType: "application/x-mpegURL",
-                headers: {
-                    Referer: "https://www.sieutamphim.pro/"
-                }
+                mimeType: "application/x-mpegURL"
             });
         }
 
-        // =========================
-        // 2. direct mp4
-        // =========================
-        let mp4 = html.match(
-            /(https?:\/\/[^"' ]+\.mp4[^"' ]*)/i
-        );
-
+        // direct mp4
+        let mp4 = html.match(/(https?:\/\/[^"' ]+\.mp4[^"' ]*)/i);
         if (mp4) {
             return JSON.stringify({
-                url: mp4[1],
-                headers: {
-                    Referer: "https://www.sieutamphim.pro/"
-                }
+                url: mp4[1]
             });
         }
 
-        // =========================
-        // 3. iframe src normal
-        // =========================
-        let iframe = html.match(
-            /<iframe[^>]+src=['"]([^'"]+)['"]/i
+        // tìm embed.html?url=
+        let embedMatch = html.match(
+            /embed\.html\?url=([^"'&<>\s]+)/i
         );
 
-        if (iframe) {
-            let url = iframe[1];
+        if (embedMatch) {
+            let realUrl = embedMatch[1];
 
-            if (url.startsWith("//")) {
-                url = "https:" + url;
+            try {
+                realUrl = decodeURIComponent(realUrl);
+            } catch (e) {}
+
+            // nếu decode ra m3u8/mp4 thì phát luôn
+            if (
+                realUrl.includes(".m3u8") ||
+                realUrl.includes(".mp4")
+            ) {
+                return JSON.stringify({
+                    url: realUrl,
+                    mimeType: realUrl.includes(".m3u8")
+                        ? "application/x-mpegURL"
+                        : undefined
+                });
             }
 
+            // nếu vẫn là link khác thì mở embed tiếp
             return JSON.stringify({
-                url: url,
+                url: realUrl,
                 isEmbed: true
             });
         }
 
-        // =========================
-        // 4. iframe srcdoc escaped HTML
-        // =========================
-        let srcdoc = html.match(
-            /srcdoc=["']([\s\S]*?)["']/i
-        );
+        // fallback srcdoc decode
+        let srcdoc = html.match(/srcdoc=["']([\s\S]*?)["']/i);
 
         if (srcdoc) {
             let content = srcdoc[1]
@@ -402,46 +394,18 @@ function parseDetailResponse(html) {
                 .replace(/&gt;/g, ">")
                 .replace(/&amp;/g, "&");
 
-            // tìm embed url trong srcdoc đã decode
-            let embedMatch = content.match(
-                /https?:\/\/[^"' ]+embed\.html\?url=[^"' ]+/i
+            let videoMatch = content.match(
+                /(https?:\/\/[^"' ]+\.(m3u8|mp4)[^"' ]*)/i
             );
 
-            if (embedMatch) {
+            if (videoMatch) {
                 return JSON.stringify({
-                    url: embedMatch[0],
-                    isEmbed: true,
-                    headers: {
-                        Referer: "https://www.sieutamphim.pro/"
-                    }
+                    url: videoMatch[1],
+                    mimeType: videoMatch[1].includes(".m3u8")
+                        ? "application/x-mpegURL"
+                        : undefined
                 });
             }
-
-            // redirect script
-            let redirectMatch = content.match(
-                /location\.href=['"]([^'"]+)['"]/i
-            );
-
-            if (redirectMatch) {
-                return JSON.stringify({
-                    url: redirectMatch[1],
-                    isEmbed: true
-                });
-            }
-        }
-
-        // =========================
-        // 5. embed url trực tiếp trong html
-        // =========================
-        let embedDirect = html.match(
-            /(https?:\/\/www\.sieutamphim\.pro\/embed\.html\?url=[^"' ]+)/i
-        );
-
-        if (embedDirect) {
-            return JSON.stringify({
-                url: embedDirect[1],
-                isEmbed: true
-            });
         }
 
         return JSON.stringify({
@@ -459,39 +423,17 @@ function parseDetailResponse(html) {
 
 function parseEmbedResponse(html) {
     try {
-
-        let m3u8 = html.match(
-            /(https?:\/\/[^"' ]+\.m3u8[^"' ]*)/i
+        let video = html.match(
+            /(https?:\/\/[^"' ]+\.(m3u8|mp4)[^"' ]*)/i
         );
 
-        if (m3u8) {
+        if (video) {
             return JSON.stringify({
-                url: m3u8[1],
+                url: video[1],
                 isEmbed: false,
-                mimeType: "application/x-mpegURL"
-            });
-        }
-
-        let mp4 = html.match(
-            /(https?:\/\/[^"' ]+\.mp4[^"' ]*)/i
-        );
-
-        if (mp4) {
-            return JSON.stringify({
-                url: mp4[1],
-                isEmbed: false
-            });
-        }
-
-        let fileMatch = html.match(
-            /file\s*:\s*['"]([^'"]+)['"]/i
-        );
-
-        if (fileMatch) {
-            return JSON.stringify({
-                url: fileMatch[1],
-                isEmbed: false,
-                mimeType: "application/x-mpegURL"
+                mimeType: video[1].includes(".m3u8")
+                    ? "application/x-mpegURL"
+                    : undefined
             });
         }
 
