@@ -334,124 +334,49 @@ function parseMovieDetail(html) {
 function parseDetailResponse(html) {
     try {
 
-        // =========================
-        // direct m3u8
-        // =========================
-        let m3u8 = html.match(
-            /(https?:\/\/[^"' ]+\.m3u8[^"' ]*)/i
+        // chỉ lấy link video thật
+        let video = html.match(
+            /(https?:\/\/[^"' ]+\.(m3u8|mp4)[^"' ]*)/i
         );
 
-        if (m3u8) {
+        if (video) {
             return JSON.stringify({
-                url: m3u8[1],
-                mimeType: "application/x-mpegURL"
+                url: video[1],
+                mimeType: video[1].includes(".m3u8")
+                    ? "application/x-mpegURL"
+                    : undefined,
+                headers: {
+                    Referer: "https://www.sieutamphim.pro/"
+                }
             });
         }
 
-        // =========================
-        // direct mp4
-        // =========================
-        let mp4 = html.match(
-            /(https?:\/\/[^"' ]+\.mp4[^"' ]*)/i
-        );
+        // decode srcdoc để tìm video
+        let srcdoc = html.match(/srcdoc=(['"])([\s\S]*?)\1/i);
 
-        if (mp4) {
-            return JSON.stringify({
-                url: mp4[1]
-            });
-        }
-
-        // =========================
-        // lấy srcdoc
-        // =========================
-        let srcdocMatch = html.match(
-            /srcdoc=(['"])([\s\S]*?)\1/i
-        );
-
-        if (srcdocMatch) {
-            let srcdoc = srcdocMatch[2];
-
-            // decode html entities
-            srcdoc = srcdoc
+        if (srcdoc) {
+            let content = srcdoc[2]
                 .replace(/&quot;/g, '"')
                 .replace(/&#39;/g, "'")
                 .replace(/&lt;/g, "<")
                 .replace(/&gt;/g, ">")
                 .replace(/&amp;/g, "&");
 
-            // ===================================
-            // redirect location.href
-            // ===================================
-            let redirect1 = srcdoc.match(
-                /location\.href\s*=\s*['"]([^'"]+)['"]/i
-            );
-
-            if (redirect1) {
-                return JSON.stringify({
-                    url: redirect1[1],
-                    isEmbed: true
-                });
-            }
-
-            // ===================================
-            // redirect window.location.replace
-            // ===================================
-            let redirect2 = srcdoc.match(
-                /window\.location\.replace\s*\(\s*['"]([^'"]+)['"]\s*\)/i
-            );
-
-            if (redirect2) {
-                return JSON.stringify({
-                    url: redirect2[1],
-                    isEmbed: true
-                });
-            }
-
-            // ===================================
-            // iframe trong srcdoc
-            // ===================================
-            let iframeInside = srcdoc.match(
-                /<iframe[^>]+src=['"]([^'"]+)['"]/i
-            );
-
-            if (iframeInside) {
-                return JSON.stringify({
-                    url: iframeInside[1],
-                    isEmbed: true
-                });
-            }
-
-            // ===================================
-            // video trực tiếp trong srcdoc
-            // ===================================
-            let videoInside = srcdoc.match(
+            let video2 = content.match(
                 /(https?:\/\/[^"' ]+\.(m3u8|mp4)[^"' ]*)/i
             );
 
-            if (videoInside) {
+            if (video2) {
                 return JSON.stringify({
-                    url: videoInside[1],
-                    mimeType: videoInside[1].includes(".m3u8")
+                    url: video2[1],
+                    mimeType: video2[1].includes(".m3u8")
                         ? "application/x-mpegURL"
                         : undefined
                 });
             }
         }
 
-        // =========================
-        // fallback embed
-        // =========================
-        let embed = html.match(
-            /(https?:\/\/[^"' ]+embed[^"' ]+)/i
-        );
-
-        if (embed) {
-            return JSON.stringify({
-                url: embed[1],
-                isEmbed: true
-            });
-        }
-
+        // ❌ KHÔNG return embed nữa
         return JSON.stringify({
             url: "",
             headers: {}
@@ -464,7 +389,6 @@ function parseDetailResponse(html) {
         });
     }
 }
-
 function parseEmbedResponse(html) {
     try {
 
@@ -482,17 +406,6 @@ function parseEmbedResponse(html) {
             });
         }
 
-        let redirect = html.match(
-            /location\.href\s*=\s*['"]([^'"]+)['"]/i
-        );
-
-        if (redirect) {
-            return JSON.stringify({
-                url: redirect[1],
-                isEmbed: true
-            });
-        }
-
         return JSON.stringify({
             url: "",
             isEmbed: false
@@ -505,7 +418,6 @@ function parseEmbedResponse(html) {
         });
     }
 }
-
   
 function parseCategoriesResponse(html) { return "[]"; }
 function parseCountriesResponse(html) { return "[]"; }
