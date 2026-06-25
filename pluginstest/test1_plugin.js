@@ -331,91 +331,95 @@ function parseMovieDetail(html) {
 // PARSE VIDEO
 // ========================================================
 
-function parseDetailResponse(html) {
+function parseDetailResponse(html, url) {
+    log("Parsing Stream for: " + url);
     try {
-
-        // chỉ lấy link video thật
-        let video = html.match(
-            /(https?:\/\/[^"' ]+\.(m3u8|mp4)[^"' ]*)/i
-        );
-
-        if (video) {
-            return JSON.stringify({
-                url: video[1],
-                mimeType: video[1].includes(".m3u8")
-                    ? "application/x-mpegURL"
-                    : undefined,
-                headers: {
-                    Referer: "https://www.sieutamphim.pro/"
+        if (url.includes("?id=") && url.includes("&server=")) {
+            var server = (url.match(/server=([^&]+)/) || [])[1];
+            var tapStr = (url.match(/tap=(\d+)/) || [])[1];
+            var tap = parseInt(tapStr, 10);
+            
+            if (server && tap) {
+                // Tìm block chứa data-episodes của server tương ứng
+                var epBlockRegex = new RegExp('data-server=["\']' + server + '["\'][\\s\\S]*?data-episodes=([\'"])([\\s\\S]*?)\\1', "i");
+                var epBlockMatch = html.match(epBlockRegex);
+                
+                if (epBlockMatch) {
+                    var rawEpisodes = epBlockMatch[2];
+                    var epRegex = /{"([^"]+)","([^"]+)"}/g;
+                    var epMatch;
+                    var currentIndex = 1;
+                    while ((epMatch = epRegex.exec(rawEpisodes)) !== null) {
+                        if (currentIndex === tap) {
+                            var rawSrc = epMatch[1];
+                            // Giải mã XOR với khóa 42 để lấy link abyssplayer.com thật
+                            var decrypted = "";
+                            for (var i = 0; i < rawSrc.length; i++) {
+                                decrypted += String.fromCharCode(rawSrc.charCodeAt(i) ^ 42);
+                            }
+                            decrypted = decrypted.replace(/https?:\/\/(short\.ink|short\.icu)\//g, "https://abyssplayer.com/");
+                            log("Decrypted Stream URL: " + decrypted);
+                            
+                            if (decrypted.indexOf(".m3u8") !== -1) {
+                                return JSON.stringify({
+                                    url: decrypted,
+                                    mimeType: "application/x-mpegURL",
+                                    isEmbed: false
+                                });
+                            } else {
+                                var isAbyss = decrypted.indexOf("abyssplayer.com") !== -1 || 
+                                              decrypted.indexOf("abyss.to") !== -1 || 
+                                              decrypted.indexOf("short.ink") !== -1 || 
+                                              decrypted.indexOf("short.icu") !== -1;
+                                
+                                if (isAbyss) {
+                                    // Tạo trang HTML bọc iframe của abyssplayer để tránh redirect bypass sang abyss.to
+                                    var iframeHtml = '<html><body style="margin:0;padding:0;background:#000;"><iframe src="' + decrypted + '" style="width:100%;height:100%;border:none;" allowfullscreen></iframe></body></html>';
+                                    var base64Url = "data:text/html;base64," + base64Encode(iframeHtml);
+                                    
+                                    return JSON.stringify({
+                                        url: base64Url,
+                                        isEmbed: true,
+                                        headers: { "Referer": BASE_URL + "/" }
+                                    });
+                                } else {
+                                    // Các link khác (như blogger.com) trả về trực tiếp để tránh WebView chặn load data URL
+                                    return JSON.stringify({
+                                        url: decrypted,
+                                        isEmbed: true,
+                                        headers: { "Referer": BASE_URL + "/" }
+                                    });
+                                }
+                            }
+                        }
+                        currentIndex++;
+                    }
                 }
-            });
-        }
-
-        // decode srcdoc để tìm video
-        let srcdoc = html.match(/srcdoc=(['"])([\s\S]*?)\1/i);
-
-        if (srcdoc) {
-            let content = srcdoc[2]
-                .replace(/&quot;/g, '"')
-                .replace(/&#39;/g, "'")
-                .replace(/&lt;/g, "<")
-                .replace(/&gt;/g, ">")
-                .replace(/&amp;/g, "&");
-
-            let video2 = content.match(
-                /(https?:\/\/[^"' ]+\.(m3u8|mp4)[^"' ]*)/i
-            );
-
-            if (video2) {
-                return JSON.stringify({
-                    url: video2[1],
-                    mimeType: video2[1].includes(".m3u8")
-                        ? "application/x-mpegURL"
-                        : undefined
-                });
             }
         }
 
-        // ❌ KHÔNG return embed nữa
-        return JSON.stringify({
-            url: "",
-            headers: {}
-        });
-
-    } catch (e) {
-        return JSON.stringify({
-            url: "",
-            headers: {}
-        });
-    }
-}
-function parseEmbedResponse(html) {
-    try {
-
-        let video = html.match(
-            /(https?:\/\/[^"' ]+\.(m3u8|mp4)[^"' ]*)/i
-        );
-
-        if (video) {
-            return JSON.stringify({
-                url: video[1],
-                isEmbed: false,
-                mimeType: video[1].includes(".m3u8")
-                    ? "application/x-mpegURL"
-                    : undefined
-            });
+        var iframeMatch = html.match(/<iframe[^>]*src="([^"]+)"/i);
+        if (iframeMatch) {
+            var embedUrl = iframeMatch[1];
+            log("Found iframe in HTML: " + embedUrl);
+            if (embedUrl.startsWith("//")) embedUrl = "https:" + embedUrl;
+            if (embedUrl === url || embedUrl.length < 5) {
+                return JSON.stringify({ url: url, isEmbed: true, headers: { "Referer": BASE_URL } });
+            }
+            return JSON.stringify({ url: embedUrl, headers: { "Referer": BASE_URL }, isEmbed: true });
         }
 
-        return JSON.stringify({
-            url: "",
-            isEmbed: false
-        });
+        var m3u8 = html.match(/(https?:\/\/[^"' ]+\.m3u8[^"' ]*)/i);
+        if (m3u8) {
+            log("Found direct M3U8: " + m3u8[1]);
+            return JSON.stringify({ url: m3u8[1], mimeType: "application/x-mpegURL", isEmbed: false });
+        }
 
-    } catch (e) {
-        return JSON.stringify({
-            url: "",
-            isEmbed: false
-        });
+        log("No stream found, returning fallback URL");
+        return JSON.stringify({ url: url, isEmbed: true, headers: { "Referer": BASE_URL } });
+    } catch (e) { 
+        log("Error in parseDetailResponse: " + e.message);
+        return JSON.stringify({ url: "", isEmbed: false }); 
     }
 }
   
