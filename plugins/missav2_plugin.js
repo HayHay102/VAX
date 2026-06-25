@@ -6,7 +6,7 @@ function getManifest() {
     return JSON.stringify({
         "id": "missav2",
         "name": "MissAV 2",
-        "version": "1.1.1",
+        "version": "1.1.2",
         "baseUrl": "https://missav123.com",
         "fallbackUrls": ["https://missav.media"],
         "iconUrl": "https://raw.githubusercontent.com/youngbi/repo/main/plugins/missav.ico",
@@ -15,7 +15,7 @@ function getManifest() {
         "type": "VIDEO",
         "layoutType": "HORIZONTAL",
         "subtitleCat": true,
-        "imageReferer": "https://missav.ai/"
+        "imageReferer": "https://missav123.com/"
     });
 }
 
