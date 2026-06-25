@@ -30,6 +30,13 @@
             "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/hh3d.ico"
         },
         {
+            "id": "sieutamphim",
+            "name": "Siêu Tầm Phim",
+            "version": "1.0.3",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/Repo/plugins/sieutamphim_plugin.js",
+            "iconUrl": "https://www.sieutamphim.pro/posts/2024/06/cropped-logosieutamphim-192x192.png"
+        },
+        {
             "id": "stphim",
             "name": "Siêu Tầm Phim",
             "version": "1.0.0",
