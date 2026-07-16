@@ -1,0 +1,110 @@
+{
+    "version": 1,
+    "plugins": [
+        {
+            "id": "kkphim",
+            "name": "KKPhim",
+            "version": "1.0.2",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/kkphim_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/icon/kkphim.png"
+        },
+        {
+            "id": "phimhdcs",
+            "name": "PhimHDCS",
+            "version": "1.1.4",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/phimhdcs_plugin.js",
+            "iconUrl": "https://phimhdcss.com/favicon.ico"
+        },
+        {
+            "id": "nguonc",
+            "name": "Phim NguonC",
+            "version": "1.1.5",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/nguonc_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/icon/nguonC.png"
+        },
+        {
+            "id": "ophim",
+            "name": "OPhim",
+            "version": "1.0.4",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/ophim_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/icon/ophim.ico"
+        },
+        {
+            "id": "sieutamphim",
+            "name": "Siêu Tầm Phim",
+            "version": "1.0.9",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/sieutamphim_plugin.js",
+            "iconUrl": "https://www.sieutamphim.pro/posts/2024/06/cropped-logosieutamphim-192x192.png"
+        },
+        {
+            "id": "hh3d",
+            "name": "HH3D - Hoạt Hình 3D",
+            "version": "1.0.5",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/hh3d_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/icon/hh3d.ico"
+        },
+        {
+            "id": "clbpx",
+            "name": "CLB Phim Xưa",
+            "version": "1.0.6",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/clbpx_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/icon/clbpx.ico"
+        },
+        {
+            "id": "phimchill",
+            "name": "Phim Chill",
+            "version": "2.9",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/phimchill_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/alokillgtv-gif/VAXAPPSCRIPT/main/img/phimchill.ico"
+        },
+        {
+            "id": "phimhayok",
+            "name": "Phim Hay Ok",
+            "version": "1.1",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/phimhayok_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/alokillgtv-gif/VAXAPPSCRIPT/main/img/phimhayok.jpg"
+        },
+        {
+            "id": "nguoncnew",
+            "name": "Nguồn C No ADS",
+            "version": "1.26",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/nguoncnew.js",
+            "iconUrl": "https://raw.githubusercontent.com/youngbi/repo/main/plugins/nguonC.png"
+        },
+        {
+            "id": "phimnganhdc",
+            "name": "Phim Ngắn HDC",
+            "version": "1.2",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/phimnganhdc_plugin.js",
+            "iconUrl": "https://phimnganhdc.com/storage/files/logo-phimnganhdc.png"
+        },
+        {
+            "id": "onflix",
+            "name": "Onfix Phim",
+            "version": "1.7",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/onflix_plugin.js",
+            "iconUrl": "https://onflix.lat/app/asset/logo.png"
+        },
+        {
+            "id": "thapcam",
+            "name": "Thập Cẩm Fake",
+            "version": "1.0.3",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/thapcam_plugin.js",
+            "iconUrl": "https://tctv.pro/10cam-logo-app-light.jpg"
+        },
+        {
+            "id": "vmttv",
+            "name": "VMT TV",
+            "version": "1.0.2",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/vmttv_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/vuminhthanh12/vuminhthanh12/refs/heads/main/Logo.png"
+        },
+        {
+            "id": "otruyen",
+            "name": "OTruyen",
+            "version": "1.0.2",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/otruyen_plugin.js",
+            "iconUrl": "https://otruyenapi.com/favicon.ico"
+        }
+    ]
+}
