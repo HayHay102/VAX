@@ -1,5 +1,5 @@
 // ========================================================
-// SIÊU TẦM PHIM VAAPP PLUGIN (Code Youngbi & ʚʚ Ƭ Ɗųƴ ɞɞ )
+// SIÊU TẦM PHIM VAAPP PLUGIN (Code thêm từ bản của bạn ʚʚ Ƭ Ɗųƴ ɞɞ)
 // ========================================================
 
 const BASE_URL = "https://www.sieutamphim.pro";
@@ -12,7 +12,7 @@ function getManifest() {
     return JSON.stringify({
         "id": "sieutamphim",
         "name": "Sưu Tầm Phim",
-        "version": "1.0.3",
+        "version": "1.0.9",
         "baseUrl": "https://www.sieutamphim.pro",
         "iconUrl": "https://www.sieutamphim.pro/posts/2024/06/cropped-logosieutamphim-192x192.png",
         "isEnabled": true,
@@ -45,10 +45,10 @@ function getSlugFromUrl(url) {
 
 function getHomeSections() {
     return JSON.stringify([
-        { slug: "phim-bo", title: "Phim Bộ", type: "Horizontal" },
-        { slug: "phim-le", title: "Phim Lẻ", type: "Horizontal" },
-        { slug: "cgv-cinemas-vietnam", title: "CGV Cinemas Việt Nam", type: "Horizontal" },
+        { slug: "phim-bo", title: "Phim Bộ Mới", type: "Horizontal" },
+        { slug: "phim-le", title: "Phim Lẻ Mới", type: "Horizontal" },
         { slug: "long-tieng", title: "Phim Lồng Tiếng", type: "Horizontal" },
+        { slug: "thuyet-minh", title: "Phim Thuyết Minh", type: "Horizontal" },
         { slug: "phim-moi", title: "Mới cập nhật", type: "Grid" }
     ]);
 }
@@ -59,15 +59,15 @@ function getHomeSections() {
 
 function getPrimaryCategories() {
     return JSON.stringify([
-        { name: 'VieON', slug: 'vieon' },
-        { name: 'Netflix', slug: 'netflix' },
-        { name: 'IQIYI', slug: 'iqiyi' },
-        { name: 'Kplus', slug: 'kplus' },
-        { name: 'HBO', slug: 'hbo' },
+        { name: 'Phim Lẻ', slug: 'phim-le' },
+        { name: 'Phim Bộ', slug: 'phim-bo' },
+        { name: 'Hoạt Hình', slug: 'hoat-hinh' },
         { name: 'Phim Việt Nam', slug: 'phim-viet-nam' },
         { name: 'Phim Hàn Quốc', slug: 'phim-han-quoc' },
-        { name: 'Phim trung quốc', slug: 'phim-trung-quoc' },
-        { name: 'Phim Nhật Bản', slug: 'phim-nhat-ban' }
+        { name: 'Phim Trung Quốc', slug: 'phim-trung-quoc' },
+        { name: 'Phim Nhật Bản', slug: 'phim-nhat-ban' },
+        { name: 'Hành Động', slug: 'hanh-dong' },
+        { name: 'Viễn Tưởng', slug: 'vien-tuong' }
     ]);
 }
 
@@ -196,12 +196,33 @@ function parseMovieDetail(html, url) {
             contentHtml = post.content ? post.content.rendered : "";
             
             description = post.excerpt ? post.excerpt.rendered.replace(/<[^>]*>/g, "").trim() : "";
-            var imgMatch = contentHtml.match(/<img[^>]*src="([^"]+)"/i);
-            poster = imgMatch ? imgMatch[1] : "";
+            
+            // Cải tiến lấy ảnh bìa Featured Image của WordPress API
+            if (post.jetpack_featured_media_url) {
+                poster = post.jetpack_featured_media_url;
+            } else if (post.featured_media_src_url) {
+                poster = post.featured_media_src_url;
+            } else if (post.yoast_head_json && post.yoast_head_json.og_image && post.yoast_head_json.og_image.length > 0) {
+                poster = post.yoast_head_json.og_image[0].url;
+            } else {
+                var imgMatch = contentHtml.match(/<img[^>]*src="([^"]+)"/i);
+                poster = imgMatch ? imgMatch[1] : "";
+            }
             log("Parsed Title from WP API: " + title + " (PostID: " + postId + ")");
         } else {
             title = (html.match(/<meta property="og:title" content="([^"]+)"/i) || [])[1] || "";
-            poster = (html.match(/<meta property="og:image" content="([^"]+)"/i) || [])[1] || "";
+            
+            // Cải tiến regex để quét meta og:image linh hoạt bất kể thứ tự content/property
+            var ogImageMatch = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i) || 
+                               html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/i) ||
+                               html.match(/<meta[^>]+name="twitter:image"[^>]+content="([^"]+)"/i);
+            poster = ogImageMatch ? ogImageMatch[1] : "";
+            
+            if (!poster) {
+                var fallbackImgMatch = html.match(/<img[^>]+(?:src|data-src)="([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i);
+                if (fallbackImgMatch) poster = fallbackImgMatch[1];
+            }
+            
             description = (html.match(/<meta property="og:description" content="([^"]+)"/i) || [])[1] || "";
             movieUrl = (html.match(/<meta property="og:url" content="([^"]+)"/i) || [])[1] || url;
             
@@ -245,7 +266,7 @@ function parseMovieDetail(html, url) {
                     // QUAN TRỌNG: Không dùng :// để App nhảy vào getUrlDetail
                     id: "play-" + movieUrl + "?id=" + postId + "&server=" + encodeURIComponent(serverId) + "&tap=" + j,
                     name: epCount === 1 ? "Full" : "Tập " + j,
-                    slug: String(j)
+                    slug: "tap-" + j
                 });
             }
 
@@ -264,7 +285,7 @@ function parseMovieDetail(html, url) {
         }
 
         return JSON.stringify({
-            id: slugId,
+            id: "",
             title: decodeHtmlEntities(title.replace(" - Siêu Tầm Phim", "").trim()),
             posterUrl: poster,
             backdropUrl: poster,
@@ -415,3 +436,7 @@ function base64Encode(str) {
 function parseCategoriesResponse(html) { return "[]"; }
 function parseCountriesResponse(html) { return "[]"; }
 function parseYearsResponse(html) { return "[]"; }
+
+function getUrlCategories() { return ""; }
+function getUrlCountries() { return ""; }
+function getUrlYears() { return ""; }

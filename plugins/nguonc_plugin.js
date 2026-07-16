@@ -6,7 +6,7 @@ function getManifest() {
     return JSON.stringify({
         "id": "nguonc",
         "name": "Phim NguonC",
-        "version": "1.1.3",
+        "version": "1.1.5",
         "baseUrl": "https://phim.nguonc.com",
         "iconUrl": "https://raw.githubusercontent.com/youngbi/repo/main/plugins/nguonC.png",
         "isEnabled": true,
@@ -27,7 +27,6 @@ function getHomeSections() {
 
 function getPrimaryCategories() {
     return JSON.stringify([
-        { name: 'Phim đang chiếu', slug: 'phim-dang-chieu' },
         { name: 'Phim lẻ', slug: 'phim-le' },
         { name: 'Phim bộ', slug: 'phim-bo' },
         { name: 'TV Shows', slug: 'tv-shows' },
