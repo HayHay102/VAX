@@ -10,7 +10,7 @@ function getManifest() {
 		"BASEURL": "https://onflix.lat",
 		"iconUrl": "https://onflix.lat/app/asset/logo.png",
 		"isEnabled": true,
-		"type": "VIDEO",
+		"type": "MOVIE",
 		"playerType": "auto"
 	});
 }
