@@ -86,6 +86,13 @@
             "iconUrl": "https://onflix.lat/app/asset/logo.png"
         },
         {
+            "id": "rophim",
+            "name": "Rổ Phim",
+            "version": "1.0",
+            "scriptUrl": "https://raw.githubusercontent.com/markai30/VAXAPPSCRIPT/main/Plugins/rophim.js",
+            "iconUrl": "https://phimvn2y.com/wp-content/themes/rophim-2/assets/images/logo.svg"
+        },
+        {
             "id": "thapcam",
             "name": "Thập Cẩm Fake",
             "version": "1.0.3",
