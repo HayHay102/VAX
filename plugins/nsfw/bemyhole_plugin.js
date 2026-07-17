@@ -11,6 +11,7 @@ function getManifest() {
         "BASEURL": "https://www.bemyhole.com",
         "iconUrl": "https://raw.githubusercontent.com/alokillgtv-gif/VAXAPPSCRIPT/main/img/cnporn.jpg",
         "isEnabled": true,
+		"isAdult": true,
         "type": "VIDEO",
         "playerType": "embed"
     });
