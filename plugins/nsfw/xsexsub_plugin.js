@@ -9,6 +9,7 @@ function getManifest() {
         "BASEURL": "https://xsexsub.site",
         "iconUrl": "https://raw.githubusercontent.com/alokillgtv-gif/VAXAPPSCRIPT/main/img/cnporn.jpg",
         "isEnabled": true,
+		"isAdult": true,
         "type": "VIDEO",
         "playerType": "embed"
     });
