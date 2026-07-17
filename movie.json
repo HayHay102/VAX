@@ -62,7 +62,7 @@
             "id": "bilutv",
             "name": "Nguồn Bilutv",
             "version": "1.4",
-            "scriptUrl": "https://rawcdn.githack.com/alokillgtv-gif/VAXAPPSCRIPT/aa1986339c3b8f2d3ac86db859a5e7dd86b548da/Plugins/bilutv_plugin.js",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/bilutv_plugin.js",
             "iconUrl": "https://bilutv.asia/img/bilutvlogo-ngang.jpg"
         },
         {
