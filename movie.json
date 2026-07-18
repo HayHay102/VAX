@@ -96,7 +96,7 @@
         {
             "id": "onflix",
             "name": "Onfix Phim",
-            "version": "1.7",
+            "version": "1.7.6",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/onflix_plugin.js",
             "iconUrl": "https://onflix.lat/app/asset/logo.png"
         },
