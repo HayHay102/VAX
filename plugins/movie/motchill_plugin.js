@@ -1,34 +1,35 @@
 // https://bilutv.asia
-BASEURL = "https://yanhh3d.ac";
+BASEURL = "https://motchille.cx";
 
 function getManifest() {
     return JSON.stringify({
-        "id": "yanhh3d",
-        "name": "Yanhh3d",
-        "description": "Trang xem phim Hoạt Hình siêu hay.",
-        "version": "1.1.8",
-        "BASEURL": "https://yanhh3d.ac",
-        "iconUrl": "https://bilutv.asia/img/bilutvlogo-ngang.jpg",
+        "id": "motchill",
+        "name": "Nguồn Phim Motchill",
+        "description": "Mochill Trang Xem Phim.",
+        "version": "1.0",
+        "BASEURL": "https://motchille.cx",
+        "iconUrl": "https://motchille.cx/motchill.png",
         "isEnabled": true,
         "type": "MOVIE",
-        "playerType": "auto"
+        "playerType": "exoplayer"
     });
 }
 
 function log(msg) {
     if (typeof nativeLog !== 'undefined') {
-        nativeLog("[PhimHDCS] " + msg);
+        nativeLog("[motchille] " + msg);
     } else if (typeof console !== 'undefined' && console.log) {
-        console.log("[PhimHDCS] " + msg);
+        console.log("[motchille] " + msg);
     }
 }
 
 // https://yanhh3d.ac/moi-cap-nhat?page=2
 function getHomeSections() {
     var listurl = `
-/moi-cap-nhat@@Phim Mới@@true
+/danh-sach@@Phim Mới@@true
 `;
     var menulist = buildMenu(listurl);
+    log(menulist)
     return JSON.stringify(menulist);
 }
 
@@ -53,27 +54,48 @@ function getFilterConfig() {
 
 function getUrlList(slug, filtersJson) {
 	try {
-		// 1. Kiểm tra nếu slug là link tuyệt đối (chứa http) và không có bộ lọc thì trả về luôn
-		if (slug && slug.indexOf("http") > -1 || slug.indexOf("search") > -1) {
-			// thường là link search sẽ bị trả về ở đây
+		// 1. Kiểm tra nếu slug là link tuyệt đối (chứa http)
+		if (slug && slug.indexOf("http") > -1) {
+			
+			// Xử lý riêng cho link search tuyệt đối
+			if (slug.indexOf("search") > -1) {
+				if (filtersJson) {
+					// Sửa lỗi JSON thiếu dấu ngoặc kép trước khi parse (đưa lên đây dùng chung)
+					let fixedJson = filtersJson.replace(/([{,])\s*([a-zA-Z0-9_]+)\s*:/g, '$1"$2":').replace(/:,/g, ':');
+					
+					try {
+						var filters = JSON.parse(fixedJson);
+						var page = parseInt(filters.page) || 1;
+						
+						if (page > 1) {
+							// Sửa lại Regex ([^&]+) để lấy trọn vẹn keyword sau q=
+							var keyword = slug.match(/\?q=([^&]+)/i);
+							if (keyword && keyword[1]) {
+								return "https://motchille.cx/search/" + page + "?q=" + keyword[1];
+							}
+						} else {
+							return slug;
+						}
+					} catch (jsonErr) {
+						// Nếu parse JSON vẫn lỗi, trả về slug gốc an toàn luôn
+						return slug;
+					}
+				}
+			}
 			return slug;
 		}
-		let page = 1;
-		let path = slug || "";
 		
-		// 2. Xử lý an toàn filtersJson nếu có truyền vào
+		var page = 1;
+		var path = slug || "";
+		
+		// 2. Xử lý an toàn filtersJson cho các trường hợp link tương đối (không chứa http)
 		if (filtersJson) {
-			// Nếu có số trang hoặc  có menu categ
-			// Sửa lỗi nếu JSON thiếu dấu ngoặc kép ở key hoặc sai cú pháp cơ bản
-			let fixedJson = filtersJson.replace(/([{,])\s*([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
-				.replace(/:,/g, ':');
-			// Sửa lỗi nếu truyền kiểu {"page",24} thành {"page":24}
+			let fixedJson = filtersJson.replace(/([{,])\s*([a-zA-Z0-9_]+)\s*:/g, '$1"$2":').replace(/:,/g, ':');
 			
 			try {
 				let filters = JSON.parse(fixedJson);
 				page = parseInt(filters.page) || 1;
 				
-				// Nếu có category trong JSON, ưu tiên lấy category làm đường dẫn (path)
 				if (filters.category) {
 					if (Array.isArray(filters.category) && filters.category.length > 0) {
 						path = filters.category[0].slug;
@@ -82,45 +104,44 @@ function getUrlList(slug, filtersJson) {
 					}
 				}
 			} catch (jsonErr) {
-				//console.log("JSON parse lỗi, dùng giá trị mặc định");
+				// Coi như bỏ qua nếu lỗi JSON
 			}
 		}
 		
-		// 4. Chuẩn hóa path (Xóa dấu gạch chéo thừa ở đầu/cuối để tránh nhân đôi dấu //)        
-		// 5. Nối chuỗi URL kết quả
+		// 3. Nối chuỗi URL kết quả cho link tương đối
 		let resultUrl = BASEURL;
 		if (path) {
 			resultUrl += path;
 		}
-		// https://www.tranny.one/recent/?mix=true&pageId=2&_=1783573720196
 		if (page > 1) {
-			resultUrl += "?page=" + page;
+			resultUrl += "/" + page;
 		}
 		
-		// Trả về kết quả, chỉ gộp dấu // ở phần path, giữ nguyên https://
 		return resultUrl.replace(/([^:]\/)\/+/g, "$1");
 		
 	} catch (e) {
-		// console.log("Lỗi hệ thống: " + e.message);
-		// Trả về URL gốc an toàn nếu có lỗi
+		// SỬA LỖI TẠI ĐÂY: Nếu slug đã có http thì trả về chính nó, không cộng thêm BASEURL nữa
+		console.log(e)
+		if (slug && slug.indexOf("http") > -1) {
+			return slug;
+		}
 		let fallback = BASEURL + (slug ? "/" + slug : "");
 		return fallback.replace(/([^:]\/)\/+/g, "$1");
 	}
 }
-// https://yanhh3d.ac/the-loai/huyen-huyen?page=2
-// https://yanhh3d.ac/storage/settings/January2026/yme.png
-// https://yanhh3d.ac/search?keysearch=nh%E1%BA%A5t
 
-//var BASEURL = "https://bilutv.asia";
-//var BASEAPI = "https://k8s.onflixcdn.com/api";
-// JSON lỗi cú pháp (thiếu nháy kép) của bạn
+function getUrlSearch(keyword, filtersJson) {
+	return BASEURL + "/search?q=" + encodeURIComponent(keyword);
+}
+
+// https://motchille.cx/danh-sach/4
+// https://motchille.cx/the-loai/kinh-di/4
+// https://motchille.cx/search/?q=girl
+//var BASEURL = "https://motchille.cx";
 //var filtersJson = '{page:11,category:[{"slug":"/movies?sort=year_desc&limit=24&category=18-plus","name":"Thiếu niên"}]}'; 
 //var filtersJson = '{page:22}';
-//console.log(getUrlList("https://bilutv.asia/?search=girl", filtersJson));
 //getUrlSearch("naruto", filtersJson)
-function getUrlSearch(keyword, filtersJson) {
-    return BASEURL + "/search?keysearch=" + encodeURIComponent(keyword);
-}
+//console.log(getUrlList("/the-loai/kinh-di", filtersJson));
 
 function getUrlDetail(slug) {
     if (!slug) return "";
@@ -144,61 +165,67 @@ function getUrlYears() {
 // PARSERS
 // =============================================================================
 function parseListResponse(html, $url) {
-    try {
-        var items = [];
-
-        _$(html).find(".flw-item").each(function () {
-            
-            var year = "";
-            var lang = "";
-            var current = this.find(".tick-rate").text();
-            var href = this.find("a").attr("href");
-            var quality = this.find(".tick-dub").text();
-            var title = this.find("a").attr("title");
-            var src = this.find("img").attr("src");
-            if (src.indexOf("http") == -1) {
-                src = BASEURL + src;
-            }
-
-            if (href && href.indexOf("http") > -1) {
-                var cleanThumb = src.replace(/&amp;/g, '&');
-
-                items.push({
-                    "id": href,
-                    "title": title.trim(),
-                    "posterUrl": cleanThumb,
-                    "backdropUrl": cleanThumb,
-                    "quality":quality,
-                    "episode_current":current
-                });
-            }
-        });
-
-        return JSON.stringify({
-            "items": items,
-            "pagination": {
-                "currentPage": 1,
-                "totalPages": 999
-            }
-        });
-
-    } catch (e) {
-        return JSON.stringify({
-            "items": [{
-                "id": $url,
-                "title": "Lỗi: " + e,
-                "posterUrl": "",
-                "backdropUrl": ""
-            }],
-            "pagination": {
-                "currentPage": 1,
-                "totalPages": 1
-            }
-        });
-    }
+	try {
+		var items = [];
+		_$(html).find(".block.relative").each(function() {
+			var year = "";
+			var lang = this.find(".absolute.top-0.left-1").text();
+			var current = this.find(".absolute.bottom-1").text();
+			var href = this.attr("href");
+			if (href.indexOf("http") == -1) {
+				href = BASEURL + href;
+			}
+			var quality = this.find(".absolute.top-0.right-1").text();
+			var title = this.attr("title");
+			var src = this.find("img").attr("src");
+			if (src.indexOf("http") == -1) {
+				src = BASEURL + src;
+			}
+			
+			if (href && href.indexOf("http") > -1) {
+				var cleanThumb = src.replace(/&amp;/g, '&');
+				
+				items.push({
+					"id": href,
+					"title": title.trim(),
+					"posterUrl": cleanThumb,
+					"backdropUrl": cleanThumb,
+					"quality": quality,
+					"lang": lang,
+					"episode_current": current
+				});
+			}
+		});
+		
+		return JSON.stringify({
+			"items": items,
+			"pagination": {
+				"currentPage": 1,
+				"totalPages": 999
+			}
+		});
+		
+	} catch (e) {
+		log(e);
+		return JSON.stringify({
+			"items": [{
+				"id": $url,
+				"title": "Lỗi: " + e,
+				"posterUrl": "",
+				"backdropUrl": ""
+			}],
+			"pagination": {
+				"currentPage": 1,
+				"totalPages": 1
+			}
+		});
+	}
 }
-//var BASEURL = "https://onflix.lat";
-//var BASEAPI = "https://k8s.onflixcdn.com/api";
+// https://motchille.cx/danh-sach/4
+// https://motchille.cx/the-loai/kinh-di/4
+// https://motchille.cx/search/4?q=girl
+//var BASEURL = "https://motchille.cx";
+
 //var htmlsource = $("#labHtmlEditorWrap #labHtmlTreeContainer .lab-dom-pure-text").html();
 //JSON.parse(parseListResponse(outerHTML, BASEURL));
 //var html = outerHTML;
@@ -424,14 +451,32 @@ function parseYearsResponse(html) { return "[]"; }
 // https://k8s.onflixcdn.com/api/movies?sort=year_desc&limit=24&category=chien-tranh
 function getLISTmenu() {
     return `
-/the-loai/huyen-huyen@@Huyền Huyễn
-/the-loai/xuyen-khong@@Xuyên Không
-/the-loai/trung-sinh@@Trùng Sinh
-/the-loai/tien-hiep@@Tiên Hiệp
-/the-loai/co-trang@@Cổ Trang
+/danh-sach/phim-le@@Phim Lẻ
+/danh-sach/phim-Bộ@@Phim Bộ
+/the-loai/hanh-dong@@Hành Động
+/the-loai/tinh-cam@@Tình Cảm
 /the-loai/hai-huoc@@Hài Hước
-/the-loai/kiem-hiep@@Kiếm Hiệp
-/the-loai/hien-dai@@Hiện Đại
+/the-loai/co-trang@@Cổ Trang
+/the-loai/tam-ly@@Tâm Lý
+/the-loai/hinh-su@@Hình Sự
+/the-loai/chien-tranh@@Chiến Tranh
+/the-loai/the-thao@@Thể Thao
+/the-loai/vo-thuat@@Võ Thuật
+/the-loai/vien-tuong@@Viễn Tưởng
+/the-loai/phieu-luu@@Phiêu Lưu
+/the-loai/khoa-hoc@@Khoa Học
+/the-loai/kinh-di@@Kinh Dị
+/the-loai/am-nhac@@Âm Nhạc
+/the-loai/than-thoai@@Thần Thoại
+/the-loai/tai-lieu@@Tài Liệu
+/the-loai/gia-dinh@@Gia Đình
+/the-loai/chinh-kich@@Chính kịch
+/the-loai/bi-an@@Bí ẩn
+/the-loai/hoc-duong@@Học Đường
+/the-loai/kinh-dien@@Kinh Điển
+/the-loai/phim-18@@Phim 18+
+/the-loai/hoat-hinh@@Anime & Hoạt Hình
+/the-loai/tv-shows@@TV Shows
 `
 }
 
