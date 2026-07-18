@@ -68,7 +68,7 @@
         {
             "id": "phimchill",
             "name": "Phim Chill",
-            "version": "2.9",
+            "version": "3.7.8",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/phimchill_plugin.js",
             "iconUrl": "https://raw.githubusercontent.com/alokillgtv-gif/VAXAPPSCRIPT/main/img/phimchill.ico"
         },
