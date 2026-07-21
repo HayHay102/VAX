@@ -1,15 +1,14 @@
 BASEURL = "https://xsexsub.site";
-// https://www.xxxfiles.com/favicon-32x32.png
 function getManifest() {
     return JSON.stringify({
         "id": "xsexsub",
         "name": "Phim XXX Vietsub",
         "description": "XXX hay.",
-        "version": "1.3",
+        "version": "1.3.2",
         "BASEURL": "https://xsexsub.site",
         "iconUrl": "https://raw.githubusercontent.com/alokillgtv-gif/VAXAPPSCRIPT/main/img/cnporn.jpg",
         "isEnabled": true,
-		"isAdult": true,
+        "isAdult": true,
         "type": "VIDEO",
         "playerType": "embed"
     });
