@@ -71,7 +71,7 @@ function getUrlList(slug, filtersJson) {
     var filters = JSON.parse(filtersJson || "{}");
     var page = filters.page || 1;
     var baseUrl = "https://hoathinh3d.st";
-
+//https://hoathinh3d.st/wp-json/halim/v1/completed?page=1&per_page=20
     // Handle special pages which are empty shells but loaded via WP-JSON REST API
     if (slug === 'phim-hoan-thanh') {
         return baseUrl + "/wp-json/halim/v1/completed?page=" + page + "&per_page=20";
@@ -630,3 +630,4 @@ function parseCategoriesResponse(html) {
 
 function parseCountriesResponse(html) { return "[]"; }
 function parseYearsResponse(html) { return "[]"; }
+
