@@ -1,13 +1,13 @@
-var BASEURL = "https://narto-drama.com"; 
+var BASEURL = "https://edge.narto-drama.com"; 
 
 function getManifest() {
     return JSON.stringify({
         "id": "nartodrama",
         "name": "Phim Ngắn Narto",
-        "description": "Phim Ngắn lồng tiếgn vietsub hay",
-        "version": "1.0.0",
-        "info": "Nguồn phim ngắn siêu hay, một vài bộ phim nên xem theo chiều dọc. App có hỗ trợ nhé.",
-        "baseUrl": "https://narto-drama.com",
+        "description": "Phim Ngắn lồng tiếng vietsub hay",
+        "version": "1.1.5",
+        "info": "Nguồn phim ngắn siêu hay, một vài bộ phim nên xem theo chiều dọc. App có hỗ trợ nhé. Hãy nhấn thử lại nếu không tải được video.",
+        "baseUrl": "https://edge.narto-drama.com",
         "iconUrl": "https://narto-drama.com/narto-drama-logo-compressed.png",
         "isEnabled": true,
         "type": "MOVIE",
@@ -170,7 +170,7 @@ function parseListResponse(html, $url) {
             }
         });
     } catch (e) {
-        log(e);
+        log("parseListResponse: " + e);
         return JSON.stringify({
             "items": [{
                 "id": $url || "error_url",
@@ -245,17 +245,27 @@ function parseMovieDetail(html, url) {
         var rawScript = _$(html).find('script:content("episodeItemsRaw = [{")').html();
         var $objepi = "";
         var servers = [];
+        var items = [];
         var episodes = rawScript.match(/(?:const|let|var)\s+episodeItemsRaw\s*=\s*(\[[\s\S]*?\])(?:;|\n|$)/i)
         if (episodes[1] && episodes) {
             $objepi = JSON.parse(episodes[1]);
         }
-        var items = [];
+        var urlmatch = "";
+        if (id.indexOf("/detail/watch/") > -1) {
+            urlmatch = id.match(/(?<=\/watch\/)[^/]+/i);
+            urlmatch[0] = "watch/" + urlmatch[0].replace(/\/(\d+)$/g, "")
+        } else {
+            urlmatch = id.match(/(?<=\/detail\/)[^?]+/i);
+            urlmatch[0] = urlmatch[0].replace(/\/(\d+)$/g, "")
+        }
+        var slug = urlmatch[0];
         for (var $j = 0; $j < $objepi.length; $j++) {
             var $movie = $objepi[$j];
             var $number = $movie.number;
-            var $link = $movie.direct_play_url;
+            var link = "https://edge.narto-drama.com/e/rs/detail/" + slug + "/" + $number + "/refresh-source?lang=vi-VN&force=1"
+
             var item = {
-                id: $link,
+                id: link,
                 name: "Tập " + $number,
                 slug: "Tap-" + $number
             }
@@ -264,7 +274,7 @@ function parseMovieDetail(html, url) {
         servers.push({
             name: "Server",
             episodes: items
-        })
+        });
 
         // Tạo chuỗi mô tả ẩn JSON servers giống hệt tác giả
         // === BƯỚC 5: TRẢ VỀ KẾT QUẢ ĐỒNG NHẤT ID ===
@@ -288,7 +298,7 @@ function parseMovieDetail(html, url) {
         });
 
     } catch (e) {
-        log(e)
+        log("parseMovieDetail:" + e)
         return JSON.stringify({
             id: slug || url || "error",
             title: "error",
@@ -296,37 +306,93 @@ function parseMovieDetail(html, url) {
         });
     }
 }
-
 /*
+// https://edge.narto-drama.com/e/rs/detail/watch/tro-choi-cong-so/9/refresh-source?lang=vi-VN
+
+
 BASEURL = "https://phimnganhdc.com";
 var html = sourceHTML;
 var $url = "https://phimnganhdc.com/hot-babe-remy-cheats-with-bbc/";
-JSON.parse(parseMovieDetail(outerHTML, $url));
+JSON.parse(parseMovieDetail(outerHTML,$url));
+// https://edge.narto-drama.com/e/rs/detail/watch/tro-choi-cong-so/check-new-episodes?_t=1784684483895&_=1784684480875
 */
 
 function parseDetailResponse(html, url) {
     try {
+        var $objmv = JSON.parse(html);
+        var rawStream = $objmv.direct_play_url || $objmv.play_url || "";
+        var $subtitle = $objmv.direct_subtitle_url || "";
         
+        if (!rawStream) {
+            throw new Error("Không tìm thấy link stream");
+        }
+
+        var lowerStream = rawStream.toLowerCase();
+        var mimeType = "application/x-mpegURL";
+        var finalStreamUrl = rawStream;
+
+        // 1. PHÂN LOẠI CHÍNH XÁC
+        if (lowerStream.includes(".mp4")) {
+            // Trường hợp 1: File MP4 (như trong Log của bạn)
+            mimeType = "video/mp4";
+            
+            // Thêm #.m3u8 cho ExoPlayer nếu chưa có
+            if (!finalStreamUrl.endsWith("#.m3u8")) {
+                finalStreamUrl += "#.m3u8";
+            }
+        } 
+        else if (lowerStream.includes(".m3u8")) {
+            // Trường hợp 2: Stream HLS chuẩn
+            mimeType = "application/x-mpegURL";
+        } 
+        else {
+            // Trường hợp 3: Link ẩn đuôi (không có .mp4 hay .m3u8 trong URL)
+            mimeType = "application/x-mpegURL";
+            if (!finalStreamUrl.endsWith("#.m3u8")) {
+                finalStreamUrl += "#.m3u8";
+            }
+        }
+
+        // 2. XỬ LÝ SUBTITLE
+        var listsub = [];
+        if ($subtitle) {
+            if (!$subtitle.startsWith("http://") && !$subtitle.startsWith("https://")) {
+                if (!$subtitle.startsWith("/")) {
+                    $subtitle = "/" + $subtitle;
+                }
+                $subtitle = "https://edge.narto-drama.com" + $subtitle;
+            }
+
+            listsub.push({
+                "lang": "Subtitle",
+                "url": $subtitle,
+                "mimeType": "text/vtt"
+            });
+        }
+
+        log("Final Stream: " + finalStreamUrl + " | Mime: " + mimeType);
+
         return JSON.stringify({
-            "url": "",
+            "url": finalStreamUrl,
             "isEmbed": false,
-            "mimeType": "application/x-mpegURL",
+            "mimeType": mimeType,
             "headers": {
-                "Referer": BASEURL,
+                "Referer": typeof BASEURL !== 'undefined' ? BASEURL : "https://edge.narto-drama.com/",
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             },
-            "subtitles": [{
-                "lang": "vi",
-                "url": $subtitle
-            }]
+            "subtitles": listsub
         });
     } catch (e) {
+        log("stream error: " + e);
         return JSON.stringify({
             "url": "",
             "headers": {}
         });
     }
 }
+
+
+
 
 function sortEpisodesByName(data) {
     data.forEach(function(server) {
