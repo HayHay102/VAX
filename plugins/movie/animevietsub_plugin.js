@@ -1,18 +1,19 @@
-// =============================================================================
-// CONFIGURATION & METADATA
-// =============================================================================
-BASEURL = "https://animevietsub.wiki"
+
+BASEURL = "https://animevietsub.ing"
+DEV = false;
 
 function getManifest() {
     return JSON.stringify({
         "id": "animevietsub",
         "name": "AnimeVietSub",
-        "version": "1.0.8",
-        "baseUrl": "https://animevietsub.wiki",
-        "iconUrl": "https://animevietsub.wiki/statics/default/images/logo.png",
+        "version": "1.1.2",
+        "baseUrl": "https://animevietsub.ing",
+      	"info": "Nguồn phim Anime chất lượng. Nguồn này hay bị nhà mạng chặn. Các bạn hãy dùng APP 1.1.1.1 hoặc DNS và DPI trên app để xem nhé.",
+        "iconUrl": "https://animevietsub.ing/statics/default/images/logo.png",
         "isEnabled": true,
         "type": "MOVIE",
-        "playerType": "embed"
+      debug: true,
+        "playerType": "embedtoexoplay"
     });
 }
 
@@ -425,110 +426,168 @@ function parseDetailResponse(htmlContent, pageUrl) {
     }
 }
 
+
+
 function customJS(initialLink){
   return `
 (function() {
-    // 0. ĐÈ NGAY LẬP TỨC MÀN HÌNH NỀN TỐI VÀ SPINNER LOADING
+    // ----------------------------------------------------
+    // HÀM HELPER GHI LOG QUA SNIFFERBRIDGE
+    // ----------------------------------------------------
+    const log = function(...args) {
+        const message = "[CustomJS] " + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+        if (typeof SnifferBridge !== 'undefined' && typeof SnifferBridge.log === 'function') {
+            SnifferBridge.log(message);
+        } else {
+            console.log(message);
+        }
+    };
+
+    const warn = function(...args) {
+        const message = "[CustomJS-WARN] " + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+        if (typeof SnifferBridge !== 'undefined' && typeof SnifferBridge.log === 'function') {
+            SnifferBridge.log(message);
+        } else {
+            console.warn(message);
+        }
+    };
+
+    const error = function(...args) {
+        const message = "[CustomJS-ERROR] " + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+        if (typeof SnifferBridge !== 'undefined' && typeof SnifferBridge.log === 'function') {
+            SnifferBridge.log(message);
+        } else {
+            console.error(message);
+        }
+    };
+
+    log("Đang khởi tạo script can thiệp...");
+
+    // ----------------------------------------------------
+    // 1. VÔ HIỆU HÓA CÁC HÀM DIALOG & MỞ TAB MỚI (CHẶN POPUP)
+    // ----------------------------------------------------
+    const noop = function(){};
+    window.alert = noop;
+    window.confirm = () => false;
+    window.prompt = () => null;
+    
+    // Ghi đè window.open triệt để
+    const safeOpen = function() {
+        warn("Đã chặn một yêu cầu window.open()");
+        return {
+            closed: true,
+            close: noop,
+            focus: noop,
+            blur: noop,
+            postMessage: noop
+        };
+    };
+    
+    try {
+        Object.defineProperty(window, 'open', {
+            get: () => safeOpen,
+            set: () => {},
+            configurable: false
+        });
+    } catch(e) {
+        window.open = safeOpen;
+    }
+
+    // ----------------------------------------------------
+    // 2. PHÁT HIỆN VÀ CHẶN CHUYỂN TRANG (NAVIGATION BLOCK)
+    // ----------------------------------------------------
+    try {
+        const blockNav = function(url) {
+            warn("Đã chặn hành vi chuyển trang (assign/replace):", url);
+        };
+        Location.prototype.assign = blockNav;
+        Location.prototype.replace = blockNav;
+    } catch(e) {
+        error("Không thể ghi đè Location prototype:", e);
+    }
+
+    // Chặn chống rời trang (beforeunload spam)
+    window.addEventListener("beforeunload", function(e) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+    }, true);
+
+    log("Cấu hình bảo vệ cơ bản hoàn tất.");
+
+    // ----------------------------------------------------
+    // 3. CHÈN CSS LOADING OVERLAY
+    // ----------------------------------------------------
+    log("Chèn CSS và Loading Overlay...");
+    let styleTag = document.createElement('style');
+    styleTag.textContent = \`
+        margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #000;
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    \`;
+    if (document.head) document.head.appendChild(styleTag);
+    else document.documentElement.appendChild(styleTag);
+
     let overlay = document.createElement('div');
     overlay.id = 'loading-overlay';
     Object.assign(overlay.style, {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: '#000',
-        zIndex: '999998',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#fff',
-        fontFamily: 'Arial, sans-serif'
+        position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
+        backgroundColor: '#000', zIndex: '999998', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', color: '#fff',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        pointerEvents: 'none', opacity: '1', transition: 'opacity 0.3s ease'
     });
     overlay.innerHTML = \`
-        <div style="border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid #e50914; border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite;"></div>
-        <div style="margin-top: 15px; font-size: 14px; color: #aaa; letter-spacing: 0.5px;">Đang tải tập phim...</div>
-        <style>
-            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        </style>
+        <div style="border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #e50914; border-radius: 50%; width: 36px; height: 36px; animation: spin 0.8s linear infinite;"></div>
+        <div style="margin-top: 12px; font-size: 12px; color: #a1a1aa;">Đang tải...</div>
     \`;
     
-    if (document.body) {
-        document.body.appendChild(overlay);
-    } else {
-        document.documentElement.appendChild(overlay);
-    }
+    if (document.body) document.body.appendChild(overlay);
+    else document.documentElement.appendChild(overlay);
 
-    // Kiểm tra lỗi Server 5xx ngay trước khi thực hiện các bước khác
-    const bodyText = document.body ? document.body.innerHTML : "";
-    const mainTitle = document.querySelector('.main-title');
-    const isServerError = bodyText.includes("Lỗi Server 5xx") || (mainTitle && mainTitle.textContent.includes("5xx"));
+    // ----------------------------------------------------
+    // 4. CHẶN AD-CLICKS & POPUP TOÀN DIỆN
+    // ----------------------------------------------------
+    const preventAdClick = function(e) {
+        // Cho phép click bên trong UI của ứng dụng
+        if (e.target.closest('#floating-select-box') || e.target.closest('#episode-grid-popup') || e.target.closest('#btn-resume-saved') || e.target.closest('#btn-resume-current')) {
+            return;
+        }
 
-    if (isServerError) {
-        overlay.innerHTML = \`
-            <div style="font-size: 45px; margin-bottom: 12px;">💥</div>
-            <div style="font-size: 18px; font-weight: bold; color: #ff5555; margin-bottom: 8px;">Lỗi Server 5xx!</div>
-            <div style="font-size: 14px; color: #aaa; text-align: center; max-width: 320px; line-height: 1.5; padding: 0 20px;">
-                Hệ thống đang gặp sự cố quá tải hoặc bảo trì. Vui lòng quay lại sau khi server được sửa lại nhé!
-            </div>
-        \`;
-        return;
-    }
+        let aTag = e.target.closest('a');
+        if (aTag) {
+            const targetAttr = aTag.getAttribute('target');
+            const hrefAttr = aTag.getAttribute('href');
 
-    // Chống nhảy trang quảng cáo nhưng cho phép bấm nút tắt (X) của quảng cáo
-    window.addEventListener('click', function(e) {
-        if (!e.target.closest('#floating-select-box') && !e.target.closest('#episode-grid-popup')) {
-            let aTag = e.target.closest('a');
-            if (aTag && (aTag.target === '_blank' || aTag.href)) {
+            // Chặn chuyển tab hoặc link chuyển trang của quảng cáo
+            if (targetAttr === '_blank' || (hrefAttr && !hrefAttr.startsWith('javascript:'))) {
+                warn("Đã chặn Click mở Quảng Cáo/Link:", hrefAttr);
                 e.stopPropagation();
+                e.stopImmediatePropagation();
                 e.preventDefault();
+                return false;
             }
         }
-    }, true);
+    };
 
-    window.open = function() { return null; };
+    // Chặn trên tất cả sự kiện chuột có thể kích hoạt QC
+    ['click', 'mousedown', 'mouseup', 'pointerdown'].forEach(eventType => {
+        window.addEventListener(eventType, preventAdClick, true);
+    });
 
-    function showToast(msg) {
-        let old = document.getElementById('script-toast');
-        if (old) old.remove();
-        let toast = document.createElement('div');
-        toast.id = 'script-toast';
-        toast.textContent = msg;
-        Object.assign(toast.style, {
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            zIndex: '9999999',
-            background: 'rgba(0, 0, 0, 0.85)',
-            color: '#4ade80',
-            padding: '8px 14px',
-            borderRadius: '8px',
-            fontSize: '13px',
-            fontFamily: 'Arial, sans-serif',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-            transition: 'opacity 0.5s'
-        });
-        document.body.appendChild(toast);
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 500);
-        }, 3000);
-    }
-
+    // ----------------------------------------------------
+    // 5. KHỞI TẠO LOGIC TẬP PHIM
+    // ----------------------------------------------------
     function init() {
-        showToast("🚀 Script đang chạy...");
-
-        // 1. LẤY DANH SÁCH TẬP PHIM TRƯỚC KHI XÓA DOM
+        log("Trang đã tải xong. Bắt đầu quét danh sách tập...");
         const episodeLinks = document.querySelectorAll(".episode .episode-link");
         const allEpisodes = [];
+        
         episodeLinks.forEach((link, index) => {
             const url = link.getAttribute("href");
             const title = link.getAttribute("title") || ("Tập " + link.textContent.trim());
-            if (url) {
-                allEpisodes.push({ index, title, url });
-            }
+            if (url) allEpisodes.push({ index, title, url });
         });
+
+        log(\`Tìm thấy \${allEpisodes.length} tập phim.\`, allEpisodes);
 
         let currentPlayingIndex = 0;
         const currentUrl = window.location.href;
@@ -538,232 +597,199 @@ function customJS(initialLink){
             }
         });
 
-        // 2. KIỂM TRA LOCALSTORAGE & XỬ LÝ LỊCH SỬ XEM
+        log(\`Tập hiện tại phát hiện dựa trên URL: Tập \${currentPlayingIndex + 1}\`);
+
         const storageKey = "anime_history_" + window.location.pathname.replace(/[^a-zA-Z0-9]/g, "_");
         let savedIndex = localStorage.getItem(storageKey);
 
         if (savedIndex !== null) {
             savedIndex = parseInt(savedIndex, 10);
-            // Nếu tập hiện tại khác tập đã lưu VÀ khác tập tiếp theo ngay sau đó (savedIndex + 1)
-            if (currentPlayingIndex !== savedIndex && currentPlayingIndex !== savedIndex + 1) {
-                if (overlay) overlay.remove();
+            log(\`Lịch sử xem trong LocalStorage: Tập \${savedIndex + 1}\`);
 
+            if (currentPlayingIndex !== savedIndex && currentPlayingIndex !== savedIndex + 1) {
+                log("Lịch sử lệch so với tập hiện tại, hiển thị Popup hỏi chuyển tập...");
+                if (overlay) overlay.remove();
                 let savedEpObj = allEpisodes[savedIndex] || { title: "Tập " + (savedIndex + 1) };
-                let nextEpObj = allEpisodes[savedIndex + 1] || { title: "Tập " + (savedIndex + 2) };
                 let currentEpObj = allEpisodes[currentPlayingIndex] || { title: "Tập " + (currentPlayingIndex + 1) };
 
                 let modalOverlay = document.createElement('div');
                 Object.assign(modalOverlay.style, {
-                    position: 'fixed',
-                    top: '0',
-                    left: '0',
-                    width: '100vw',
-                    height: '100vh',
-                    backgroundColor: 'rgba(0,0,0,0.85)',
-                    zIndex: '1000005',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontFamily: 'Arial, sans-serif'
+                    position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
+                    backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(10px)',
+                    zIndex: '1000005', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                 });
 
-                let nextBtnHtml = (savedIndex + 1 < allEpisodes.length) ? 
-                    \`<button id="btn-resume-next" style="padding: 10px 14px; border-radius: 8px; border: none; background: #27272a; color: #fff; font-weight: bold; cursor: pointer; font-size: 13px; transition: background 0.2s;">▶️ Xem tập tiếp theo (\${nextEpObj.title})</button>\` : '';
-
                 modalOverlay.innerHTML = \`
-                    <div style="background: #18181b; border: 1px solid rgba(255,255,255,0.1); padding: 24px; border-radius: 16px; width: 380px; max-width: 90vw; color: #fff; box-shadow: 0 20px 40px rgba(0,0,0,0.9); text-align: center;">
-                        <div style="font-size: 22px; margin-bottom: 10px;">📌</div>
-                        <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #f43f5e;">Khôi phục lịch sử xem</div>
-                        <div style="font-size: 14px; color: #a1a1aa; margin-bottom: 20px; line-height: 1.5;">
-                            Bạn đang mở <b>\${currentEpObj.title}</b>, nhưng lịch sử gần đây bạn đang xem đến <b>\${savedEpObj.title}</b>. Bạn có muốn chuyển hướng không?
+                    <div style="background: #141416; border: 1px solid rgba(255,255,255,0.1); padding: 20px; border-radius: 12px; width: 290px; color: #fff; text-align: center;">
+                        <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">Phát hiện lịch sử xem</div>
+                        <div style="font-size: 12px; color: #a1a1aa; margin-bottom: 16px; line-height: 1.4;">
+                            Bạn đang mở <b style="color:#fff;">\${currentEpObj.title}</b>. Lần trước xem <b style="color:#e50914;">\${savedEpObj.title}</b>.
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 10px;">
-                            <button id="btn-resume-saved" style="padding: 10px 14px; border-radius: 8px; border: none; background: #e50914; color: #fff; font-weight: bold; cursor: pointer; font-size: 13px;">💾 Chuyển đến tập đã lưu (\${savedEpObj.title})</button>
-                            \${nextBtnHtml}
-                            <button id="btn-resume-current" style="padding: 10px 14px; border-radius: 8px; border: none; background: transparent; color: #a1a1aa; cursor: pointer; font-size: 13px;">Vẫn xem tập hiện tại (\${currentEpObj.title})</button>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <button id="btn-resume-saved" style="padding: 8px; border-radius: 6px; border: none; background: #e50914; color: #fff; font-weight: 600; cursor: pointer; font-size: 12px;">Chuyển tới \${savedEpObj.title}</button>
+                            <button id="btn-resume-current" style="padding: 6px; border-radius: 6px; border: none; background: transparent; color: #71717a; cursor: pointer; font-size: 11px;">Xem tiếp tập này</button>
                         </div>
                     </div>
                 \`;
-                
-                if (document.body) {
-                    document.body.appendChild(modalOverlay);
-                } else {
-                    document.documentElement.appendChild(modalOverlay);
-                }
+                document.body.appendChild(modalOverlay);
 
                 document.getElementById('btn-resume-saved').onclick = () => {
+                    log(\`Chọn quay lại \${savedEpObj.title}\`);
                     localStorage.setItem(storageKey, savedIndex);
                     window.location.href = allEpisodes[savedIndex].url;
                 };
-
-                if (document.getElementById('btn-resume-next')) {
-                    document.getElementById('btn-resume-next').onclick = () => {
-                        localStorage.setItem(storageKey, savedIndex + 1);
-                        window.location.href = allEpisodes[savedIndex + 1].url;
-                    };
-                }
-
                 document.getElementById('btn-resume-current').onclick = () => {
+                    log(\`Chọn tiếp tục xem \${currentEpObj.title}\`);
                     localStorage.setItem(storageKey, currentPlayingIndex);
                     modalOverlay.remove();
-                    // Tạo lại overlay loading để tiếp tục chạy app
                     document.documentElement.appendChild(overlay);
                     runApp(currentPlayingIndex, overlay, allEpisodes);
                 };
-
-                return; // Dừng init chờ phản hồi từ modal
+                return;
             }
         }
 
-        // Lưu mốc tập hiện tại vào localStorage
+        log("Cập nhật lịch sử và khởi chạy ứng dụng...");
         localStorage.setItem(storageKey, currentPlayingIndex);
         runApp(currentPlayingIndex, overlay, allEpisodes);
     }
 
+    // ----------------------------------------------------
+    // 6. CHUYỂN GIAO DIỆN & EMBED PLAYER
+    // ----------------------------------------------------
     function runApp(currentPlayingIndex, overlay, allEpisodes) {
-        // 3. LẤY LINK IFRAME BAN ĐẦU
+        log("Khởi chạy runApp()...");
         let initLink = "` + (initialLink || '') + `";
+        
         if (!initLink) {
+            log("Chưa có initialLink. Bắt đầu tìm PLAYER_DATA hoặc iframe...");
             try {
                 let scriptTags = document.querySelectorAll('script');
                 for (let s of scriptTags) {
                     let m = s.textContent.match(/window\\.PLAYER_DATA\\s*=\\s*(\\{[\\s\\S]*?\\});/);
                     if (m) {
                         let d = JSON.parse(m[1]);
-                        if (d && d.link) { initLink = d.link; break; }
+                        if (d && d.link) { 
+                            initLink = d.link; 
+                            log("Tìm thấy link player từ PLAYER_DATA:", initLink);
+                            break; 
+                        }
                     }
                 }
                 if (!initLink) {
                     let f = document.querySelector('iframe');
-                    if (f) initLink = f.src;
+                    if (f) {
+                        initLink = f.src;
+                        log("Lấy link player từ Iframe đầu tiên:", initLink);
+                    }
                 }
-            } catch(e) {}
+            } catch(e) {
+                error("Lỗi khi trích xuất link player ban đầu:", e);
+            }
         }
-        if (initLink && initLink.indexOf('//') === 0) {
-            initLink = "https:" + initLink;
+        
+        if (initLink && initLink.indexOf('//') === 0) initLink = "https:" + initLink;
+
+        log("Dọn dẹp DOM cũ để chuẩn bị nhúng Iframe...");
+        document.documentElement.style.cssText = "margin:0;padding:0;width:100vw;height:100vh;overflow:hidden;background:#000;";
+        document.body.innerHTML = "";
+        document.body.style.cssText = "margin:0;padding:0;width:100vw;height:100vh;overflow:hidden;background:#000;position:relative;";
+
+        if (overlay) document.body.appendChild(overlay);
+
+        let isPopupOpen = false;
+
+        function setAllUIOpacity(opacityValue) {
+            container.style.opacity = opacityValue;
+            btnSidePrev.style.opacity = opacityValue;
+            btnSideNext.style.opacity = opacityValue;
+            popupGrid.style.opacity = opacityValue;
         }
 
-        // 4. TẠO GIAO DIỆN ĐIỀU KHIỂN CHÍNH (CONTAINER)
         let container = document.createElement("div");
         container.id = "floating-select-box";
         Object.assign(container.style, {
-            position: "fixed",
-            top: "25px",
-            right: "25px",
-            transform: "translateX(-50%)",
-            zIndex: "999999",
-            backgroundColor: "rgba(15, 15, 15, 0.85)",
-            backdropFilter: "blur(6px)",
-            padding: "10px 16px",
-            borderRadius: "14px",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.8)",
-            color: "#fff",
-            fontFamily: "Arial, sans-serif",
-            fontSize: "14px",
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            transition: "opacity 0.3s ease",
-            opacity: "0",
-            pointerEvents: "auto"
+            position: "fixed", top: "12px", right: "16px", zIndex: "999999",
+            opacity: "0.2", transition: "opacity 0.2s ease", pointerEvents: "auto"
         });
-        container.innerHTML = "<span style='color: #aaa; font-size: 13px;'>⏳ Đang tải...</span>";
 
-        // 5. TẠO BẢNG POPUP LƯỚI CHỌN TẬP (5 CỘT, RỘNG 380px)
         let popupGrid = document.createElement("div");
         popupGrid.id = "episode-grid-popup";
         Object.assign(popupGrid.style, {
-            position: "fixed",
-            bottom: "85px",
-            left: "50%",
-            transform: "translateX(-50%) translateY(10px)",
-            zIndex: "1000000",
-            backgroundColor: "rgba(18, 18, 18, 0.95)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            padding: "14px",
-            borderRadius: "16px",
-            boxShadow: "0 15px 35px rgba(0,0,0,0.9)",
-            width: "380px",
-            maxHeight: "260px",
-            overflowY: "auto",
-            display: "none",
-            gridTemplateColumns: "repeat(5, 1fr)",
-            gap: "8px",
-            transition: "all 0.25s ease",
-            opacity: "0",
-            pointerEvents: "none"
+            position: "fixed", top: "46px", right: "16px", zIndex: "1000000",
+            backgroundColor: "rgba(18, 18, 20, 0.95)", backdropFilter: "blur(12px)",
+            border: "1px solid rgba(255, 255, 255, 0.1)", padding: "8px", borderRadius: "10px",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.8)", width: "270px", maxHeight: "240px",
+            overflowY: "auto", display: "none", gridTemplateColumns: "repeat(6, 1fr)", gap: "4px",
+            opacity: "0.2", transition: "opacity 0.2s ease", pointerEvents: "auto"
         });
 
-        // 6. XOÁ SẠCH BODY VÀ CHÈN IFRAME MỚI
-        document.documentElement.style.margin = '0';
-        document.documentElement.style.padding = '0';
-        document.documentElement.style.width = '100vw';
-        document.documentElement.style.height = '100vh';
-        document.documentElement.style.overflow = 'hidden';
-        document.documentElement.style.background = '#000';
-
-        document.body.innerHTML = "";
-        Object.assign(document.body.style, {
-            margin: '0',
-            padding: '0',
-            width: '100vw',
-            height: '100vh',
-            overflow: 'hidden',
-            background: '#000',
-            position: 'relative'
+        let btnSidePrev = document.createElement("div");
+        btnSidePrev.innerHTML = "&#10094;";
+        Object.assign(btnSidePrev.style, {
+            position: "fixed", left: "12px", top: "50%", transform: "translateY(-50%)",
+            width: "38px", height: "38px", borderRadius: "50%",
+            backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(4px)",
+            color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "14px", cursor: "pointer", zIndex: "999995", userSelect: "none",
+            border: "1px solid rgba(255,255,255,0.15)", opacity: "0.2", transition: "opacity 0.2s ease",
+            pointerEvents: "auto"
         });
 
-        if (overlay) {
-            document.body.appendChild(overlay);
-        }
+        let btnSideNext = document.createElement("div");
+        btnSideNext.innerHTML = "&#10095;";
+        Object.assign(btnSideNext.style, {
+            position: "fixed", right: "12px", top: "50%", transform: "translateY(-50%)",
+            width: "38px", height: "38px", borderRadius: "50%",
+            backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(4px)",
+            color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "14px", cursor: "pointer", zIndex: "999995", userSelect: "none",
+            border: "1px solid rgba(255,255,255,0.15)", opacity: "0.2", transition: "opacity 0.2s ease",
+            pointerEvents: "auto"
+        });
+
+        [container, btnSidePrev, btnSideNext, popupGrid].forEach(el => {
+            el.addEventListener("mouseenter", () => setAllUIOpacity("1"));
+            el.addEventListener("mouseleave", () => {
+                if (!isPopupOpen) setAllUIOpacity("0.2");
+            });
+            el.addEventListener("touchstart", () => setAllUIOpacity("1"), { passive: true });
+        });
 
         if (initLink) {
+            log("Nhúng Iframe chính:", initLink);
             let newIframe = document.createElement("iframe");
             newIframe.className = "frameMain";
             let autoUrl = initLink.includes("?") ? initLink + "&autoplay=1" : initLink + "?autoplay=1";
             newIframe.src = autoUrl;
-            newIframe.width = "100%";
-            newIframe.height = "100%";
             newIframe.setAttribute("frameborder", "0");
-            newIframe.setAttribute("scrolling", "no");
             newIframe.setAttribute("allowfullscreen", "");
             newIframe.setAttribute("allow", "autoplay; fullscreen");
             
             Object.assign(newIframe.style, {
-                position: 'absolute',
-                top: '0',
-                left: '0',
-                width: '100%',
-                height: '100%',
-                border: 'none',
-                background: '#000',
-                zIndex: '1'
+                position: 'absolute', top: '0', left: '0',
+                width: '100%', height: '100%', border: 'none',
+                background: '#000', zIndex: '1'
             });
 
             newIframe.onload = function() {
+                log("Iframe đã load hoàn tất, ẩn Loading Overlay");
                 if (overlay) {
-                    setTimeout(() => {
-                        overlay.style.transition = "opacity 0.4s ease";
-                        overlay.style.opacity = "0";
-                        setTimeout(() => overlay.remove(), 400);
-                    }, 300);
+                    overlay.style.opacity = "0";
+                    setTimeout(() => overlay.remove(), 300);
                 }
             };
-
             document.body.appendChild(newIframe);
         } else {
-            if (overlay) setTimeout(() => { overlay.remove(); }, 2000);
+            warn("Không tìm thấy link Embed Player nào!");
         }
 
         document.body.appendChild(container);
         document.body.appendChild(popupGrid);
+        document.body.appendChild(btnSidePrev);
+        document.body.appendChild(btnSideNext);
 
-        container.addEventListener("mouseenter", () => container.style.opacity = "1");
-        container.addEventListener("mouseleave", () => container.style.opacity = "0.25");
-        container.addEventListener("touchstart", () => container.style.opacity = "1");
-
-        // 7. FETCH CÁC TẬP CÒN LẠI VÀ QUẢN LÝ UI
         const listFrame = new Array(allEpisodes.length);
         if (allEpisodes[currentPlayingIndex] && initLink) {
             listFrame[currentPlayingIndex] = {
@@ -777,25 +803,27 @@ function customJS(initialLink){
 
         function fetchPage(episodeObj) {
             if (episodeObj.index === currentPlayingIndex) return;
+            log(\`Fetch ngầm dữ liệu: Tập \${episodeObj.index + 1}\`);
             fetch(episodeObj.url)
-                .then(response => response.text())
+                .then(r => r.text())
                 .then(htmlText => {
                     const srcNext = htmlText.match(/window\\.PLAYER_DATA[\\s\\S]*?link["'][^"']["']([^"']+)["']/i);
                     if (srcNext && srcNext[1]) {
                         const framelink = decodeURIComponent(srcNext[1].replaceAll('\\\\/', '/'));
                         listFrame[episodeObj.index] = { title: episodeObj.title, link: framelink, index: episodeObj.index, url: episodeObj.url };
+                        log(\`Lấy thành công link Tập \${episodeObj.index + 1}\`);
                         updateSelectUI();
                     }
-                })
-                .catch(error => console.error("Lỗi fetch " + episodeObj.title, error));
+                }).catch((err) => {
+                    error(\`Thất bại khi fetch tập \${episodeObj.index + 1}:\`, err);
+                });
         }
 
         function changeEpisode(targetIndex) {
+            log(\`Yêu cầu chuyển sang Tập \${targetIndex + 1}\`);
             const ep = listFrame[targetIndex];
             if (ep && ep.link) {
                 currentPlayingIndex = targetIndex;
-                
-                // Cập nhật lại lịch sử vào localStorage khi chuyển tập trực tiếp
                 const storageKey = "anime_history_" + window.location.pathname.replace(/[^a-zA-Z0-9]/g, "_");
                 localStorage.setItem(storageKey, currentPlayingIndex);
 
@@ -803,155 +831,109 @@ function customJS(initialLink){
                 if (targetIframe) {
                     let cleanLink = ep.link.split('&autoplay=')[0].split('?autoplay=')[0];
                     let autoUrl = cleanLink.includes("?") ? cleanLink + "&autoplay=1&t=" + Date.now() : cleanLink + "?autoplay=1&t=" + Date.now();
+                    log("Cập nhật src Iframe:", autoUrl);
                     targetIframe.src = autoUrl;
                 }
                 togglePopup(false);
                 updateSelectUI();
+            } else {
+                warn(\`Tập \${targetIndex + 1} chưa sẵn sàng!\`);
             }
         }
 
-        let isPopupOpen = false;
         function togglePopup(forceState) {
             isPopupOpen = forceState !== undefined ? forceState : !isPopupOpen;
             if (isPopupOpen) {
                 popupGrid.style.display = "grid";
-                setTimeout(() => {
-                    popupGrid.style.opacity = "1";
-                    popupGrid.style.transform = "translateX(-50%) translateY(0)";
-                    popupGrid.style.pointerEvents = "auto";
-                }, 10);
+                setAllUIOpacity("1");
             } else {
-                popupGrid.style.opacity = "0";
-                popupGrid.style.transform = "translateX(-50%) translateY(10px)";
-                popupGrid.style.pointerEvents = "none";
-                setTimeout(() => {
-                    if (!isPopupOpen) popupGrid.style.display = "none";
-                }, 250);
+                popupGrid.style.display = "none";
+                setAllUIOpacity("0.2");
             }
         }
 
-        document.addEventListener("click", (e) => {
-            if (!container.contains(e.target) && !popupGrid.contains(e.target)) {
+        const closePopupOutside = (e) => {
+            if (isPopupOpen && !container.contains(e.target) && !popupGrid.contains(e.target)) {
                 togglePopup(false);
             }
-        });
+        };
+
+        document.addEventListener("click", closePopupOutside, true);
+        document.addEventListener("touchstart", closePopupOutside, true);
 
         function updateSelectUI() {
             const validFrames = listFrame.filter(Boolean);
             container.innerHTML = "";
 
-            const btnPrev = document.createElement("button");
-            btnPrev.textContent = "⏮";
-            btnPrev.title = "Tập trước";
-            Object.assign(btnPrev.style, {
-                padding: "8px 14px",
-                borderRadius: "8px",
-                border: "none",
-                backgroundColor: "#2a2a2a",
-                color: "#fff",
-                cursor: "pointer",
-                fontSize: "14px",
-                fontWeight: "bold"
-            });
-            btnPrev.onclick = () => {
-                if (currentPlayingIndex > 0 && listFrame[currentPlayingIndex - 1]) {
-                    changeEpisode(currentPlayingIndex - 1);
-                }
-            };
-
             let currentEpObj = listFrame[currentPlayingIndex];
             let currentTitleText = currentEpObj ? currentEpObj.title : ("Tập " + (currentPlayingIndex + 1));
-            
-            const btnSelector = document.createElement("button");
-            btnSelector.textContent = currentTitleText + " ▼";
-            Object.assign(btnSelector.style, {
-                padding: "8px 16px",
-                borderRadius: "8px",
-                border: "1px solid #444",
-                backgroundColor: "#1c1c1c",
-                color: "#fff",
-                cursor: "pointer",
-                fontSize: "14px",
-                fontWeight: "bold",
-                outline: "none",
-                minWidth: "120px"
+
+            const btnEpRed = document.createElement("button");
+            btnEpRed.innerHTML = \`<span>\${currentTitleText}</span> <span style="font-size: 9px; margin-left: 1px;">▼</span>\`;
+            Object.assign(btnEpRed.style, {
+                height: "26px", padding: "0 10px", borderRadius: "5px", border: "none",
+                backgroundColor: "#e50914", color: "#fff", cursor: "pointer",
+                fontSize: "11px", fontWeight: "700", display: "flex", alignItems: "center",
+                gap: "3px", boxShadow: "0 2px 6px rgba(229, 9, 20, 0.4)"
             });
-            btnSelector.onclick = (e) => {
+            btnEpRed.onclick = (e) => {
                 e.stopPropagation();
                 togglePopup();
             };
 
-            const btnNext = document.createElement("button");
-            btnNext.textContent = "⏭";
-            btnNext.title = "Tập tiếp theo";
-            Object.assign(btnNext.style, {
-                padding: "8px 14px",
-                borderRadius: "8px",
-                border: "none",
-                backgroundColor: "#e50914",
-                color: "#fff",
-                cursor: "pointer",
-                fontSize: "14px",
-                fontWeight: "bold"
-            });
-            btnNext.onclick = () => {
+            container.appendChild(btnEpRed);
+
+            btnSidePrev.onclick = (e) => {
+                e.stopPropagation();
+                setAllUIOpacity("1");
+                if (currentPlayingIndex > 0 && listFrame[currentPlayingIndex - 1]) {
+                    changeEpisode(currentPlayingIndex - 1);
+                }
+            };
+            btnSideNext.onclick = (e) => {
+                e.stopPropagation();
+                setAllUIOpacity("1");
                 if (currentPlayingIndex < listFrame.length - 1 && listFrame[currentPlayingIndex + 1]) {
                     changeEpisode(currentPlayingIndex + 1);
                 }
             };
 
-            container.appendChild(btnPrev);
-            container.appendChild(btnSelector);
-            container.appendChild(btnNext);
-
             popupGrid.innerHTML = "";
             validFrames.forEach(item => {
                 const epBtn = document.createElement("button");
-                let shortName = item.title.replace(/Tập\\s*/i, '');
+                let shortName = item.title.replace(/Tập\\s*/i, '').trim();
+                if (shortName.length === 1) shortName = '0' + shortName;
                 epBtn.textContent = shortName;
-                epBtn.title = item.title;
                 
                 let isCurrent = (item.index === currentPlayingIndex);
                 Object.assign(epBtn.style, {
-                    padding: "10px 4px",
-                    borderRadius: "8px",
-                    border: "none",
-                    backgroundColor: isCurrent ? "#e50914" : "#252525",
-                    color: "#fff",
-                    cursor: "pointer",
-                    fontSize: "13px",
-                    fontWeight: isCurrent ? "bold" : "normal",
-                    textAlign: "center",
-                    transition: "background 0.2s"
+                    height: "32px", borderRadius: "4px",
+                    border: isCurrent ? "1px solid #e50914" : "1px solid rgba(255, 255, 255, 0.06)",
+                    backgroundColor: isCurrent ? "#e50914" : "rgba(255, 255, 255, 0.05)",
+                    color: "#fff", cursor: "pointer", fontSize: "11px",
+                    fontWeight: isCurrent ? "700" : "400", display: "flex",
+                    alignItems: "center", justifyContent: "center", padding: "0"
                 });
 
-                epBtn.onmouseenter = () => { if (!isCurrent) epBtn.style.backgroundColor = "#333"; };
-                epBtn.onmouseleave = () => { if (!isCurrent) epBtn.style.backgroundColor = "#252525"; };
-
-                epBtn.onclick = () => {
+                epBtn.onclick = (e) => {
+                    e.stopPropagation();
                     changeEpisode(item.index);
                 };
                 popupGrid.appendChild(epBtn);
             });
         }
 
-        if (allEpisodes.length === 0) {
-            container.innerHTML = "<span style='color: #ff5555;'>⚠️ Không tìm thấy danh sách tập!</span>";
-        } else {
-            allEpisodes.forEach(episode => {
-                fetchPage(episode);
-            });
-        }
+        log("Khởi chạy tiến trình fetch ngầm cho các tập...");
+        allEpisodes.forEach(episode => fetchPage(episode));
     }
 
-    if (document.readyState === 'complete') {
-        init();
-    } else {
-        window.addEventListener('load', init);
-    }
+    if (document.readyState === 'complete') init();
+    else window.addEventListener('load', init);
 })();
   `;
 }
+
+
 
 /*
 function parseEmbedResponse(htmlContent, url) {
