@@ -7,20 +7,25 @@ function getManifest() {
         "id": "xxxfiles",
         "name": "xxxfiles",
         "description": "XXX Hay",
-        "version": "1.9.3",
-        "BASEURL": "https://www.xxxfiles.com",
+      	"info": "Nguồn phim XXX siêu cuốn.",
+        "version": "1.9.5",
+        "baseURL": "https://www.xxxfiles.com",
         "iconUrl": "https://www.xxxfiles.com/favicon-32x32.png",
         "isEnabled": true,
         "isAdult": true,
+        "layoutType": "HORIZONTAL",
         "type": "VIDEO",
         "playerType": "exoplayer"
     });
 }
 
 
-
 function getHomeSections() {
-    var listurl = "latest-updates/@@Hàng Mới@@true";
+    var listurl = `
+    top-rated/@@Xem Nhiều@@false
+    most-popular/@@Xu Hướng@@false
+    latest-updates/@@Hàng Mới@@true
+    `;
     var menulist = buildMenu(listurl);
     return JSON.stringify(menulist);
 }

@@ -5,18 +5,36 @@ function getManifest() {
     "id": "justporn",
     "name": "Just Porn",
     "description": "XXX Hay",
-    "version": "1.5.2",
+    "version": "1.6.6",
+    "info": "Nguồn phim XXX siêu hay.\n\nNếu bị chặn các bạn hãy dùng App 1.1.1.1 hoặc thử bật DNS và DPI ở mục cài đặt APP nha.",
     "baseUrl": "https://www.justporn.com",
     "iconUrl": "https://c847a9a666.mjedge.net/contents/pkehlvuovbaw/theme/logo.png",
     "isEnabled": true,
     "isAdult": true,
+    "layoutType": "HORIZONTAL",
     "type": "VIDEO",
-    "playerType": "exoplayer"
+    "playerType": "auto"
   });
 }
 // https://www.justporn.com/latest-updates/1/
 function getHomeSections() {
-  return JSON.stringify([{
+  return JSON.stringify([
+  {
+    "slug": "/top-rated/",
+    "title": "Top tháng",
+    "type": "HORIZONTAL"
+  },
+  {
+    "slug": "/most-popular/",
+    "title": "Xem Nhiều",
+    "type": "HORIZONTAL"
+  },
+  {
+    "slug": "/categories/4k/",
+    "title": "4K",
+    "type": "HORIZONTAL"
+  },
+    {
     "slug": "/latest-updates/",
     "title": "Hàng Mới",
     "type": "Grid"
@@ -267,13 +285,26 @@ function parseMovieDetail(html, $url) {
 
 function parseDetailResponse(html, url) {
     try {
+console.log("parseDetailResponse2: " + url)
+  var stream1 = "";
+  var script = html.match(/var\s+flashvars\s+=\s+({[\s\S]*?}\;)/i);
+  if (script && script[1]) {
+    var jsonObj = new Function(`return ${script[1]}`)();
+    if (jsonObj.video_alt_url && jsonObj.video_alt_url.match(/http|.mp4/)) {
+      stream1 = jsonObj.video_alt_url;
+    } else {
+      stream1 = jsonObj.video_url;
+    }
+  }
+console.log("Stream: " + stream1)
+
         return JSON.stringify({
-          "url":"",
+          "url": stream1,
           "isEmbed": false,
-          "mimeType": "video/mp4",
           "headers": {
             "Referer": BASEURL,
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Custom-Js": ""
           },
           "subtitles": []
         });
@@ -281,6 +312,149 @@ function parseDetailResponse(html, url) {
     } catch (e) {
         return JSON.stringify({ "url": "", "headers": {} });
     }
+}
+
+
+function customjs(){
+  return `
+  // 1. Hàm khởi tạo ArtPlayer
+(function () {
+  // 1. Hàm tạo Log chuẩn chuẩn đoán lỗi
+  function log(type, message, detail) {
+    const time = new Date().toISOString().split('T')[1].slice(0, -1);
+    const prefix = "[ArtPlayer-Loader "+time+"] ["+type+"]";
+    if (detail !== undefined) {
+      console[type](prefix + " " + message, detail);
+    } else {
+      console[type](prefix + " " + message);
+    }
+  }
+
+  // Log ngay lập tức khi file JS vừa được nạp vào browser
+  log('info', '🚀 Script đã bắt đầu nạp vào trang web...');
+  log('info', 'Trạng thái DOM hiện tại (readyState):', document.readyState);
+
+  // 2. Hàm khởi tạo ArtPlayer
+  function initArtPlayer(videoSrc) {
+    log('info', 'Đang tìm container chứa ArtPlayer...');
+    const playerContainer = document.querySelector('#artplayer') || document.querySelector('.artplayer-app');
+
+    if (!playerContainer) {
+      log('error', '❌ LỖI: Không tìm thấy container (#artplayer hoặc .artplayer-app) trên DOM!');
+      return false;
+    }
+
+    if (typeof Artplayer === 'undefined') {
+      log('error', '❌ LỖI: Chưa nhúng thư viện ArtPlayer! Vui lòng thêm file artplayer.js vào HTML.');
+      return false;
+    }
+
+    log('info', 'Đang khởi tạo ArtPlayer với URL:', videoSrc);
+
+    try {
+      const art = new Artplayer({
+        container: playerContainer,
+        url: videoSrc,
+        autoplay: false,
+        pip: true,
+        screenshot: true,
+        setting: true,
+        fullscreen: true,
+        fullscreenWeb: true,
+      });
+
+      log('info', '🎉 Khởi tạo thành công ArtPlayer!', art);
+      return true;
+    } catch (err) {
+      log('error', '💥 Khởi tạo ArtPlayer thất bại:', err);
+      return false;
+    }
+  }
+
+  // 3. Hàm trích xuất SRC từ thẻ video
+  function getVideoSourceAndInit() {
+    log('info', 'Đang truy tìm thẻ <video>...');
+    const videoElement = document.querySelector('video');
+
+    if (!videoElement) {
+      log('warn', 'Chưa phát hiện thẻ <video> nào trên trang.');
+      return false;
+    }
+
+    log('info', 'Thẻ <video> đã tìm thấy:', videoElement);
+
+    // Tìm URL nguồn video
+    let src = videoElement.src;
+    if (!src) {
+      log('info', 'Thẻ <video> không có thuộc tính src trực tiếp, đang tìm thẻ <source> bên trong...');
+      const sourceElement = videoElement.querySelector('source');
+      if (sourceElement) {
+        src = sourceElement.src;
+      }
+    }
+
+    if (!src || src.trim() === '' || src.startsWith('blob:http') === false && src.startsWith('http') === false && !src.startsWith('data:')) {
+      log('warn', 'Thẻ video tồn tại nhưng thuộc tính src bị rỗng hoặc chưa load xong link!');
+      return false;
+    }
+
+    log('info', '🔍 Đã lấy được link video thành công:', src);
+
+    // Dừng và ẩn video HTML5 gốc
+    try {
+      videoElement.pause();
+      videoElement.style.display = 'none';
+      log('info', 'Đã ẩn và dừng thẻ <video> gốc thành công.');
+    } catch (e) {
+      log('warn', 'Không thể tạm dừng video gốc:', e);
+    }
+
+    // Tiến hành tạo ArtPlayer
+    return initArtPlayer(src);
+  }
+
+  // 4. Lắng nghe và xử lý đa kịch bản (DOM Ready, Window Loaded, MutationObserver)
+  function startProcess() {
+    log('info', 'Bắt đầu quá trình tìm kiếm video và khởi tạo...');
+    const isSuccess = getVideoSourceAndInit();
+
+    if (!isSuccess) {
+      log('info', 'Kích hoạt MutationObserver để theo dõi sự thay đổi DOM (dành cho trang load bằng Ajax/React/Vue)...');
+      
+      const observer = new MutationObserver((mutations, obs) => {
+        log('info', 'Phát hiện DOM thay đổi, thử kiểm tra lại thẻ <video>...');
+        if (getVideoSourceAndInit()) {
+          log('info', 'Đã tìm thấy video qua MutationObserver! Tiến hành hủy lắng nghe Observer.');
+          obs.disconnect();
+        }
+      });
+
+      observer.observe(document.body || document.documentElement, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['src']
+      });
+    }
+  }
+
+  // Kiểm tra thời điểm khởi chạy
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    log('info', 'Trang đã sẵn sàng (DOM/Window loaded), chạy startProcess ngay.');
+    startProcess();
+  } else {
+    log('info', 'Trang chưa tải xong, đăng ký sự kiện DOMContentLoaded và load...');
+    document.addEventListener('DOMContentLoaded', () => {
+      log('info', 'Sự kiện DOMContentLoaded vừa kích hoạt.');
+      startProcess();
+    });
+    window.addEventListener('load', () => {
+      log('info', 'Sự kiện window.load vừa kích hoạt.');
+      startProcess();
+    });
+  }
+})();
+  `
 }
 
 

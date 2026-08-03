@@ -2,15 +2,16 @@ BaseURL = "https://www.18porn.sex";
 
 function getManifest() {
     return JSON.stringify({
-        "id": "newporn",          
+        "id": "18porn",          
         "name": "18porn",
         "description": "Nguồn xem phim XXX ổn định",
-        "version": "1.3.4",             
+        "version": "1.4",             
         "baseUrl": "https://www.18porn.sex",
         "iconUrl": "https://raw.githubusercontent.com/alokillgtv-gif/VAXAPPSCRIPT/main/img/18porn.jpg", 
       "info":"Nguồn phim chất lượng 4K nên load hơi lâu, bạn chịu khó đợi tí nha.",
         "isEnabled": true,
         "isAdult": true,
+        "layoutType": "HORIZONTAL",
         "type": "VIDEO",
         "playerType": "exoplayer"
     });
@@ -18,6 +19,8 @@ function getManifest() {
 
 function getHomeSections() {
  return JSON.stringify([
+  { slug: 'top-rated/', title: 'Top Tháng', type: 'HORIZONTAL' },
+  { slug: 'best/', title: 'Xem Nhiều', type: 'HORIZONTAL' },
   { slug: 'new/', title: 'Hàng Mới', type: 'Grid' }
  ]);
 }
@@ -303,12 +306,18 @@ function parseMovieDetail(html,url) {
 
 function parseDetailResponse(html, url) {
  try {
+    var dlink = url;
+    rmatch = html.match(/video_url:\s*['"](https:\/\/[^'"]+)['"]/i);
+    if (rmatch && rmatch[1]) { 
+        dlink = rmatch[1].trim(); 
+    }
+    console.log("parseDetailResponse:" + dlink)
     return JSON.stringify({
-      "url": "",
+      "url": dlink,
       "isEmbed": false,
       "mimeType": "video/mp4",
       "headers": {
-        "Referer": BASEURL,
+        "Referer": "https://www.18porn.sex",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
       },
       "subtitles": []

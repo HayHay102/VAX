@@ -4,13 +4,13 @@ function getManifest() {
     return JSON.stringify({
         "id": "krx18",
         "name": "Phim 18+ Hàn",
-        "description": "Nguồn XXX hàn quốc Hay",
-        "version": "1.0",
+        "description": "Nguồn XXX hàn quốc Hay", 
+        "version": "1.2.1",
         "BASEURL": "https://krx18.com",
         "iconUrl": "https://krx18.com/wp-content/uploads/2022/10/krx18B.png",
         "isEnabled": true,
         "isAdult": true,
-        "type": "VIDEO",
+        "type": "MOVIE",
         "playerType": "embed"
     });
 }
@@ -26,7 +26,6 @@ function getPrimaryCategories() {
     var menulist = buildMenu(listurl);
     return JSON.stringify(menulist);
 }
-
 // ĐÃ SỬA: Lỗi cú pháp khai báo biến trong JSON.stringify
 function getFilterConfig() {
     var listurl = getLISTmenu();
@@ -215,9 +214,7 @@ function parseMovieDetail(html,$url) {
     var $stream = "";
     var epi = [];
     
-     epi.push({ id: $linkser + "1", name: "Server 1", slug: "full" });
-    epi.push({ id: $linkser + "2", name: "Server 2", slug: "full" });
-    epi.push({ id: $linkser + "3", name: "Server 3", slug: "full" });
+    epi.push({ id: $linkser + "1", name: "Server 1", slug: "full" });
     // var stream = 'https://agokda.cdnlab.live/stream/X9mBBkyCNC1euSox903wew/1783632790/0/431/431.m3u8';
     var $return = {
         id: $url,
@@ -261,7 +258,7 @@ function parseDetailResponse(html,url) {
        // }
         
         
-        var customjs = textJS(html, url);
+		var customjs = runjS();
 
     // {"embed_url":"https:\/\/play.playkrx18.site\/play\/6a4f1c63ee633ccb0191a32f","type":"iframe"}
     // Đọc trực tiếp từ thuộc tính của BaseJSON đã lưu ở bước đầu tiên
@@ -281,189 +278,626 @@ function parseDetailResponse(html,url) {
         "Accept": "*/*",
         "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
         "X-Requested-With": "com.android.chrome",
-        "Custom-Js": customjs.trim()
+      	"Block-Ads": "true",      
+      	"Custom-Js": customjs
     },
     "subtitles": []
 });
 
     } catch (e) {
+      	console.log("parseDetailResponse[error]: " + e)
         return JSON.stringify({ "url": "", "headers": {} });
     }
 }
-
+/*
 function parseEmbedResponse(html, sourceUrl) {
-        
+  try{      
         var link = sourceUrl;
        // if (html.indexOf("embed_url") > -1) {
             var $embed = JSON.parse(html);
             link = $embed.embed_url;
        // }
 
-        var customjs = textJS(html, sourceUrl);
-
+        var customjs = runjS();
+				
         return JSON.stringify({
             url: link,
-            isEmbed: false, // Kết thúc, đây là link stream cuối
-            mimeType: "application/x-mpegURL", // Báo App đây là HLS
+            isEmbed: false, // Kết thúc, đây là link stream cuối// Báo App đây là HLS
             headers: { "Referer": BASEURL,
-            "Custom-Js": customjs.trim()
-                
-            },
-        });
-    
-    return JSON.stringify({ url: "", isEmbed: false });
-}
-
-function textJS(html, $url) {
-    // Sử dụng biến $url từ tham số truyền vào thay vì ghi cứng link
-    return `
-SCRIPTURL = "https://script.google.com/macros/s/AKfycbwsvLFzWMdxvX9ZH-3wnP3GJzS58v0CtT_0mlEYeOz6cOsgen9IR3c6VPv_EssPXMFzwQ/exec?name=krx18&type=js"; 
-function showToast(message, duration = 7000) {
-    let container = document.getElementById('global-toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'global-toast-container';
-        
-        Object.assign(container.style, {
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            zIndex: '99999',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px'
-        });
-        document.body.appendChild(container);
-    }
-    
-    const toast = document.createElement('div');
-    toast.innerHTML = message;
-    
-    Object.assign(toast.style, {
-        background: 'rgba(50, 50, 50, 0.95)',
-        color: '#fff',
-        padding: '12px 24px',
-        borderRadius: '8px',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-        fontFamily: 'sans-serif',
-        fontSize: '14px',
-        minWidth: '200px',
-        transition: 'all 0.3s ease',
-        transform: 'translateX(120%)',
-        opacity: '0'
-    });
-    
-    container.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.style.transform = 'translateX(0)';
-        toast.style.opacity = '1';
-    }, 10);
-    
-    setTimeout(() => {
-        toast.style.transform = 'translateX(120%)';
-        toast.style.opacity = '0';
-        
-        setTimeout(() => {
-            toast.remove();
-            if (container.childElementCount === 0) {
-                container.remove();
+            "Custom-Js": customjs               
             }
-        }, 300);
-    }, duration);
+        });
+  } catch(e){
+    console.log("parseEmbedResponse[error]: " + e);
+    return JSON.stringify({ url: "", isEmbed: false });
+  }
+}
+*/
+
+
+function runjS() {
+
+  // =========================================================================
+  // 1. CONFIG JS: Cấu hình linh hoạt
+  // =========================================================================
+  function configJS() {
+    return `
+    // ⚙️ GLOBAL CONFIG
+    var LOGGER = true; 
+    var processedUrls = {};
+    var hasDispatchedAny = false;
+    var activeWorkerIndex = 0;
+
+    var PLAYER_MODE = "CUSTOM"; // "EXO": Phát qua Native App | "CUSTOM": Nhúng ArtPlayer
+    var PROXY_ENABLED = true; 
+
+    // 👉 BẬT CUSTOM DECODER (SETVIDEO QUYỀN ƯU TIÊN HÀNG ĐẦU)
+    var USE_CUSTOM_DECODER = false; 
+    var SET_VIDEO_WAIT_MS = 3000; // Thời gian tối đa chờ setVideo xử lý trước khi kích hoạt Fallback Sniffer
+
+    var WORKER_POOL = [
+      "https://soft-surf-c11d.alokillgtv.workers.dev",
+      "https://soft-water-25b0.alokillgtv02.workers.dev",
+      "https://raspy-king-7894.alokillgtv03.workers.dev"
+    ];
+
+    var CUSTOM_REFERER = window.location.href;
+
+    // 🚀 REGEX TỔNG QUÁT BẮT LINK MEDIA & API (Đã fix escape \\/hls\\/)
+    var STREAM_URL_REGEX = /https?:\\/\\/[^\\s"'<>]*(?:m3u8|mp4|streaming|stream|playlist|embed|sanstream\\.xyz|cdn=|\\/hls\\/|\\?id=)[^\\s"'>]*/i;
+
+    // 🎯 HÀNG ĐỢI (QUEUE) LƯU TẤT CẢ LINK SNIFFER BẮT ĐƯỢC ĐỂ CHỜ FALLBACK
+    var snifferQueue = [];
+    var setVideoSuccess = false;
+    var setVideoTimer = null;
+
+    var ENABLE_FILTER = false; 
+    var BLOCKED_DOMAINS = ["ads.example.com", "*.adnetwork.com"];
+
+    var SNIFFER_TIMEOUT_MS = 90000;
+    var HTMLRAW = false;
+    var ENDEMBED = true; 
+    
+    activeWorkerIndex = Math.floor(Math.random() * WORKER_POOL.length);
+
+    function bridgeLog(msg) {
+      if (!LOGGER) return;
+      try {
+        var strMsg = String(msg);
+        var formattedContent = strMsg;
+
+        var match = strMsg.match(/^(\\S+\\s*\\[[^\\]]+\\]:?)(.*)$/);
+        if (match) {
+          var header = match[1].trim();
+          var body = match[2].trim();
+          formattedContent = header + "\\r\\n\\t" + body;
+        }
+
+        var logMessage = '[CustomJS][LOG] [SNIFFER LOG] ' + formattedContent;
+
+        if (window.SnifferBridge && typeof window.SnifferBridge.log === 'function') {
+          window.SnifferBridge.log(logMessage);
+        } else if (typeof console !== 'undefined' && console.log) {
+          console.log(logMessage);
+        }
+      } catch (e) {}
+    }
+    `;
+  }
+
+  // =========================================================================
+  // 🚀 SETVIDEO JS: Chạy ưu tiên & Đánh dấu trạng thái
+  // =========================================================================
+  function setVideoJS() {
+  return `
+  function setVideo(rawUrl, sourceName) {
+    try {
+      bridgeLog('⏳ [setVideo - ĐANG XỬ LÝ ƯU TIÊN] Nguồn: [' + sourceName + ']');
+
+      var html = document.documentElement ? document.documentElement.outerHTML : '';
+
+      var idvideo = html.match(/videoId[^"']+["']([^"']+)["']/i);
+      var urlvideo = html.match(/videoId[\\s\\S]*?(\\/\\?token1=[^"']+)["']/i);
+      var linkVD = "";
+
+      // 🛡️ Bắt buộc kiểm tra null trước khi truy cập idvideo[1]
+      if (idvideo && idvideo[1] && urlvideo && urlvideo[1]) {
+        linkVD = "https://cdn.neuronix.sbs/segment/" + idvideo[1] + urlvideo[1];
+        bridgeLog("🎉 Đã tìm ra link video: " + linkVD);
+      } else {
+        bridgeLog("⚠️ Không tìm thấy regex videoId trong HTML!");
+      }
+
+      var decodedUrl = linkVD; 
+
+      if (decodedUrl && typeof decodedUrl === 'string' && decodedUrl.length > 10) {
+        setVideoSuccess = true;
+        hasDispatchedAny = true;
+        if (setVideoTimer) clearTimeout(setVideoTimer);
+
+        bridgeLog('🎉 [setVideo - THÀNH CÔNG]: Đã lấy được link -> ' + decodedUrl);
+        dispatchToPlayer(decodedUrl, "setVideo");
+        return true;
+      } else {
+        bridgeLog('⚠️ [setVideo - KHÔNG THỎA MÃN]: Chờ Sniffer Fallback...');
+        return false;
+      }
+
+    } catch (e) {
+      bridgeLog('❌ [setVideo - LỖI XỬ LÝ]: ' + e.message);
+      return false;
+    }
+  }
+  `;
 }
 
-function injectScriptAfterLoad(scriptUrl) {
-    function doFetchAndInject() {
-        console.log('⏳ Đang tiến hành fetch code từ:', scriptUrl);
+
+  // =========================================================================
+  // 📡 GET LINK JS: Vừa chạy setVideo vừa Cache link cho Fallback Sniffer
+  // =========================================================================
+  function getLinkJS() {
+    return `
+    function getLinkJS(rawUrl, sourceName) {
+      try {
+        if (!rawUrl || typeof rawUrl !== 'string') return;
+        if (hasDispatchedAny) return;
+        if (rawUrl.indexOf('blob:') === 0 || rawUrl.indexOf('data:') === 0) return;
+
+        var absoluteUrl = new URL(rawUrl, document.baseURI || window.location.href).href;
+
+        if (STREAM_URL_REGEX && !STREAM_URL_REGEX.test(absoluteUrl)) return; 
+        if (processedUrls[absoluteUrl]) return;
+        processedUrls[absoluteUrl] = true;
+
+        bridgeLog('🎯 [Sniffer - TÓM ĐƯỢC LINK] Nguồn [' + (sourceName || 'Unknown') + ']: ' + absoluteUrl);
+
+        if (!isDomainAllowed(absoluteUrl)) {
+          bridgeLog('🚫 [Sniffer - Bị Filter Domain]: ' + absoluteUrl);
+          return; 
+        }
+
+        // 1. LƯU LINK VÀO QUEUE ĐỂ PHÒNG KHÍ SETVIDEO THẤT BẠI
+        snifferQueue.push({ url: absoluteUrl, source: sourceName });
+
+        // 2. NẾU BẬT USE_CUSTOM_DECODER -> CHO SETVIDEO CHẠY THỬ TRƯỚC
+        if (typeof USE_CUSTOM_DECODER !== 'undefined' && USE_CUSTOM_DECODER && typeof setVideo === 'function') {
+          
+          var success = setVideo(absoluteUrl, sourceName);
+          
+          // Nếu setVideo chưa có kết quả thành công, kích hoạt Timer đếm ngược chờ Fallback Sniffer
+          if (!success && !setVideoTimer && !setVideoSuccess) {
+            bridgeLog('⏱️ [Sniffer]: Bắt đầu hẹn giờ ' + SET_VIDEO_WAIT_MS + 'ms chờ setVideo... Nếu hết giờ sẽ chuyển sang dùng link Sniffer.');
+            
+            setVideoTimer = setTimeout(function() {
+              triggerSnifferFallback();
+            }, SET_VIDEO_WAIT_MS);
+          }
+          return;
+        }
+
+        // 3. NẾU KHÔNG BẬT USE_CUSTOM_DECODER -> PHÁT THẲNG
+        dispatchToPlayer(absoluteUrl, "DirectSniffer");
+
+      } catch (e) {
+        bridgeLog('❌ [getLinkJS - Lỗi]: ' + e.message);
+      }
+    }
+
+    /**
+     * 🔄 HÀM FALLBACK: Gọi khi setVideo hết thời gian chờ mà không gửi được link nào
+     */
+    function triggerSnifferFallback() {
+      if (hasDispatchedAny || setVideoSuccess) return;
+
+      bridgeLog('🔄 [Sniffer Fallback]: setVideo không trả về link! Tiến hành xả hàng đợi Sniffer Queue (' + snifferQueue.length + ' link)...');
+
+      if (snifferQueue.length > 0) {
+        var fallbackItem = snifferQueue[0]; // Lấy link đầu tiên tóm được
+        bridgeLog('🚀 [Sniffer Fallback]: Lấy link từ Sniffer gửi Player -> ' + fallbackItem.url);
         
-        fetch(scriptUrl)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Mã phản hồi từ Server không tốt: ' + response.status);
-                }
-                return response.text();
-            })
-            .then(codeText => {
-                const script = document.createElement('script');
-                script.type = 'text/javascript';
-                // Đổ thẳng nội dung code dạng chữ vào trong thẻ script
-                script.textContent = codeText;
-                
-                document.body.appendChild(script);
-                console.log('🎯 Đã fetch và thực thi Script thành công!');
-            })
-            .catch(error => {
-                console.error('❌ Lỗi không thể fetch hoặc chạy script:', error);
-            });
+        hasDispatchedAny = true;
+        dispatchToPlayer(fallbackItem.url, "SnifferFallback (" + fallbackItem.source + ")");
+      } else {
+        bridgeLog('⚠️ [Sniffer Fallback]: Hàng đợi rỗng, chờ Sniffer tìm thêm...');
+      }
     }
-    
-    // Thay vì đợi 'load' (quá muộn), ta kiểm tra nếu không còn ở trạng thái 'loading' thì chạy luôn
-    if (document.readyState !== 'loading') {
-        doFetchAndInject();
-    } else {
-        // Nếu web thực sự đang load dữ liệu thô, đợi DOMContentLoaded cho nhanh (không cần đợi ảnh/video tải xong)
-        document.addEventListener('DOMContentLoaded', doFetchAndInject);
-    }
-}
+    `;
+  }
 
-function initCustomVideoFix() {
-    // SỬA: Lấy động giá trị từ tham số $url truyền vào hàm textJS bên ngoài
-    
-    if (SCRIPTURL && SCRIPTURL !== "undefined") {
-        injectScriptAfterLoad(SCRIPTURL);
+  // =========================================================================
+  // 🎨 PLAYER DISPATCHER: Hàm dùng chung để phát qua Native hoặc Custom Player
+  // =========================================================================
+  function mainJS() {
+    return `
+    function dispatchToPlayer(mediaUrl, dispatchSource) {
+      try {
+        hasDispatchedAny = true;
+        bridgeLog('🎬 [DISPATCH TO PLAYER] [Nguồn: ' + dispatchSource + '] -> ' + mediaUrl);
+
+        if (PLAYER_MODE === "EXO") {
+          var playUrl = PROXY_ENABLED ? buildProxyUrl(mediaUrl, activeWorkerIndex) : mediaUrl;
+          bridgeLog('📱 [DISPATCH EXO NATIVE]: ' + playUrl);
+
+          if (window.SnifferBridge && typeof window.SnifferBridge.onMediaFound === 'function') {
+            window.SnifferBridge.onMediaFound(playUrl, CUSTOM_REFERER);
+          } 
+          else if (window.SnifferBridge && typeof window.SnifferBridge.playVideo === 'function') {
+            window.SnifferBridge.playVideo(playUrl, CUSTOM_REFERER);
+          } 
+          else {
+            window.location.href = "intent://" + playUrl.replace(/^https?:\\/\\//, '') + "#Intent;scheme=https;type=video/*;end";
+          }
+        } 
+        else {
+          bridgeLog('🎨 [DISPATCH CUSTOM ARTPLAYER] Rendering...');
+          dispatchMediaStream(mediaUrl);
+          SnifferBridge.toast("Đã setup thành công, trình phát có hỗ trợ chuyển server. Bạn hãy sử dụng chúng nếu video không xem được.")
+          
+        }
+      } catch (e) {
+        bridgeLog('❌ [dispatchToPlayer - Lỗi]: ' + e.message);
+      }
     }
-    
-    const style = document.createElement('style');
-    var customcss = 'body { background: black; overflow: hidden; }#comments,header,footer,.entry-actions,.entry-header,.entry-info,.entry-content,#related-posts,.entry-content + .mt-2 {display:none}body * {background: black;}';
-    
-    style.innerHTML = customcss;
+
+    function beginJS() {
+      try {
+        bridgeLog('🚀 [beginJS] Khởi chạy Sniffer! Tiến hành gắn Interceptors...');
+
+        // 🛡️ ANTI-REDIRECT SHIELD
+        (function blockNavigation() {
+          try {
+            var noop = function() { bridgeLog('🛡️ [Anti-Redirect] Đã chặn chuyển trang!'); };
+            Object.defineProperty(window, 'onbeforeunload', { configurable: false, get: function() { return null; }, set: function() {} });
+            if (window.location) { window.location.assign = noop; window.location.replace = noop; }
+            window.open = function() { bridgeLog('🛡️ [Anti-Redirect] Đã chặn window.open()!'); return null; };
+          } catch (err) {}
+        })();
+
+        // ⏱️ TIMER TIMEOUT TOÀN CỤC
+        setTimeout(function() {
+          if (!hasDispatchedAny) {
+            onSnifferFailed();
+          }
+        }, SNIFFER_TIMEOUT_MS);
+
+        // 📡 INTERCEPT XHR
+        if (typeof XMLHttpRequest !== 'undefined') {
+          var originalOpen = XMLHttpRequest.prototype.open;
+          XMLHttpRequest.prototype.open = function (method, url) {
+            try { if (url) getLinkJS(url, 'XHR.' + method); } catch (e) {}
+            return originalOpen.apply(this, arguments);
+          };
+        }
+
+        // 📡 INTERCEPT FETCH
+        if (typeof window.fetch === 'function') {
+          var originalFetch = window.fetch;
+          window.fetch = function (input, init) {
+            try {
+              var url = (typeof input === 'string') ? input : (input && input.url ? input.url : '');
+              if (url) getLinkJS(url, 'Fetch');
+            } catch (e) {}
+            return originalFetch.apply(this, arguments);
+          };
+        }
+
+        // 🎬 SCAN DOM ON LOAD
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+          handleMainExecution();
+        } else {
+          window.addEventListener('load', handleMainExecution);
+          setTimeout(handleMainExecution, 800);
+        }
+
+      } catch (e) {
+        bridgeLog('❌ [beginJS - Lỗi]: ' + e.message);
+      }
+    }
+
+    function onSnifferFailed() {
+      try {
+        if (hasDispatchedAny) return;
+
+        // Thử kích hoạt Fallback Sniffer một lần nữa trước khi báo lỗi
+        if (snifferQueue.length > 0) {
+          triggerSnifferFallback();
+          return;
+        }
+
+        bridgeLog('⚠️ [onSnifferFailed]: Hết thời gian chờ, cả setVideo và Sniffer đều không tìm thấy link!');
+
+        if (typeof HTMLRAW !== 'undefined' && HTMLRAW) {
+          var htmlContent = document.documentElement ? document.documentElement.outerHTML : document.body.innerHTML;
+          bridgeLog('[In Raw HTML]: ' + htmlContent + '...');
+          
+          if (ENDEMBED && window.SnifferBridge && typeof window.SnifferBridge.toast === 'function') {
+            window.SnifferBridge.toast("Không tìm thấy link media. Thử lại sau nhé!");
+          }
+        }
+
+        if (window.SnifferBridge && typeof window.SnifferBridge.onFailed === 'function') {
+          window.SnifferBridge.onFailed("NOT_FOUND");
+        }
+      } catch (e) {
+        bridgeLog('❌ [onSnifferFailed - Lỗi]: ' + e.message);
+      }
+    }
+
+    function isDomainAllowed(url) {
+      try {
+        if (!ENABLE_FILTER) return true;
+        var parsedUrl = new URL(url);
+        var hostname = parsedUrl.hostname.toLowerCase();
+
+        if (BLOCKED_DOMAINS && BLOCKED_DOMAINS.length > 0) {
+          for (var i = 0; i < BLOCKED_DOMAINS.length; i++) {
+            var blockPattern = BLOCKED_DOMAINS[i].toLowerCase().trim();
+            if (hostname.indexOf(blockPattern.replace('*', '')) !== -1) return false;
+          }
+        }
+        return true;
+      } catch (e) {
+        return true;
+      }
+    }
+
+    function buildProxyUrl(targetUrl, workerIdx) {
+      try {
+        if (!PROXY_ENABLED || !WORKER_POOL || WORKER_POOL.length === 0) return targetUrl;
+        var selectedWorker = WORKER_POOL[workerIdx % WORKER_POOL.length];
+        return selectedWorker + "?url=" + encodeURIComponent(targetUrl) + "&referer=" + encodeURIComponent(CUSTOM_REFERER);
+      } catch (e) {
+        return targetUrl;
+      }
+    }
+
+    function dispatchMediaStream(rawStreamUrl) {
+      try {
+        var playUrl = PROXY_ENABLED ? buildProxyUrl(rawStreamUrl, activeWorkerIndex) : rawStreamUrl;
+        bridgeLog('🎨 [dispatchMediaStream]: Tải CDN ArtPlayer cho link -> ' + playUrl);
+        loadAndRenderArtPlayer(playUrl, rawStreamUrl);
+      } catch (e) {
+        bridgeLog('❌ [dispatchMediaStream - Lỗi]: ' + e.message);
+      }
+    }
+
+    function loadAndRenderArtPlayer(initialPlayUrl, rawStreamUrl) {
+      try {
+        if (!document.getElementById('artplayer-css')) {
+          var linkCss = document.createElement('link');
+          linkCss.id = 'artplayer-css';
+          linkCss.rel = 'stylesheet';
+          linkCss.href = 'https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.css';
+          document.head.appendChild(linkCss);
+        }
+
+        var loadedCount = 0;
+        function checkLoaded() {
+          loadedCount++;
+          if (loadedCount >= 2) renderArtPlayer(initialPlayUrl, rawStreamUrl);
+        }
+
+        if (typeof Hls === 'undefined') {
+          var scriptHls = document.createElement('script');
+          scriptHls.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
+          scriptHls.onload = checkLoaded;
+          document.head.appendChild(scriptHls);
+        } else {
+          checkLoaded();
+        }
+
+        if (typeof Artplayer === 'undefined') {
+          var scriptArt = document.createElement('script');
+          scriptArt.src = 'https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js';
+          scriptArt.onload = checkLoaded;
+          document.head.appendChild(scriptArt);
+        } else {
+          checkLoaded();
+        }
+      } catch (e) {
+        bridgeLog('❌ [loadAndRenderArtPlayer - Lỗi]: ' + e.message);
+      }
+    }
+
+function renderArtPlayer(playUrl, rawStreamUrl) {
+  try {
+    bridgeLog('🚀 [renderArtPlayer]: Tạo Giao diện ArtPlayer Fullscreen đầy đủ tính năng...');
+
+    document.body.innerHTML = '';
+    var style = document.createElement('style');
+    style.innerHTML = 'html, body { width: 100vw !important; height: 100vh !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background-color: #000 !important; } #artplayer-container { width: 100vw !important; height: 100vh !important; position: fixed !important; top: 0 !important; left: 0 !important; z-index: 999999 !important; }';
     document.head.appendChild(style);
 
-    if (typeof jwplayer === "function") {
-        const player = jwplayer("previewPlayer");
-        if (player && typeof player.getMute === "function") {
-            if (player.getMute()) {
-                player.setMute(false);
-                showToast("Đã bật tiếng", 3000); // SỬA: Bỏ "duration ="
-            }
-            player.setVolume(100);
-        }
-    }
+    var container = document.createElement('div');
+    container.id = 'artplayer-container';
+    document.body.appendChild(container);
+
+    // 🎯 1. NHẬN DIỆN M3U8 THÔNG MINH
+    var lowerPlayUrl = (playUrl || '').toLowerCase();
+    var lowerRawUrl = (rawStreamUrl || '').toLowerCase();
     
-    let isSkipping = false;
+    var isProxyLink = PROXY_ENABLED && WORKER_POOL.some(function(worker) {
+      return lowerPlayUrl.indexOf(worker.toLowerCase()) !== -1;
+    });
 
-    const checkAndClick = setInterval(() => {
-        const skipButton = document.getElementById("skip-ad");
-        
-        if (skipButton) {
-            const style = window.getComputedStyle(skipButton);
-            if (style.display === 'none' || style.visibility === 'hidden') return;
+    var isM3U8 = lowerRawUrl.indexOf('.m3u8') !== -1 || 
+                 lowerPlayUrl.indexOf('.m3u8') !== -1 || 
+                 lowerPlayUrl.indexOf('%2fm3u8') !== -1 ||
+                 isProxyLink;
 
-            skipButton.click();
-            console.log("🎯 Đã phát hiện và kích hoạt nút bỏ qua quảng cáo!");
+    // 🎯 2. BẢNG CÀI ĐẶT BÁNH RĂNG (SETTINGS) ĐẦY ĐỦ
+    var customSettings = [];
 
-            if (!isSkipping) {
-                isSkipping = true;
-                showToast("Đã bỏ qua quảng cáo", 3000); // SỬA: Bỏ "duration ="
-                setTimeout(() => { isSkipping = false; }, 2000);
-            }
+    // Tùy chọn Server Proxy
+    if (PROXY_ENABLED && WORKER_POOL && WORKER_POOL.length > 0) {
+      customSettings.push({
+        html: 'Server Proxy',
+        tooltip: 'Server ' + (activeWorkerIndex + 1),
+        selector: WORKER_POOL.map(function(workerUrl, idx) {
+          return {
+            default: idx === activeWorkerIndex,
+            html: 'Server ' + (idx + 1) + (idx === activeWorkerIndex ? ' (Đang chọn)' : ''),
+            url: workerUrl,
+            index: idx
+          };
+        }),
+        onSelect: function (item) {
+          bridgeLog('🔄 [ArtPlayer]: Chuyển sang ' + item.html);
+          activeWorkerIndex = item.index;
+          var newPlayUrl = buildProxyUrl(rawStreamUrl, activeWorkerIndex);
+          window.art.switchUrl(newPlayUrl);
+          return item.html;
         }
-    }, 250);
-    
-    // Lưu ý: Đảm bảo hàm runScript() này đã được định nghĩa ở đâu đó trong hệ thống của bạn
-    if (typeof runScript === "function") {
-        runScript("sssssssss");
+      });
     }
+
+    // Tùy chọn Tỉ lệ khung hình (Aspect Ratio)
+    customSettings.push({
+      html: 'Tỉ lệ màn hình',
+      tooltip: 'Mặc định',
+      selector: [
+        { default: true, html: 'Mặc định', value: 'default' },
+        { html: '16:9', value: '16:9' },
+        { html: '4:3', value: '4:3' },
+        { html: 'Phủ kín (Crop)', value: 'cover' }
+      ],
+      onSelect: function (item) {
+        window.art.aspectRatio = item.value;
+        return item.html;
+      }
+    });
+
+    // 🎯 3. KHỞI TẠO ARTPLAYER VỚI ĐẦY ĐỦ CONTROL & TÙY CHỌN
+    window.art = new Artplayer({
+      container: '#artplayer-container',
+      url: playUrl,
+      type: isM3U8 ? 'm3u8' : 'mp4',
+      autoplay: true,
+      volume: 0.8,
+      isLive: false,
+      
+      // 🕹️ BẬT ĐẦY ĐỦ CÁC NÚT ĐIỀU KHIỂN NATIVE
+      setting: true,         // Bánh răng cài đặt
+      playbackRate: true,    // Nút tua nhanh / tốc độ phát (0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 2.0x)
+      aspectRatio: true,     // Chỉnh tỉ lệ khung hình
+      fullscreen: true,      // Nút Toàn màn hình
+      fullscreenWeb: true,   // Nút Fullscreen trình duyệt
+      pip: true,             // Nút Bật Hình trong hình (Picture-in-Picture)
+      autoOrientation: true, // Tự xoay màn hình điện thoại
+      airplay: true,         // Nút Airplay
+      screenshot: true,      // Nút Chụp ảnh màn hình
+      theme: '#23ade5',       // Màu chủ đạo giao diện player
+      
+      // Gắn danh sách Cài đặt mở rộng vào Bánh Răng
+      settings: customSettings,
+
+      // 🛠️ TỐI ƯU HLS.JS ĐỂ TUA KHÔNG BỊ TRỮ/KẸT VIDEO
+      customType: {
+        m3u8: function (video, url, art) {
+          if (Hls.isSupported()) {
+            if (art.hls) art.hls.destroy();
+            var hls = new Hls({
+              enableWorker: true,
+              lowLatencyMode: false,
+              backBufferLength: 90,
+              maxBufferLength: 30, // Giới hạn bộ nhớ đệm để tua mượt hơn
+              maxMaxBufferLength: 600,
+              enableCEA708Captions: false
+            });
+
+            hls.loadSource(url);
+            hls.attachMedia(video);
+            art.hls = hls;
+
+            // Xử lý sự kiện tua video (seek) để tránh giật lag
+            art.on('seek', function (time) {
+              if (art.hls) {
+                bridgeLog('⏩ [ArtPlayer]: Đang tua đến ' + time + 's');
+              }
+            });
+
+            art.on('destroy', function () {
+              if (art.hls) art.hls.destroy();
+            });
+          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = url;
+          }
+        }
+      }
+    });
+
+    window.art.on('ready', function() {
+      bridgeLog('🎉 [ArtPlayer]: Trình phát sẵn sàng đầy đủ tính năng!');
+      window.art.play().catch(function() {
+        window.art.muted = true;
+        window.art.play();
+      });
+    });
+
+  } catch (e) {
+    bridgeLog('❌ [renderArtPlayer - Lỗi]: ' + e.message);
+  }
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initCustomVideoFix);
-} else {
-    initCustomVideoFix();
+
+    function scanVideoElements() {
+      if (hasDispatchedAny) return;
+      try {
+        var videos = document.getElementsByTagName('video');
+        for (var i = 0; i < videos.length; i++) {
+          if (hasDispatchedAny) break;
+          var v = videos[i];
+          if (v.currentSrc) getLinkJS(v.currentSrc, 'HTMLVideoElement.currentSrc');
+          if (v.src) getLinkJS(v.src, 'HTMLVideoElement.src');
+        }
+      } catch (e) {}
+    }
+
+function handleMainExecution() {
+  try { 
+    // 🚀 ƯU TIÊN 1: Ép setVideo chạy ngay lập tức khi vào trang
+    if (typeof USE_CUSTOM_DECODER !== 'undefined' && USE_CUSTOM_DECODER && typeof setVideo === 'function' && !hasDispatchedAny) {
+      bridgeLog('⚡ [handleMainExecution]: Ép setVideo chạy ưu tiên ngay khi tải trang...');
+      var success = setVideo(window.location.href, 'DirectDOM');
+      if (success) return; // Nếu thành công thì dừng luôn, không cần quét gì nữa
+    }
+
+    // 🎯 ƯU TIÊN 2: Quét tag <video>
+    scanVideoElements(); 
+  } catch (e) {
+    bridgeLog('❌ [handleMainExecution - Lỗi]: ' + e.message);
+  }
 }
-`;
+
+    `;
+  }
+
+  // =========================================================================
+  // KẾT NỐI TOÀN BỘ SCRIPT
+  // =========================================================================
+  return `
+(function initEnhancedVideoSniffer() {
+  if (window.__SNIFFER_INITIALIZED__) return;
+  window.__SNIFFER_INITIALIZED__ = true;
+
+  try {
+    ${configJS()}
+    ${setVideoJS()}
+    ${getLinkJS()}
+    ${mainJS()}
+
+    beginJS();
+
+  } catch (globalErr) {
+    if (typeof bridgeLog === 'function') {
+      bridgeLog('❌ [initEnhancedVideoSniffer - Lỗi Toàn Cục]: ' + globalErr.message);
+    }
+  }
+})();
+  `;
 }
+
+
 
 function parseCategoriesResponse(apiResponseJson) {
     var listurl = getLISTmenu();
