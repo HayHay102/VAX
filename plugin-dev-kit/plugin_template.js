@@ -166,7 +166,16 @@ function parseDetailResponse(html, url) {
     return JSON.stringify({
         url: "https://cdn.example.com/video.m3u8",
         headers: {
-            "Referer": "https://domain-phim-cua-ban.com"
+            "Referer": "https://domain-phim-cua-ban.com",
+            
+            // 🛡️ BỘ 6 CẤU HÌNH CHẶN QUẢNG CÁO TÙY BIẾN CHO DEV PLUGIN (BỎ COMMENT NẾU CẦN DÙNG)
+            // "Block-Ads": "true",
+            // "Block-Redirects": "true",
+            // "Block-Domains": "googlesyndication.com, doubleclick.net, popads.net, popcash.net, exoclick.com, adsterra.com, betting, casino",
+            // "Block-Keywords": "/adserv/, /popunder, /popup.js, vast.xml, vpaid.js",
+            // "Block-Css": "iframe[src*='ad'], div[class*='ad-'], div[class*='popup'], div[class*='popunder'], a[href*='bet'], a[href*='casino']",
+            // "Block-Scripts": "popads,exoclick,adsterra",
+            // "Custom-Js": "SnifferBridge.play('https://cdn.com/stream.m3u8', JSON.stringify({'Referer': 'https://site.com/'}));"
         },
         subtitles: []
         // isEmbed: false,     // true nếu cần fetch tiếp (xem parseEmbedResponse)
