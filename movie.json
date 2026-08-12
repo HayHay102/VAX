@@ -19,7 +19,7 @@
         },
         {
             "id": "nguoncnew",
-            "name": "Nguồn C VIP",
+            "name": "NguonC VIP",
             "version": "1.5.4",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/nguoncnew_plugin.js",
             "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/icon/nguonC.png",
@@ -27,7 +27,7 @@
         },
         {
             "id": "nguonc",
-            "name": "Phim NguonC",
+            "name": "NguonC",
             "version": "1.1.5",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/nguonc_plugin.js",
             "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/icon/nguonC.png",
@@ -35,7 +35,7 @@
         },
         {
             "id": "vicdn",
-            "name": "Nguồn Vicdn",
+            "name": "VICDN",
             "version": "1.5",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/vicdn_plugin.js",
             "iconUrl": "https://vicdn.cc/vicdn.png",
@@ -54,7 +54,7 @@ Hỗ trợ anh em chuyển tập và lưu lịch sử lại ngay khi đang xem."
         },
         {
             "id": "bilutv",
-            "name": "Nguồn Bilutv",
+            "name": "BiluTV",
             "version": "1.5.3",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/bilutv_plugin.js",
             "iconUrl": "https://bilutv.asia/img/bilutvlogo-ngang.jpg",
@@ -62,7 +62,7 @@ Hỗ trợ anh em chuyển tập và lưu lịch sử lại ngay khi đang xem."
         },
         {
             "id": "vsmov",
-            "name": "Nguồn Vsmov",
+            "name": "VSmov",
             "version": "1.1",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/vsmov_plugin.js",
             "iconUrl": "https://vsmov.com/favicon-vsm.png",
@@ -94,7 +94,7 @@ Hỗ trợ anh em chuyển tập và lưu lịch sử lại ngay khi đang xem."
         },
         {
             "id": "onflix",
-            "name": "Onflix Phim",
+            "name": "Onflix",
             "version": "1.9",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/onflix_plugin.js",
             "iconUrl": "https://onflix.lat/app/asset/logo.png",
@@ -102,7 +102,7 @@ Hỗ trợ anh em chuyển tập và lưu lịch sử lại ngay khi đang xem."
         },
         {
             "id": "motchill",
-            "name": "Nguồn Motchill",
+            "name": "Motchill",
             "version": "1.2",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/motchill_plugin.js",
             "iconUrl": "https://motchille.cx/motchill.png",
@@ -110,7 +110,7 @@ Hỗ trợ anh em chuyển tập và lưu lịch sử lại ngay khi đang xem."
         },
         {
             "id": "phimchill",
-            "name": "Phim Chill",
+            "name": "Phimchill",
             "version": "3.8.3",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/phimchill_plugin.js",
             "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/icon/phimchill.ico",
@@ -118,7 +118,7 @@ Hỗ trợ anh em chuyển tập và lưu lịch sử lại ngay khi đang xem."
         },
         {
             "id": "phimfun",
-            "name": "Nguồn Phim Fun",
+            "name": "Phim.Fun",
             "version": "1.1.6",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/phimfun_plugin.js",
             "iconUrl": "https://phimfun.net/Content/PhimFun/Imgs/phimFun.png",
@@ -126,7 +126,7 @@ Hỗ trợ anh em chuyển tập và lưu lịch sử lại ngay khi đang xem."
         },
         {
             "id": "phimhayok",
-            "name": "Phim Hay Ok",
+            "name": "PhimHayOk",
             "version": "1.1.3",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/phimhayok_plugin.js",
             "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/icon/phimhayok.jpg",
@@ -142,7 +142,7 @@ Hỗ trợ anh em chuyển tập và lưu lịch sử lại ngay khi đang xem."
         },
         {
             "id": "animevv",
-            "name": "Nguồn Animevv",
+            "name": "AnimeVV",
             "version": "1.2.3",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/animevv_plugin.js",
             "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/icon/animevv.png",
@@ -150,7 +150,7 @@ Hỗ trợ anh em chuyển tập và lưu lịch sử lại ngay khi đang xem."
         },
         {
             "id": "animehay",
-            "name": "Nguồn Anime Hay",
+            "name": "AnimeHay",
             "version": "1.0.7",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/animehay_plugin.js",
             "iconUrl": "https://animehay09.site/themes/img/logo.png",
@@ -158,11 +158,11 @@ Hỗ trợ anh em chuyển tập và lưu lịch sử lại ngay khi đang xem."
         },
         {
             "id": "anime47",
-            "name": "Nguồn Anime47",
+            "name": "Anime47",
             "version": "1.3.1",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/anime47_plugin.js",
             "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/icon/anime47.png",
-            "info": "Nguồn phim Anime của VN.\n Nguồn có server riêng nên xem video rất nhanh và mượt."
+            "info": "Nguồn phim Anime của VN.\nNguồn có server riêng nên xem video rất nhanh và mượt."
         },
         {
             "id": "animevietsub",
@@ -174,7 +174,7 @@ Hỗ trợ anh em chuyển tập và lưu lịch sử lại ngay khi đang xem."
         },
         {
             "id": "hhpanda",
-            "name": "Nguồn HH Panda",
+            "name": "HHPanda",
             "version": "1.2.1",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/hhpanda_plugin.js",
             "iconUrl": "https://hhpanda.st/wp-content/uploads/2024/10/logo.webp",
@@ -206,51 +206,51 @@ Hỗ trợ anh em chuyển tập và lưu lịch sử lại ngay khi đang xem."
         },
         {
             "id": "shortflix",
-            "name": "Phim Ngắn Hay",
+            "name": "Phim Ngắn ShortFlix",
             "version": "1.2.5",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/shortflix_plugin.js",
             "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/icon/shortflix.png",
             "info": "Phim ngắn hay, một số loại phim nên coi theo chiều dọc sẽ hay hơn."
         },
         {
+            "id": "novahd",
+            "name": "Nguồn NovaHD",
+            "version": "1.1.9",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/novahd_plugin.js",
+            "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/novahd.png",
+            "info": "Nguồn phim thuộc servers nước ngoài.\nDùng để sơ cua khi các nguồn trong nước bị sập.\nNguồn này có subtitle riêng nên có thể tự động dịch và lồng tiếng tự động.\nVì là nguồn nước ngoài nên đôi khi cần phải vượt DNS mới xem được.\nDo đó nếu không xem được hãy vào cài đặt bật DNS và DPI hoặc dùng ứng dụng 1.1.1.1 để vượt DNS.\nMột vài phim load sẽ hơi lâu, nhưng khi load được sẽ phát mượt. Nếu không load được hay bấm tải lại sẽ tự tìm link khác để phát."
+        },
+        {
+            "id": "vidgod",
+            "name": "Nguồn VidGod",
+            "version": "1.0.1",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/vidgod_plugin.js",
+            "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/vidgod.png",
+            "info": "Nguồn phim thuộc servers nước ngoài.\nDùng để sơ cua khi các nguồn trong nước bị sập.\nNguồn này được mình tích hợp rẩt nhiều subtitle nên có thể tự động dịch và lồng tiếng tự động.\nVì là nguồn nước ngoài nên đôi khi cần phải vượt DNS mới xem được.\nDo đó nếu không xem được hãy vào cài đặt bật DNS và DPI hoặc dùng ứng dụng 1.1.1.1 để vượt DNS.\nMột vài phim load sẽ hơi lâu, nhưng khi load được sẽ phát mượt. Nếu không load được hay bấm tải lại sẽ tự tìm link khác để phát.\nNếu vẫn không dược hãy thử hạ độ phân giải xuống 1 cấp sẽ coi được.."
+        },
+        {
+            "id": "goated",
+            "name": "Nguồn Goated",
+            "version": "1.0.6",
+            "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/goated_plugin.js",
+            "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/goated.png",
+            "info": "Nguồn phim thuộc servers nước ngoài.\nDùng để sơ cua khi các nguồn trong nước bị sập.\nNguồn này được mình tích hợp rẩt nhiều subtitle nên có thể tự động dịch và lồng tiếng tự động.\nVì là nguồn nước ngoài nên đôi khi cần phải vượt DNS mới xem được.\nDo đó nếu không xem được hãy vào cài đặt bật DNS và DPI hoặc dùng ứng dụng 1.1.1.1 để vượt DNS.\nMột vài phim load sẽ hơi lâu, nhưng khi load được sẽ phát mượt. Nếu không load được hay bấm tải lại sẽ tự tìm link khác để phát.\nNếu vẫn không dược hãy thử hạ độ phân giải xuống 1 cấp sẽ coi được.."
+        },
+        {
+            "id": "fluxtv",
+            "name": "Nguồn FluxTV",
+            "version": "1.2",
+            "scriptUrl": "https://raw.githubusercontent.com/nicolainani/vaxapp-sport-plugins/refs/heads/main/timstreams_plugin.js",
+            "iconUrl": "https://raw.githubusercontent.com/alokillgtv03/vaxplugins/main/img/fluxtv.png",
+            "info": "Nguồn phim thuộc servers nước ngoài.\nDùng để sơ cua khi các nguồn trong nước bị sập.\nNguồn này được mình tích hợp rẩt nhiều subtitle nên có thể tự động dịch và lồng tiếng tự động.\nVì là nguồn nước ngoài nên đôi khi cần phải vượt DNS mới xem được.\nDo đó nếu không xem được hãy vào cài đặt bật DNS và DPI hoặc dùng ứng dụng 1.1.1.1 để vượt DNS.\nMột vài phim load sẽ hơi lâu, nhưng khi load được sẽ phát mượt. Nếu không load được hay bấm tải lại sẽ tự tìm link khác để phát.\nNếu vẫn không dược hãy thử hạ độ phân giải xuống 1 cấp sẽ coi được.."
+        },
+        {
             "id": "xem20",
-            "name": "Nguồn Xem20",
+            "name": "Xem20",
             "version": "1.2",
             "scriptUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/movie/xem20_plugin.js",
             "iconUrl": "https://raw.githubusercontent.com/HayHay102/VAX/refs/heads/Repo/plugins/icon/phimchill.ico",
             "info": "Nguồn phim Xem20, có lẽ là tiền thân của nó là rophim.\nNguồn phim cũng khá là chất lượng.\nĐể sử dụng, các bạn cần vào ô đăng nhập ở plugin.\nCác bạn cần phải đăng ký tài khoản và dăng nhập mới có thể sử dụng."
-        },
-        {
-            "id": "vietanhtv",
-            "name": "Xem Truyền Hình",
-            "version": "1.0",
-            "scriptUrl": "https://raw.githubusercontent.com/nicolainani/vaxapp-iptv-plugins/refs/heads/main/vietanhtv_plugin.js",
-            "iconUrl": "https://i.ibb.co/b8dVqVt/vietanhtv-logo.jpg",
-            "info": "Nguồn xem truyền hình trực tuyến."
-        },
-        {
-            "id": "streamed",
-            "name": "Nguồn Streamed",
-            "version": "1.3.4",
-            "scriptUrl": "https://raw.githubusercontent.com/nicolainani/vaxapp-sport-plugins/refs/heads/main/streamed_plugin.js",
-            "iconUrl": "https://i.ibb.co/N2mkkD4N/streamed-logo.png",
-            "info": "Nguồn xem thể thao trực tuyến."
-        },
-        {
-            "id": "timstreams",
-            "name": "Nguồn Timstreams",
-            "version": "1.2.2",
-            "scriptUrl": "https://raw.githubusercontent.com/nicolainani/vaxapp-sport-plugins/refs/heads/main/timstreams_plugin.js",
-            "iconUrl": "https://i.ibb.co/qYJ3gnwZ/timstreams-logo.png",
-            "info": "Nguồn xem thể thao trực tuyến."
-        },
-        {
-            "id": "ppv",
-            "name": "Nguồn PPV",
-            "version": "1.1.7",
-            "scriptUrl": "https://raw.githubusercontent.com/nicolainani/vaxapp-sport-plugins/refs/heads/main/ppv_plugin.js",
-            "iconUrl": "https://i.ibb.co/BHQSwhLX/ppv-logo.png",
-            "info": "Nguồn xem thể thao trực tuyến."
         },
         {
             "id": "otruyen",
