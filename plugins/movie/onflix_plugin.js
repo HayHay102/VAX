@@ -9,7 +9,7 @@ function getManifest() {
 		"version": "1.9",
 		"baseUrl": "https://onflix.lat",
     "info": "Nguồn phim Onflix, nhanh mượt và dễ tìm phim là ưu điểm.",
-		"iconUrl": "https://onflix.lat/app/asset/logo.png",
+		"iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/onflix.png",
 		"isEnabled": true,
 		"type": "MOVIE",
     "layoutType": "HORIZONTAL",

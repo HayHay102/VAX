@@ -1,21 +1,18 @@
-var BASEURL = "https://vaxplayer.vercel.app";
-var BASEAPI = "https://vaxplayer.vercel.app";
+var BASEURL = "https://vercel.alokillgtv.workers.dev";
+var BASEAPI = "https://vercel.alokillgtv.workers.dev";
 var BASESV = "goated";
-// https://api.themoviedb.org/3/discover/movie?api_key=aa8db17cefbe569dc21a8809090b7b93&language=en-US&include_adult=false&page=1&sort_by=popularity.desc&with_original_language=en&with_genres=9648
-// https://vaxplayer.vercel.app/api/themoviedb?endpoint=trending/movie/day&language=vi-VN
 var BASELINK = BASEURL;
-// https://raw.githubusercontent.com/alokillgtv03/vaxplugins/main/img/goated.png
 function getManifest() {
   try{
     return JSON.stringify({
       "id": "goated",
       "name": "Nguồn Goated",
       "description": "Nguồn phim Goated",
-      "version": "1.0.4",
+      "version": "1.0.6",
       "author": "Alokillgtv",
       "info": "Nguồn phim thuộc servers nước ngoài.\nDùng để sơ cua khi các nguồn trong nước bị sập.\nNguồn này được mình tích hợp rẩt nhiều subtitle nên có thể tự động dịch và lồng tiếng tự động.\nVì là nguồn nước ngoài nên đôi khi cần phải vượt DNS mới xem được.\nDo đó nếu không xem được hãy vào cài đặt bật DNS và DPI hoặc dùng ứng dụng 1.1.1.1 để vượt DNS.\nMột vài phim load sẽ hơi lâu, nhưng khi load được sẽ phát mượt. Nếu không load được hay bấm tải lại sẽ tự tìm link khác để phát.\nNếu vẫn không dược hãy thử hạ độ phân giải xuống 1 cấp sẽ coi được..",
-      "BASEURL": "https://vaxplayer.vercel.app",
-      "iconUrl": "https://raw.githubusercontent.com/alokillgtv03/vaxplugins/main/img/goated.png",
+      "BASEURL": "https://vercel.alokillgtv.workers.dev",
+      "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/goated.png",
       "isEnabled": true,
       "isAdult": false,
       "debug": true,
@@ -795,7 +792,7 @@ function rawJS(){
       try {
           if (!slug) return "";
           if (slug.indexOf('http') === 0) return slug;
-          var detailUrl = BASEURL + "/" + slug;
+          var detailUrl = BASEURL + slug;
           log("getUrlDetail[url]: \n" + detailUrl);
           return detailUrl;
       } catch (e) {

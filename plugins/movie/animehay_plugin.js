@@ -5,7 +5,7 @@ function getManifest() {
       "id": "animehay",
       "name": "Nguồn Animehay",
       "description": "Anime siêu hay.",
-      "version": "1.0.6",
+      "version": "1.0.7",
       "info": "Nguồn phim anime chất lượng cao. Cập nhật khá nhanh.\nTuy nhiên nguồn này hay đổi tên miền, nên nếu các bạn ko xem được hãy tìm bằng từ khoá animehay.\nTừ đó các bạn sẽ thấy được tên miền gốc của nó, và hãy tự đổi ở phần cài đặt trước khi đợi plugin cập nhật.\nHãy thông báo lên nhóm để cập nhật nhanh nhất.",
       "baseUrl": "http://vkey.vn/animehay",
       "iconUrl": "http://vkey.vn/img/animehay.png",

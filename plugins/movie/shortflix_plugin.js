@@ -16,7 +16,7 @@ function getManifest() {
         "version": "1.2.5",
         "info": "Phim ngắn nên chia thành nhiều tập. Có thể dùng cách vuốt để qua tập và nên xem bằng chiều dọc.",
         "baseUrl": "https://www.shortflix.net",
-        "iconUrl": "https://raw.githubusercontent.com/alokillgtv-gif/VAXAPPSCRIPT/main/img/shortflix.png",
+        "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/shortflix.png",
         "isEnabled": true,
         "type": "shortfilm",
         "playerType": "exoplayer"

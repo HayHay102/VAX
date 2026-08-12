@@ -8,7 +8,7 @@ function getManifest() {
         "version": "1.6",
         "baseUrl": "https://phimnganhdc.com",
       	"info":"Nguồn phim ngắn, hãy xem màn hình dọc cho thuận mắt hơn nhé.",
-        "iconUrl": "https://phimnganhdc.com/storage/files/logo-phimnganhdc.png",
+        "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/phimnganhdc.png",
         "isEnabled": true,
         "type": "shortfilm",
         "playerType": "embedtoexoplay"

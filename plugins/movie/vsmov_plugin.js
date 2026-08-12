@@ -9,7 +9,7 @@ function getManifest() {
     "version": "1.1",
     info: "Nguồn phim vietsub và thuyết minh mới.\n\n Hỗ trợ lồng tiếng và có tốc độ phát rất nhanh.",
     baseUrl: "https://vsmov.com",
-    iconUrl: "https://vsmov.com/favicon-vsm.png",
+    iconUrl: "https://vaxplugin.alokillgtv.workers.dev/img/vsmov.png",
     isEnabled: true,
     "adblock": false,
     "layoutType": "HORIZONTAL",

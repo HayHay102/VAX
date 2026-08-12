@@ -7,7 +7,7 @@ function getManifest() {
         "description": "Phim online",
         "version": "3.8.3",             
         "baseUrl": "http://vkey.vn/phimchill",
-        "iconUrl": "https://raw.githubusercontent.com/alokillgtv-gif/VAXAPPSCRIPT/main/img/phimchill.ico", 
+        "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/phimchill.png", 
         "isEnabled": true,
       "layoutType": "HORIZONTAL",
         "type": "MOVIE",

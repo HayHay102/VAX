@@ -9,7 +9,7 @@ function getManifest() {
       	"info": "Nguồn phim xịn của Motchill.",
         "version": "1.2",
         "baseUrl": "http://vkey.vn/motchill",
-        "iconUrl": "http://vkey.vn/motchill/motchill.png",
+        "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/motchill.png",
         "layoutType": "HORIZONTAL",
         "isEnabled": true,
         "type": "MOVIE",

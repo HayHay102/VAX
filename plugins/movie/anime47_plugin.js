@@ -1,6 +1,6 @@
 var BASEURL = "https://anime47.best";
 var BASEAPI = "https://anime47.love/api"
-var BASEHOST = "https://vaxplayer.vercel.app/api/anime47/api";
+var BASEHOST = "https://anime47.alokillgtv.workers.dev/api";
 var BASELINK = BASEAPI;
 // https://raw.githubusercontent.com/alokillgtv03/vaxplugins/main/img/phimchill.ico
 function getManifest() {
@@ -9,7 +9,7 @@ function getManifest() {
       "id": "anime47",
       "name": "Nguồn Anime47",
       "description": "Nguồn phim Anime47",
-      "version": "1.2",
+      "version": "1.3.1",
       "author": "Alokillgtv",
       "info": "Nguồn phim Anime của VN.\nNguồn có server riêng nên xem video rất nhanh và mượt.",
       "baseUrl": "https://anime47.best",

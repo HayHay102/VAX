@@ -10,7 +10,7 @@ function getManifest() {
         "version": "1.2.2",
         "baseUrl": "https://gamomephim.com",
       	"info": "Đây là dạng phim ngắn nên họ thường quay theo chiều dọc màn hình. Qua tập bằng cách vuốt như tiktok nhé.",
-        "iconUrl": "https://cdn.gamomephim.com/site/logo-1784305321242.png",
+        "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/gamomephim.png",
         "isEnabled": true,
         "type": "shortfilm",
         "playerType": "exoplayer"

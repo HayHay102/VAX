@@ -8,7 +8,7 @@ function getManifest() {
         "version": "1.1.8",
         "info": "Nguồn phim ngắn siêu hay, một vài bộ phim nên xem theo chiều dọc. App có hỗ trợ nhé. Hãy nhấn thử lại nếu không tải được video.",
         "baseUrl": "https://edge.narto-drama.com",
-        "iconUrl": "https://narto-drama.com/narto-drama-logo-compressed.png",
+        "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/nartodrama.png",
         "isEnabled": true,
        "type": "shortfilm",
         "playerType": "exoplayer",

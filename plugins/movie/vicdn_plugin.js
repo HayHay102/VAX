@@ -9,7 +9,7 @@ function getManifest() {
     "version": "1.5",
     info: "Nguồn phim vietsub và thuyết minh mới.\n\n Hỗ trợ lồng tiếng và có tốc độ phát rất nhanh.",
     baseUrl: "https://vicdn.cc",
-    iconUrl: "https://vicdn.cc/vicdn.png",
+    iconUrl: "https://vaxplugin.alokillgtv.workers.dev/img/vicdn.png",
     "layoutType": "HORIZONTAL",
     debug: true,
     isEnabled: true,
