@@ -1,13 +1,17 @@
 // =============================================================================
 // CONFIGURATION & METADATA
 // =============================================================================
+BASEURL = "https://ophim1.com";
+BASEAPI = "https://ophim1.com/v1/api";
+BASECDN = "https://ophim1.com/uploads/movies/";
 
 function getManifest() {
     return JSON.stringify({
         "id": "ophim",
         "name": "OPhim",
-        "version": "1.0.4",
-        "baseUrl": "https://ophim1.com",
+        "version": "1.0.6",
+        "baseUrl": BASEURL,
+        "layoutType": "HORIZONTAL",
         "iconUrl": "https://raw.githubusercontent.com/youngbi/repo/main/plugins/ophim.ico",
         "isEnabled": true,
         "type": "MOVIE"
@@ -61,15 +65,12 @@ function getUrlList(slug, filtersJson) {
     try {
         var filters = JSON.parse(filtersJson || "{}");
         var page = filters.page || 1;
-        var limit = filters.limit || 24; // Default limit
+        var limit = filters.limit || 24;
 
-        // Logic ưu tiên: Năm > Danh sách (nhiều thể loại) > Thẻ loại đơn
-        var baseUrl = "https://ophim1.com/v1/api";
+        var baseUrl = BASEAPI;
         var finalPath = "";
-
         var mainLists = ['phim-le', 'phim-bo', 'hoat-hinh', 'tv-shows', 'phim-chieu-rap', 'phim-moi', 'sap-chieu'];
 
-        // Ưu tiên: Slug gốc (Nếu là danh mục chính hoặc Năm) > Năm Filter > Thể loại Filter
         if (mainLists.indexOf(slug) >= 0) {
             finalPath = "/danh-sach/" + slug;
         } else if (/^\d{4}$/.test(slug)) {
@@ -85,17 +86,10 @@ function getUrlList(slug, filtersJson) {
         } else if (filters.country) {
             finalPath = "/quoc-gia/" + filters.country;
         } else {
-            // Mặc định cho các slug là thể loại đơn lẻ (từ menu home)
             finalPath = "/the-loai/" + slug;
         }
 
         var url = baseUrl + finalPath + "?page=" + page + "&limit=" + limit;
-
-        // Append supplementary filters (as query params if they weren't used in path)
-        // Lưu ý: Nếu đã dùng Year ở path thì không cần append lại, nhưng append dư cũng không sao với một số API.
-        // Tuy nhiên, logic lọc chéo của Ophim:
-        // /nam-phat-hanh/2024?category=hanh-dong (Lọc phim 2024 có thể loại hành động)
-        // /the-loai/hanh-dong?country=han-quoc (Lọc hành động của Hàn Quốc)
 
         if (filters.category && finalPath.indexOf(filters.category) === -1) {
             url += "&category=" + filters.category;
@@ -112,40 +106,43 @@ function getUrlList(slug, filtersJson) {
 
         return url;
     } catch (e) {
-        return "https://ophim1.com/v1/api/danh-sach/" + slug;
+        return BASEAPI + "/danh-sach/" + slug;
     }
 }
 
 function getUrlSearch(keyword, filtersJson) {
     var filters = JSON.parse(filtersJson || "{}");
     var page = filters.page || 1;
-    return "https://ophim1.com/v1/api/tim-kiem?keyword=" + encodeURIComponent(keyword) + "&page=" + page;
+    return BASEAPI + "/tim-kiem?keyword=" + encodeURIComponent(keyword || "") + "&page=" + page;
 }
 
 function getUrlDetail(slug) {
-    return "https://ophim1.com/v1/api/phim/" + slug;
+    return BASEAPI + "/phim/" + slug;
 }
 
-function getUrlCategories() { return "https://ophim1.com/v1/api/the-loai"; }
-function getUrlCountries() { return "https://ophim1.com/v1/api/quoc-gia"; }
-function getUrlYears() { return "https://ophim1.com/v1/api/nam-phat-hanh"; }
+function getUrlCategories() { return BASEAPI + "/the-loai"; }
+function getUrlCountries() { return BASEAPI + "/quoc-gia"; }
+function getUrlYears() { return BASEAPI + "/nam-phat-hanh"; }
 
 // =============================================================================
 // PARSERS
 // =============================================================================
 
-function parseListResponse(apiResponseJson) {
+function parseListResponse(apiResponseJson, url) {
     try {
+        console.log("parseListResponse: \n" + url);
         var response = JSON.parse(apiResponseJson);
-        var data = response.data || {};
-        var items = data.items || [];
-        var params = data.params || {};
-        var pagination = params.pagination || {};
+
+        var root = (response && response.data) ? response.data : response;
+        var items = (root && root.items) ? root.items : [];
+        var params = (root && root.params) ? root.params : {};
+        var pagination = (params && params.pagination) ? params.pagination : {};
 
         var movies = items.map(function (item) {
+            if (!item) return null;
             return {
-                id: item.slug,
-                title: item.name,
+                id: item.slug || "",
+                title: item.name || "",
                 posterUrl: getImageUrl(item.thumb_url),
                 backdropUrl: getImageUrl(item.poster_url),
                 year: item.year || 0,
@@ -153,46 +150,53 @@ function parseListResponse(apiResponseJson) {
                 episode_current: item.episode_current || "",
                 lang: item.lang || ""
             };
-        });
+        }).filter(Boolean);
+
+        var totalItems = pagination.totalItems || 0;
+        var itemsPerPage = pagination.totalItemsPerPage || 24;
+        var totalPages = pagination.totalPages || Math.ceil(totalItems / itemsPerPage) || 1;
 
         return JSON.stringify({
             items: movies,
             pagination: {
                 currentPage: pagination.currentPage || 1,
-                totalPages: Math.ceil((pagination.totalItems || 0) / (pagination.totalItemsPerPage || 24)),
-                totalItems: pagination.totalItems || 0,
-                itemsPerPage: pagination.totalItemsPerPage || 24
+                totalPages: totalPages,
+                totalItems: totalItems,
+                itemsPerPage: itemsPerPage
             }
         });
     } catch (error) {
+        console.log("Error in parseListResponse: " + error);
         return JSON.stringify({ items: [], pagination: { currentPage: 1, totalPages: 1 } });
     }
 }
 
-function parseSearchResponse(apiResponseJson) {
-    return parseListResponse(apiResponseJson);
+function parseSearchResponse(apiResponseJson, url) {
+    return parseListResponse(apiResponseJson, url);
 }
 
 function parseMovieDetail(apiResponseJson) {
     try {
         var response = JSON.parse(apiResponseJson);
-        var movie = response.movie || response.data?.item || {};
-        var rawEpisodes = response.episodes || response.data?.item?.episodes || [];
+        var movie = response.movie || (response.data && response.data.item) || response.item || {};
+        var rawEpisodes = response.episodes || (response.data && response.data.item && response.data.item.episodes) || [];
 
         var servers = [];
         rawEpisodes.forEach(function (server) {
+            if (!server) return;
             var episodes = [];
             if (server.server_data) {
                 server.server_data.forEach(function (ep) {
+                    if (!ep) return;
                     episodes.push({
-                        id: ep.link_m3u8 || ep.link_embed,
-                        name: ep.name,
-                        slug: ep.slug
+                        id: ep.link_m3u8 || ep.link_embed || "",
+                        name: ep.name || "",
+                        slug: ep.slug || ""
                     });
                 });
             }
             if (episodes.length > 0) {
-                servers.push({ name: server.server_name, episodes: episodes });
+                servers.push({ name: server.server_name || "SV", episodes: episodes });
             }
         });
 
@@ -203,8 +207,8 @@ function parseMovieDetail(apiResponseJson) {
             rating = movie.imdb.vote_average;
         }
 
-        var categories = (movie.category || []).map(function (c) { return c.name; }).join(", ");
-        var countries = (movie.country || []).map(function (c) { return c.name; }).join(", ");
+        var categories = (movie.category || []).map(function (c) { return c ? c.name : ""; }).filter(Boolean).join(", ");
+        var countries = (movie.country || []).map(function (c) { return c ? c.name : ""; }).filter(Boolean).join(", ");
         var directors = (movie.director || []).join(", ");
         var actors = (movie.actor || []).join(", ");
 
@@ -213,8 +217,8 @@ function parseMovieDetail(apiResponseJson) {
         var tmdbType = movie.tmdb && movie.tmdb.type ? movie.tmdb.type : "";
 
         return JSON.stringify({
-            id: movie.slug,
-            title: movie.name,
+            id: movie.slug || "",
+            title: movie.name || "",
             originName: movie.origin_name || "",
             posterUrl: getImageUrl(movie.thumb_url),
             backdropUrl: getImageUrl(movie.poster_url),
@@ -239,20 +243,20 @@ function parseMovieDetail(apiResponseJson) {
 function parseDetailResponse(apiResponseJson) {
     try {
         var response = JSON.parse(apiResponseJson);
-        var movie = response.movie || response.data?.item || {};
-        var episodes = response.episodes || response.data?.item?.episodes || [];
+        var movie = response.movie || (response.data && response.data.item) || {};
+        var episodes = response.episodes || (response.data && response.data.item && response.data.item.episodes) || [];
 
         var streamUrl = "";
         if (episodes.length > 0) {
             var firstServer = episodes[0];
-            if (firstServer.server_data && firstServer.server_data.length > 0) {
+            if (firstServer && firstServer.server_data && firstServer.server_data.length > 0) {
                 streamUrl = firstServer.server_data[0].link_m3u8 || firstServer.server_data[0].link_embed || "";
             }
         }
 
         return JSON.stringify({
             url: streamUrl,
-            headers: { "User-Agent": "Mozilla/5.0", "Referer": "https://ophim1.com" },
+            headers: { "User-Agent": "Mozilla/5.0", "Referer": BASEURL },
             subtitles: []
         });
     } catch (error) { return "{}"; }
@@ -261,29 +265,29 @@ function parseDetailResponse(apiResponseJson) {
 function parseCategoriesResponse(apiResponseJson) {
     try {
         var response = JSON.parse(apiResponseJson);
-        var items = response.data?.items || [];
-        return JSON.stringify(items.map(function (i) { return { name: i.name, slug: i.slug }; }));
+        var items = (response.data && response.data.items) ? response.data.items : [];
+        return JSON.stringify(items.map(function (i) { return { name: i.name || "", slug: i.slug || "" }; }));
     } catch (e) { return "[]"; }
 }
 
 function parseCountriesResponse(apiResponseJson) {
     try {
         var response = JSON.parse(apiResponseJson);
-        var items = response.data?.items || [];
-        return JSON.stringify(items.map(function (i) { return { name: i.name, value: i.slug }; }));
+        var items = (response.data && response.data.items) ? response.data.items : [];
+        return JSON.stringify(items.map(function (i) { return { name: i.name || "", value: i.slug || "" }; }));
     } catch (e) { return "[]"; }
 }
 
 function parseYearsResponse(apiResponseJson) {
     try {
         var response = JSON.parse(apiResponseJson);
-        var items = response.data?.items || [];
-        return JSON.stringify(items.map(function (i) { return { name: i.year.toString(), value: i.year.toString() }; }));
+        var items = (response.data && response.data.items) ? response.data.items : [];
+        return JSON.stringify(items.map(function (i) { return { name: String(i.year || ""), value: String(i.year || "") }; }));
     } catch (e) { return "[]"; }
 }
 
 function getImageUrl(path) {
-    if (!path) return "";
+    if (!path || typeof path !== "string") return "";
     if (path.indexOf("http") === 0) return path;
-    return "https://img.ophim.live/uploads/movies/" + path;
+    return BASECDN + path;
 }

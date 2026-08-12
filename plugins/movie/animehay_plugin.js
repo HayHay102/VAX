@@ -1,15 +1,16 @@
-var BASEURL = "https://animehay10.site"; 
+var BASEURL = "http://vkey.vn/animehay"; 
 // https://www.whoreshub.com/categories/4k-porn/
 function getManifest() {
     return JSON.stringify({
       "id": "animehay",
       "name": "Nguồn Animehay",
       "description": "Anime siêu hay.",
-      "version": "1.0.4",
+      "version": "1.0.6",
       "info": "Nguồn phim anime chất lượng cao. Cập nhật khá nhanh.\nTuy nhiên nguồn này hay đổi tên miền, nên nếu các bạn ko xem được hãy tìm bằng từ khoá animehay.\nTừ đó các bạn sẽ thấy được tên miền gốc của nó, và hãy tự đổi ở phần cài đặt trước khi đợi plugin cập nhật.\nHãy thông báo lên nhóm để cập nhật nhanh nhất.",
-      "baseUrl": "https://animehay09.site",
-      "iconUrl": "https://animehay09.site/themes/img/logo.png",
+      "baseUrl": "http://vkey.vn/animehay",
+      "iconUrl": "http://vkey.vn/img/animehay.png",
       "isEnabled": true,
+      debug: true,
       "layoutType": "HORIZONTAL",
       "type": "MOVIE",
       "playerTpye": "exoplayer"
@@ -524,12 +525,11 @@ function parseDetailResponse(html, url) {
         if (embed && embed[1]) {
             stream = embed[1];
         }
-        log("parseDetailResponse[url]: \n" + stream);
+        log("parseDetailResponse[embed]: \n" + stream);
         return JSON.stringify({
             "url": stream,
             "isEmbed": true,
             "headers": {
-                "Referer": BASEURL,
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             }
         });
