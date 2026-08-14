@@ -4,15 +4,16 @@ function getManifest() {
     return JSON.stringify({
         "id": "clbpxVIP",
         "name": "CLB Phim Xưa VIP",
-        "version": "1.4.6",
-        "info": "Đã nâng cấp thêm cơ chế lưu lịch sử và qua tập. Khỏi cần đăng nhập vẫn xem đc.",
+        "version": "1.5",
+        "info": "",
         "BASEURL": "https://clbpx.alokillgtv.workers.dev",
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/clbpx.png",
         "isEnabled": true,
         "isAdult": false,
         "type": "MOVIE",
         "playerType": "embed",
-        "layoutType": "HORIZONTAL"
+        "layoutType": "HORIZONTAL",
+        "popup_html": "<div class='donate-container'><h2 class='donate-heading'>DONATE</h2><p class='donate-description'>Anh em yêu quý có thể mời bọn mình 2 ly cà phê nhé. Để có động lực duy trì App, cập nhật plugin và tìm thêm nhiều nguồn mới và hay cho anh em. Một chút lòng thành cũng làm bọn mình tiếp tục hoạt động tốt hơn, cám ơn anh em.</p><div class='donate-grid'><div class='donate-card'><div class='donate-title'>Donate Tác giả Plugin</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qrht.png' alt='Donate Tác giả Plugin' /></div></div><div class='donate-card'><div class='donate-title'>Donate Tác giả App</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qryb.png' alt='Donate Tác giả App' /></div></div></div></div><style>.donate-container{max-width:800px;margin:0 auto;padding:10px;box-sizing:border-box;font-family:Arial,sans-serif;text-align:center;color:#eee}.donate-heading{font-size:22px;font-weight:bold;margin:0 0 12px 0;color:#fff;text-transform:uppercase;letter-spacing:1px}.donate-description{font-size:14px;line-height:1.5;margin-bottom:18px;color:#ccc}.donate-grid{display:flex;flex-direction:row;justify-content:center;align-items:stretch;gap:16px}.donate-card{flex:1;min-width:0;background:#22252a;border-radius:12px;padding:14px;border:1px solid #33373e;display:flex;flex-direction:column;align-items:center}.donate-title{font-weight:bold;font-size:15px;margin-bottom:12px;color:#fff}.qr-wrapper{width:100%;max-width:240px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:#181a1d;border-radius:8px;padding:8px;box-sizing:border-box}.qr-wrapper img{width:100%;height:100%;object-fit:contain;border-radius:4px}@media(max-width:600px){.donate-grid{flex-direction:column}.donate-heading{font-size:18px;margin-bottom:8px}.donate-description{font-size:13px;margin-bottom:12px}.qr-wrapper{max-width:180px}}</style>"
     });
 }
 
@@ -533,6 +534,7 @@ function parseDetailResponse(htmlResponse, fallbackUrl, datasend) {
         return JSON.stringify({ url: fallbackUrl || "", headers: {} });
     }
 }
+
 function rawJS(initialVideoId, fallbackUrl, movieKey) {
     return `
 (function () {
@@ -549,398 +551,819 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
     } catch(e) {}
   }
 
-  bridgeLog("[CustomJS] Bắt đầu khởi tạo...");
+  const isTop = (window === window.top);
+  const isLevel1 = (!isTop && window.parent === window.top);
+  const isLevel2 = (!isTop && !isLevel1);
 
-  function initPlayer() {
-    var ABYSS_BASE_URL = "https://abysscdn.com/?v=";
-    var serversList = [];
-    var currentServerIndex = 0;
-    var currentIndex = 0;
-    var activeMovieKey = "${movieKey}";
-    var fallbackUrlStr = "${fallbackUrl}";
-    var initVid = "${initialVideoId}";
-    var movieTitle = "";
-    var saveHistoryTimeout = null;
-    var loadingTimeout = null;
-    var histAutoCloseTimeout = null;
-    var titleDisplayTimeout = null;
+  var KILL_OVERLAY_CSS = "#playback, #overlay, [id*='overlay'], [class*='overlay'], [id*='playback'], [class*='playback'], .jw-controls-backdrop, .jw-display-icon-container { pointer-events: none !important; }";
 
-    function extractId(urlOrId) {
-      if (!urlOrId) return "";
-      var match = String(urlOrId).match(/[?&]v=([^&]+)/);
-      if (match) return match[1].trim();
-      var clean = String(urlOrId).split("?")[0].split("#")[0];
-      var parts = clean.split("/").filter(Boolean);
-      return parts.length > 0 ? parts[parts.length - 1].trim() : String(urlOrId).trim();
+  // =========================================================================
+  // BẮT SỰ KIỆN PHÍM VÀ CHUYỂN LỆNH TẬP TRUNG
+  // =========================================================================
+  window.addEventListener("keydown", function(e) {
+    var activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
+    var isUIButton = (activeTag === "button" || (document.activeElement && document.activeElement.classList.contains("ep-item")));
+
+    var isEnter = (e.key === "Enter" || e.code === "Enter" || e.keyCode === 13 || e.keyCode === 66 || e.keyCode === 23);
+    var isPlayPauseMedia = (e.key === "MediaPlayPause" || e.key === "MediaPlay" || e.key === "MediaPause" || e.keyCode === 179 || e.keyCode === 228);
+
+    if (isEnter || isPlayPauseMedia) {
+      if (!isUIButton) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isTop) {
+          var iframe1 = document.getElementById("player-frame");
+          if (iframe1 && iframe1.contentWindow) {
+            iframe1.contentWindow.postMessage({ type: "TOGGLE_PLAY" }, "*");
+          }
+        } else {
+          window.top.postMessage({ type: "CMD_TOGGLE_PLAY" }, "*");
+        }
+      }
+      return;
     }
 
-    function decodeBase64Utf8(str) {
-      if (!str) return null;
+    if (e.key === "ArrowLeft" || e.keyCode === 37) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (document.activeElement && document.activeElement.blur && !isUIButton) {
+        document.activeElement.blur();
+      }
+      if (isTop) {
+        var iframe1 = document.getElementById("player-frame");
+        if (iframe1 && iframe1.contentWindow) iframe1.contentWindow.postMessage({ type: "SEEK", seconds: -10 }, "*");
+      } else {
+        window.top.postMessage({ type: "CMD_SEEK", seconds: -10 }, "*");
+      }
+    } else if (e.key === "ArrowRight" || e.keyCode === 39) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (document.activeElement && document.activeElement.blur && !isUIButton) {
+        document.activeElement.blur();
+      }
+      if (isTop) {
+        var iframe1 = document.getElementById("player-frame");
+        if (iframe1 && iframe1.contentWindow) iframe1.contentWindow.postMessage({ type: "SEEK", seconds: 10 }, "*");
+      } else {
+        window.top.postMessage({ type: "CMD_SEEK", seconds: 10 }, "*");
+      }
+    } else if (e.key === "PageUp" || e.keyCode === 33) {
+      e.preventDefault();
+      if (isTop) { navigateEp(-1); } else { window.top.postMessage({ type: "EP_NAV", direction: -1 }, "*"); }
+    } else if (e.key === "PageDown" || e.keyCode === 34) {
+      e.preventDefault();
+      if (isTop) { navigateEp(1); } else { window.top.postMessage({ type: "EP_NAV", direction: 1 }, "*"); }
+    }
+  }, true);
+
+  // =========================================================================
+  // LỚP 1: TOP WINDOW
+  // =========================================================================
+  if (isTop) {
+    function initPlayer() {
+      var ABYSS_BASE_URL = "https://abysscdn.com/?v=";
+      var serversList = [];
+      var currentServerIndex = 0;
+      var currentIndex = 0;
+      var activeMovieKey = "${movieKey}";
+      var fallbackUrlStr = "${fallbackUrl}";
+      var initVid = "${initialVideoId}";
+      var movieTitle = "";
+      var loadingTimeout = null;
+      var titleDisplayTimeout = null;
+      var toastTimeout = null;
+
+      function extractId(urlOrId) {
+        if (!urlOrId) return "";
+        var match = String(urlOrId).match(/[?&]v=([^&]+)/);
+        if (match) return match[1].trim();
+        var clean = String(urlOrId).split("?")[0].split("#")[0];
+        var parts = clean.split("/").filter(Boolean);
+        return parts.length > 0 ? parts[parts.length - 1].trim() : String(urlOrId).trim();
+      }
+
+      function decodeBase64Utf8(str) {
+        if (!str) return null;
+        try {
+          var base64 = decodeURIComponent(str);
+          base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+          while (base64.length % 4 !== 0) { base64 += '='; }
+          var binary = atob(base64);
+          var bytes = new Uint8Array(binary.length);
+          for (var i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
+          if (typeof TextDecoder !== "undefined") {
+            return new TextDecoder("utf-8").decode(bytes);
+          }
+          var escaped = "";
+          for (var j = 0; j < binary.length; j++) {
+            escaped += "%" + ("00" + binary.charCodeAt(j).toString(16)).slice(-2);
+          }
+          return decodeURIComponent(escaped);
+        } catch (e) {
+          return null;
+        }
+      }
+
+      if (document.body) document.body.innerHTML = "";
+      
+      var css = KILL_OVERLAY_CSS + " " +
+        "html, body { width: 100vw !important; height: 100vh !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: #000 !important; position: fixed !important; top: 0 !important; left: 0 !important; } " +
+        "#player-frame { width: 100vw !important; height: 100vh !important; border: 0 !important; display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; z-index: 1 !important; margin: 0 !important; padding: 0 !important; } " +
+        ".v-fade-ctrl { opacity: 0.5; transition: opacity 0.3s ease; z-index: 999999999 !important; } .v-fade-ctrl:hover, body:active .v-fade-ctrl { opacity: 1; } " +
+        ".v-menu-wrap { position: absolute; top: 15px; right: 15px; z-index: 999999999 !important; } .v-btn-toggle { background: rgba(0, 0, 0, 0.85); color: #fff; border: 1px solid rgba(255,255,255,0.4); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; } .v-btn-toggle:focus { outline: 2px solid #e50914; opacity: 1; } " +
+        ".v-title-overlay { position: absolute; top: 15px; left: 15px; z-index: 999999999 !important; background: rgba(0,0,0,0.85); border: 1px solid rgba(255,255,255,0.3); padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: bold; color: #fff; max-width: calc(100vw - 160px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; transition: opacity 0.4s ease; opacity: 0; } .v-title-overlay.show { opacity: 1; } " +
+        ".v-playlist-panel { display: none; position: absolute; top: 45px; right: 0; width: calc(100vw - 30px); max-width: 340px; max-height: calc(80vh - 70px); background: rgba(15, 15, 15, 0.98); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 12px; overflow-y: auto; -webkit-overflow-scrolling: touch; box-shadow: 0 4px 25px rgba(0,0,0,0.9); z-index: 999999999 !important; } .v-playlist-panel.active { display: block; } " +
+        ".server-tabs-container { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.15); -webkit-overflow-scrolling: touch; } .server-tab-item { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: #ccc; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap; font-weight: bold; } .server-tab-item:focus { outline: 2px solid #fff; } .server-tab-item.active { background: #e50914; color: #fff; border-color: #e50914; } " +
+        ".ep-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; } .ep-item { background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.25); color: #fff; padding: 8px 2px; text-align: center; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ep-item:focus { outline: 2px solid #e50914; background: rgba(229, 9, 20, 0.5); } .ep-item.active { background: #e50914; font-weight: bold; border-color: #fff; } " +
+        ".nav-ep-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.4); color: white; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; z-index: 999999999 !important; } .nav-ep-btn:focus { outline: 2px solid #e50914; } .nav-prev { left: 15px; } .nav-next { right: 15px; } " +
+        "#v-loading-layer { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 99999999 !important; pointer-events: none; } .spinner { width: 42px; height: 42px; border: 4px solid rgba(255,255,255,0.15); border-top-color: #e50914; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; } @keyframes spin { to { transform: rotate(360deg); } } " +
+        ".mini-toast { position: absolute; top: 65%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: rgba(0, 0, 0, 0.95); border: 2px solid #e50914; color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 14px; font-weight: bold; z-index: 999999999 !important; display: flex; align-items: center; gap: 8px; box-shadow: 0 0 20px rgba(229, 9, 20, 0.6); pointer-events: none; opacity: 0; transition: opacity 0.1s ease, transform 0.1s ease; text-align: center; } .mini-toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }";
+      
+      var style = document.createElement("style"); 
+      style.appendChild(document.createTextNode(css)); 
+      (document.head || document.documentElement).appendChild(style);
+
+      var iframe = document.createElement("iframe"); 
+      iframe.id = "player-frame"; 
+      iframe.setAttribute("allow", "autoplay; encrypted-media; fullscreen"); 
+      iframe.setAttribute("allowfullscreen", "true");
+      iframe.setAttribute("tabindex", "0");
+
+      var startVidId = extractId(initVid) || extractId(fallbackUrlStr);
+      if (startVidId && !startVidId.startsWith("http")) {
+        iframe.src = ABYSS_BASE_URL + startVidId;
+      } else {
+        iframe.src = fallbackUrlStr;
+      }
+      
+      var titleOverlay = document.createElement("div");
+      titleOverlay.className = "v-title-overlay";
+      
+      var loadingOverlay = document.createElement("div"); 
+      loadingOverlay.id = "v-loading-layer";
+      loadingOverlay.innerHTML = '<div class="spinner"></div><div id="v-load-txt" style="font-size:13px; font-weight:bold;">Đang tải...</div>';
+      
+      var miniToast = document.createElement("div"); 
+      miniToast.className = "mini-toast";
+      miniToast.id = "v-mini-toast";
+
+      var epContainer = document.createElement("div"); 
+      epContainer.className = "v-menu-wrap v-fade-ctrl";
+      
+      var epToggleBtn = document.createElement("button"); 
+      epToggleBtn.className = "v-btn-toggle"; 
+      epToggleBtn.innerText = "Danh sách tập";
+      epToggleBtn.setAttribute("tabindex", "0");
+      epToggleBtn.onclick = function (e) {
+        e.stopPropagation();
+        epPanel.classList.toggle("active"); 
+        if (epPanel.classList.contains("active")) {
+          triggerTitleDisplay();
+        }
+      };
+      
+      var epPanel = document.createElement("div"); 
+      epPanel.className = "v-playlist-panel"; 
+
+      var serverTabs = document.createElement("div"); 
+      serverTabs.className = "server-tabs-container";
+      var epGrid = document.createElement("div"); 
+      epGrid.className = "ep-grid"; 
+      
+      epPanel.appendChild(serverTabs); 
+      epPanel.appendChild(epGrid); 
+      epContainer.appendChild(epToggleBtn); 
+      epContainer.appendChild(epPanel);
+
+      var prevBtn = document.createElement("button"); 
+      prevBtn.className = "nav-ep-btn nav-prev v-fade-ctrl"; 
+      prevBtn.textContent = "❮";
+      prevBtn.setAttribute("tabindex", "0");
+      prevBtn.onclick = function (e) { e.stopPropagation(); navigateEp(-1); };
+      
+      var nextBtn = document.createElement("button"); 
+      nextBtn.className = "nav-ep-btn nav-next v-fade-ctrl"; 
+      nextBtn.textContent = "❯"; 
+      nextBtn.setAttribute("tabindex", "0");
+      nextBtn.onclick = function (e) { e.stopPropagation(); navigateEp(1); };
+
+      document.body.appendChild(iframe); 
+      document.body.appendChild(titleOverlay);
+      document.body.appendChild(loadingOverlay); 
+      document.body.appendChild(miniToast); 
+      document.body.appendChild(epContainer); 
+      document.body.appendChild(prevBtn); 
+      document.body.appendChild(nextBtn);
+
+      // HIỂN THỊ TOAST TRONG 2 GIÂY (2000ms)
+      window.showMiniToast = function(msg) {
+        miniToast.innerHTML = '⚡ <span>' + msg + '</span>';
+        miniToast.classList.add("show");
+        if (toastTimeout) clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(function() {
+          miniToast.classList.remove("show");
+        }, 2000);
+      };
+
+      function requestFullScreenTop() {
+        try {
+          var el = document.documentElement;
+          var rfs = el.requestFullscreen || el.webkitRequestFullScreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+          if (rfs && !document.fullscreenElement && !document.webkitFullscreenElement) {
+            rfs.call(el);
+          }
+        } catch(e) {}
+      }
+
+      function triggerTitleDisplay() {
+        if (!serversList || serversList.length === 0) return;
+        var curServer = serversList[currentServerIndex];
+        if (!curServer || !curServer.episodes || !curServer.episodes[currentIndex]) return;
+        
+        var epObj = curServer.episodes[currentIndex];
+        var epName = epObj.name || ("Tập " + (currentIndex + 1));
+        var displayStr = (movieTitle ? movieTitle + " - " : "") + epName;
+        
+        titleOverlay.innerText = displayStr;
+        titleOverlay.classList.add("show");
+
+        if (titleDisplayTimeout) clearTimeout(titleDisplayTimeout);
+        titleDisplayTimeout = setTimeout(function() {
+          titleOverlay.classList.remove("show");
+        }, 8000);
+      }
+
+      function showLoading(msg) {
+        var el = document.getElementById("v-load-txt");
+        if (el) el.innerText = msg || "Đang tải video...";
+        loadingOverlay.style.display = "flex";
+        if (loadingTimeout) clearTimeout(loadingTimeout);
+        loadingTimeout = setTimeout(function() { hideLoading(); }, 10000);
+      }
+
+      function hideLoading() {
+        if (loadingTimeout) clearTimeout(loadingTimeout);
+        loadingOverlay.style.display = "none";
+      }
+
+      iframe.onload = function() { 
+        hideLoading(); 
+      };
+
       try {
-        var base64 = decodeURIComponent(str);
-        base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
-        while (base64.length % 4 !== 0) {
-          base64 += '=';
-        }
-        var binary = atob(base64);
-        var bytes = new Uint8Array(binary.length);
-        for (var i = 0; i < binary.length; i++) {
-          bytes[i] = binary.charCodeAt(i);
-        }
+        var rawData = [];
+        var saveParamMatch = fallbackUrlStr.match(/[?&]save=([^&]+)/);
 
-        if (typeof TextDecoder !== "undefined") {
-          return new TextDecoder("utf-8").decode(bytes);
-        }
-
-        var escaped = "";
-        for (var j = 0; j < binary.length; j++) {
-          escaped += "%" + ("00" + binary.charCodeAt(j).toString(16)).slice(-2);
-        }
-        return decodeURIComponent(escaped);
-      } catch (e) {
-        bridgeLog("[CustomJS] Lỗi decode base64 detail: " + e.message);
-        return null;
-      }
-    }
-
-    // 1. DỰNG GIAO DIỆN VÀ PLAY VIDEO NGAY LẬP TỨC
-    if (document.body) document.body.innerHTML = "";
-    
-    var css = "#playback { display: none !important; } * { box-sizing: border-box; margin: 0; padding: 0; } html, body { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; color: #fff; } #player-frame { width: 100%; height: 100%; border: 0; display: block; position: relative; z-index: 1; } .v-fade-ctrl { opacity: 0.4; transition: opacity 0.3s ease; z-index: 20; } .v-fade-ctrl:hover, body:active .v-fade-ctrl { opacity: 1; } .v-menu-wrap { position: absolute; top: 15px; right: 15px; z-index: 25; } .v-btn-toggle { background: rgba(0, 0, 0, 0.7); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; } .v-title-overlay { position: absolute; top: 15px; left: 15px; z-index: 25; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.2); padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: bold; color: #fff; max-width: calc(100vw - 160px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; transition: opacity 0.4s ease; opacity: 0; } .v-title-overlay.show { opacity: 1; } .v-playlist-panel { display: none; position: absolute; top: 45px; right: 0; width: calc(100vw - 30px); max-width: 340px; max-height: calc(80vh - 70px); background: rgba(15, 15, 15, 0.96); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 12px; overflow-y: auto; -webkit-overflow-scrolling: touch; box-shadow: 0 4px 20px rgba(0,0,0,0.8); } .v-playlist-panel.active { display: block; } .v-history-bar { display: none; background: rgba(229, 9, 20, 0.15); border: 1px solid rgba(229, 9, 20, 0.4); border-radius: 6px; padding: 10px; margin-bottom: 12px; } .v-hist-title { font-size: 12px; color: #ddd; margin-bottom: 8px; line-height: 1.3; } .v-hist-title strong { color: #ff4d4d; } .v-hist-btns { display: flex; gap: 5px; } .v-hbtn { flex: 1; padding: 6px 0; font-size: 11px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer; text-align: center; } .v-btn-main { background: #e50914; color: #fff; } .v-btn-sub { background: rgba(255, 255, 255, 0.2); color: #fff; } .v-btn-close { background: rgba(255, 255, 255, 0.08); color: #aaa; } .server-tabs-container { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.15); -webkit-overflow-scrolling: touch; } .server-tab-item { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #ccc; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap; font-weight: bold; } .server-tab-item.active { background: #e50914; color: #fff; border-color: #e50914; } .ep-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; } .ep-item { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; padding: 8px 2px; text-align: center; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ep-item.active { background: #e50914; font-weight: bold; border-color: #fff; } .nav-ep-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.3); color: white; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; z-index: 20; } .nav-prev { left: 15px; } .nav-next { right: 15px; } #v-loading-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; pointer-events: none; } .spinner { width: 42px; height: 42px; border: 4px solid rgba(255,255,255,0.15); border-top-color: #e50914; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; } @keyframes spin { to { transform: rotate(360deg); } } #v-status-msg { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(229, 9, 20, 0.95); color: #fff; padding: 8px 18px; border-radius: 20px; font-size: 13px; font-weight: bold; z-index: 22; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.6); text-align: center; max-width: 90%; }";
-    
-    var style = document.createElement("style"); 
-    style.appendChild(document.createTextNode(css)); 
-    document.head.appendChild(style);
-
-    var iframe = document.createElement("iframe"); 
-    iframe.id = "player-frame"; 
-    iframe.setAttribute("allow", "autoplay; encrypted-media; fullscreen"); 
-    iframe.setAttribute("allowfullscreen", "true");
-
-    // Gán src cho iframe ngay từ đầu để load ngay lần chạy đầu tiên
-    var startVidId = extractId(initVid) || extractId(fallbackUrlStr);
-    if (startVidId && !startVidId.startsWith("http")) {
-      iframe.src = ABYSS_BASE_URL + startVidId;
-    } else {
-      iframe.src = fallbackUrlStr;
-    }
-    
-    var titleOverlay = document.createElement("div");
-    titleOverlay.className = "v-title-overlay";
-    
-    var loadingOverlay = document.createElement("div"); 
-    loadingOverlay.id = "v-loading-layer";
-    loadingOverlay.innerHTML = '<div class="spinner"></div><div id="v-load-txt" style="font-size:13px; font-weight:bold;">Đang tải...</div>';
-    
-    var toastMsg = document.createElement("div"); 
-    toastMsg.id = "v-status-msg";
-
-    var epContainer = document.createElement("div"); 
-    epContainer.className = "v-menu-wrap v-fade-ctrl";
-    
-    var epToggleBtn = document.createElement("button"); 
-    epToggleBtn.className = "v-btn-toggle"; 
-    epToggleBtn.innerText = "Danh sách tập"; 
-    epToggleBtn.onclick = function () { 
-      epPanel.classList.toggle("active"); 
-      if (epPanel.classList.contains("active")) {
-        triggerTitleDisplay();
-      }
-    };
-    
-    var epPanel = document.createElement("div"); 
-    epPanel.className = "v-playlist-panel"; 
-    
-    var histBar = document.createElement("div"); 
-    histBar.className = "v-history-bar";
-    histBar.innerHTML = '<div class="v-hist-title" id="v-hist-txt">Lịch sử xem: Bạn đã xem tới tập trước đó</div>' +
-      '<div class="v-hist-btns">' +
-        '<button class="v-hbtn v-btn-main" id="v-btn-resume">Xem tiếp</button>' +
-        '<button class="v-hbtn v-btn-sub" id="v-btn-next">Xem tập kế</button>' +
-        '<button class="v-hbtn v-btn-close" id="v-btn-close">✕</button>' +
-      '</div>';
-
-    var serverTabs = document.createElement("div"); 
-    serverTabs.className = "server-tabs-container";
-    var epGrid = document.createElement("div"); 
-    epGrid.className = "ep-grid"; 
-    
-    epPanel.appendChild(histBar);
-    epPanel.appendChild(serverTabs); 
-    epPanel.appendChild(epGrid); 
-    epContainer.appendChild(epToggleBtn); 
-    epContainer.appendChild(epPanel);
-
-    var prevBtn = document.createElement("button"); 
-    prevBtn.className = "nav-ep-btn nav-prev v-fade-ctrl"; 
-    prevBtn.textContent = "❮"; 
-    prevBtn.onclick = function () { navigateEp(-1); };
-    
-    var nextBtn = document.createElement("button"); 
-    nextBtn.className = "nav-ep-btn nav-next v-fade-ctrl"; 
-    nextBtn.textContent = "❯"; 
-    nextBtn.onclick = function () { navigateEp(1); };
-
-    document.body.appendChild(iframe); 
-    document.body.appendChild(titleOverlay);
-    document.body.appendChild(loadingOverlay); 
-    document.body.appendChild(toastMsg); 
-    document.body.appendChild(epContainer); 
-    document.body.appendChild(prevBtn); 
-    document.body.appendChild(nextBtn);
-
-    function triggerTitleDisplay() {
-      if (!serversList || serversList.length === 0) return;
-      var curServer = serversList[currentServerIndex];
-      if (!curServer || !curServer.episodes || !curServer.episodes[currentIndex]) return;
-      
-      var epObj = curServer.episodes[currentIndex];
-      var epName = epObj.name || ("Tập " + (currentIndex + 1));
-      var displayStr = (movieTitle ? movieTitle + " - " : "") + epName;
-      
-      titleOverlay.innerText = displayStr;
-      titleOverlay.classList.add("show");
-
-      if (titleDisplayTimeout) clearTimeout(titleDisplayTimeout);
-      titleDisplayTimeout = setTimeout(function() {
-        titleOverlay.classList.remove("show");
-      }, 10000);
-    }
-
-    function showLoading(msg) {
-      document.getElementById("v-load-txt").innerText = msg || "Đang tải video...";
-      loadingOverlay.style.display = "flex";
-      if (loadingTimeout) clearTimeout(loadingTimeout);
-      loadingTimeout = setTimeout(function() { hideLoading(); }, 10000);
-    }
-
-    function hideLoading() {
-      if (loadingTimeout) clearTimeout(loadingTimeout);
-      loadingOverlay.style.display = "none";
-    }
-
-    iframe.onload = function() { hideLoading(); };
-
-    function showToast(text) {
-      toastMsg.innerHTML = text;
-      toastMsg.style.display = "block";
-      setTimeout(function() { toastMsg.style.display = "none"; }, 3000);
-    }
-
-    // 2. CHỈ NẠP DỮ LIỆU TỪ PARAM 'save=' (BASE64)
-    try {
-      var rawData = [];
-      var saveParamMatch = fallbackUrlStr.match(/[?&]save=([^&]+)/);
-
-      if (saveParamMatch && saveParamMatch[1]) {
-        var decodedJson = decodeBase64Utf8(saveParamMatch[1]);
-        if (decodedJson) {
-          rawData = JSON.parse(decodedJson);
-          bridgeLog("[CustomJS] Giải mã thành công danh sách phim từ param ?save=");
-        }
-      }
-
-      if (Array.isArray(rawData) && rawData.length > 0) {
-        rawData.forEach(function(server) {
-          if (server && server.nameMV && !movieTitle) {
-            movieTitle = server.nameMV;
+        if (saveParamMatch && saveParamMatch[1]) {
+          var decodedJson = decodeBase64Utf8(saveParamMatch[1]);
+          if (decodedJson) {
+            rawData = JSON.parse(decodedJson);
           }
-          if (server && server.episodes && Array.isArray(server.episodes) && server.episodes.length > 0) {
-            var formattedEps = server.episodes.map(function(epItem, idx) {
-              if (typeof epItem === 'object' && epItem !== null) {
-                return epItem;
-              }
-              return {
-                id: String(epItem),
-                name: "Tập " + (idx + 1),
-                slug: String(epItem)
-              };
-            });
+        }
 
-            serversList.push({
-              name: server.name || server.server_name || ("Server " + (serversList.length + 1)),
-              episodes: formattedEps
-            });
-          }
+        if (Array.isArray(rawData) && rawData.length > 0) {
+          rawData.forEach(function(server) {
+            if (server && server.nameMV && !movieTitle) {
+              movieTitle = server.nameMV;
+            }
+            if (server && server.episodes && Array.isArray(server.episodes) && server.episodes.length > 0) {
+              var formattedEps = server.episodes.map(function(epItem, idx) {
+                if (typeof epItem === 'object' && epItem !== null) {
+                  return epItem;
+                }
+                return {
+                  id: String(epItem),
+                  name: "Tập " + (idx + 1),
+                  slug: String(epItem)
+                };
+              });
+
+              serversList.push({
+                name: server.name || server.server_name || ("Server " + (serversList.length + 1)),
+                episodes: formattedEps
+              });
+            }
+          });
+        }
+      } catch (e) {}
+
+      function renderUI() {
+        if (serversList.length === 0) return;
+        serverTabs.innerHTML = "";
+        serversList.forEach(function (server, sIndex) {
+          var tab = document.createElement("div");
+          tab.className = "server-tab-item" + (sIndex === currentServerIndex ? " active" : "");
+          tab.innerText = server.name;
+          tab.setAttribute("tabindex", "0");
+          tab.onclick = function (e) {
+            e.stopPropagation();
+            if (sIndex !== currentServerIndex) {
+              var targetEpIndex = Math.min(currentIndex, server.episodes.length - 1);
+              selectEpisode(sIndex, targetEpIndex, true);
+            }
+          };
+          serverTabs.appendChild(tab);
+        });
+
+        epGrid.innerHTML = "";
+        var curEpisodes = serversList[currentServerIndex].episodes;
+        curEpisodes.forEach(function (ep, epIndex) {
+          var item = document.createElement("div");
+          item.className = "ep-item" + (epIndex === currentIndex ? " active" : "");
+          item.innerText = ep.name || ("Tập " + (epIndex + 1));
+          item.setAttribute("tabindex", "0");
+          item.onclick = function (e) { 
+            e.stopPropagation();
+            epPanel.classList.remove("active"); 
+            selectEpisode(currentServerIndex, epIndex, true); 
+          };
+          epGrid.appendChild(item);
         });
       }
-      bridgeLog("[CustomJS] Nạp thành công " + serversList.length + " Server.");
-    } catch (e) {
-      bridgeLog("[CustomJS] Lỗi parse server từ base64: " + e.message);
-    }
 
-    function renderUI() {
-      if (serversList.length === 0) return;
-      serverTabs.innerHTML = "";
-      serversList.forEach(function (server, sIndex) {
-        var tab = document.createElement("div");
-        tab.className = "server-tab-item" + (sIndex === currentServerIndex ? " active" : "");
-        tab.innerText = server.name;
-        tab.onclick = function () {
-          if (sIndex !== currentServerIndex) {
-            var targetEpIndex = Math.min(currentIndex, server.episodes.length - 1);
-            selectEpisode(sIndex, targetEpIndex, true);
-          }
-        };
-        serverTabs.appendChild(tab);
-      });
-
-      epGrid.innerHTML = "";
-      var curEpisodes = serversList[currentServerIndex].episodes;
-      curEpisodes.forEach(function (ep, epIndex) {
-        var item = document.createElement("div");
-        item.className = "ep-item" + (epIndex === currentIndex ? " active" : "");
-        item.innerText = ep.name || ("Tập " + (epIndex + 1));
-        item.onclick = function () { 
-          epPanel.classList.remove("active"); 
-          selectEpisode(currentServerIndex, epIndex, true); 
-        };
-        epGrid.appendChild(item);
-      });
-    }
-
-    function selectEpisode(sIdx, epIdx, shouldChangeIframe) {
-      if (serversList.length === 0) return;
-      if (sIdx < 0 || sIdx >= serversList.length) return;
-      var curServer = serversList[sIdx];
-      if (!curServer || !curServer.episodes || epIdx < 0 || epIdx >= curServer.episodes.length) return;
-
-      currentServerIndex = sIdx;
-      currentIndex = epIdx;
-
-      renderUI();
-      triggerTitleDisplay();
-
-      var epObj = curServer.episodes[epIdx];
-      var rawId = epObj.id || epObj.slug || epObj.link || epObj.url || "";
-      var cleanId = extractId(rawId);
-
-      if (shouldChangeIframe) {
-        var epName = epObj.name || ("Tập " + (epIdx + 1));
-        showLoading("Đang tải " + epName + " (" + curServer.name + ")...");
-
-        if (cleanId) {
-          if (cleanId.indexOf("http://") === 0 || cleanId.indexOf("https://") === 0) {
-            iframe.src = cleanId;
-          } else {
-            iframe.src = ABYSS_BASE_URL + cleanId;
-          }
-          bridgeLog("[CustomJS] [" + curServer.name + "] - Phát tập " + (epIdx + 1) + " (ID: " + cleanId + ")");
+      function reloadCurrentIframe() {
+        if (iframe && iframe.src) {
+          var currentUrl = iframe.src;
+          iframe.src = "about:blank";
+          setTimeout(function() { iframe.src = currentUrl; }, 300);
         }
       }
 
-      // VẪN GIỮ CƠ CHẾ LƯU LỊCH SỬ VÀO LOCALSTORAGE
-      if (activeMovieKey) {
-        if (saveHistoryTimeout) clearTimeout(saveHistoryTimeout);
-        saveHistoryTimeout = setTimeout(function() {
-          try {
-            var histObj = { server: currentServerIndex, ep: currentIndex };
-            localStorage.setItem("PLAYER_HIST_" + activeMovieKey, JSON.stringify(histObj));
-            bridgeLog("[CustomJS] Đã lưu lịch sử: " + curServer.name + " - Tập " + (currentIndex + 1));
-          } catch(e) {}
-        }, 5000); 
-      }
-    }
+      function selectEpisode(sIdx, epIdx, shouldChangeIframe) {
+        if (serversList.length === 0) return;
+        if (sIdx < 0 || sIdx >= serversList.length) return;
+        var curServer = serversList[sIdx];
+        if (!curServer || !curServer.episodes || epIdx < 0 || epIdx >= curServer.episodes.length) return;
 
-    function navigateEp(direction) { 
-      selectEpisode(currentServerIndex, currentIndex + direction, true); 
-    }
+        currentServerIndex = sIdx;
+        currentIndex = epIdx;
 
-    // 3. ĐỒNG BỘ MÔI TRƯỜNG & KHỞI CHẠY TẬP HIỆN TẠI
-    var selectedServerIdx = 0;
-    var selectedEpIdx = 0;
-    var targetId = extractId(initVid) || extractId(fallbackUrlStr);
-    var isFound = false;
+        renderUI();
+        triggerTitleDisplay();
 
-    if (targetId && serversList.length > 0) {
-      for (var s = 0; s < serversList.length; s++) {
-        var eps = serversList[s].episodes;
-        for (var e = 0; e < eps.length; e++) {
-          var currentEpId = extractId(eps[e].id || eps[e].slug || eps[e].link || eps[e].url || "");
-          if (currentEpId && (currentEpId.toLowerCase() === targetId.toLowerCase())) {
-            selectedServerIdx = s;
-            selectedEpIdx = e;
-            isFound = true;
-            break;
+        var epObj = curServer.episodes[epIdx];
+        var rawId = epObj.id || epObj.slug || epObj.link || epObj.url || "";
+        var cleanId = extractId(rawId);
+
+        if (shouldChangeIframe) {
+          var epName = epObj.name || ("Tập " + (epIdx + 1));
+          showLoading("Đang tải " + epName + "...");
+          window.showMiniToast("Đang chuyển tới " + epName);
+
+          var targetUrl = cleanId;
+          if (cleanId && !cleanId.startsWith("http://") && !cleanId.startsWith("https://")) {
+            targetUrl = ABYSS_BASE_URL + cleanId;
           }
+          
+          bridgeLog("🎬 [CHUYỂN TẬP] " + (movieTitle ? movieTitle + " - " : "") + epName + " | Link: " + targetUrl);
+          iframe.src = targetUrl;
         }
-        if (isFound) break;
       }
-    }
 
-    if (serversList.length > 0) {
-      selectEpisode(selectedServerIdx, selectedEpIdx, false);
-    }
+      function navigateEp(direction) { 
+        selectEpisode(currentServerIndex, currentIndex + direction, true); 
+      }
 
-    // 4. KIỂM TRA VÀ HIỂN THỊ LỊCH SỬ XEM TỪ LOCALSTORAGE
-    var savedServerIdx = -1;
-    var savedEpIdx = -1;
+      var selectedServerIdx = 0;
+      var selectedEpIdx = 0;
+      var targetId = extractId(initVid) || extractId(fallbackUrlStr);
+      var isFound = false;
 
-    if (activeMovieKey && serversList.length > 0) {
-      try {
-        var histVal = localStorage.getItem("PLAYER_HIST_" + activeMovieKey);
-        if (histVal) {
-          var parsedHist = JSON.parse(histVal);
-          if (parsedHist && typeof parsedHist.server === 'number' && typeof parsedHist.ep === 'number') {
-            if (parsedHist.server < serversList.length && parsedHist.ep < serversList[parsedHist.server].episodes.length) {
-              savedServerIdx = parsedHist.server;
-              savedEpIdx = parsedHist.ep;
+      if (targetId && serversList.length > 0) {
+        for (var s = 0; s < serversList.length; s++) {
+          var eps = serversList[s].episodes;
+          for (var e = 0; e < eps.length; e++) {
+            var currentEpId = extractId(eps[e].id || eps[e].slug || eps[e].link || eps[e].url || "");
+            if (currentEpId && (currentEpId.toLowerCase() === targetId.toLowerCase())) {
+              selectedServerIdx = s;
+              selectedEpIdx = e;
+              isFound = true;
+              break;
             }
           }
+          if (isFound) break;
+        }
+      }
+
+      if (serversList.length > 0) {
+        selectEpisode(selectedServerIdx, selectedEpIdx, false);
+      }
+
+      window.addEventListener("message", function(event) {
+        if (event.data) {
+          if (event.data.type === "EP_NAV") {
+            navigateEp(event.data.direction);
+          } else if (event.data.type === "TOAST_MSG") {
+            window.showMiniToast(event.data.msg);
+          } else if (event.data.type === "RELOAD_IFRAME") {
+            reloadCurrentIframe();
+          } else if (event.data.type === "REQ_FULLSCREEN") {
+            requestFullScreenTop();
+          } else if (event.data.type === "CMD_TOGGLE_PLAY") {
+            if (iframe && iframe.contentWindow) {
+              iframe.contentWindow.postMessage({ type: "TOGGLE_PLAY" }, "*");
+            }
+          } else if (event.data.type === "CMD_SEEK") {
+            if (iframe && iframe.contentWindow) {
+              iframe.contentWindow.postMessage({ type: "SEEK", seconds: event.data.seconds }, "*");
+            }
+          }
+        }
+      });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initPlayer);
+    } else {
+      initPlayer();
+    }
+    return;
+  }
+
+  // =========================================================================
+  // LỚP 2: IFRAME TRUNG GIAN
+  // =========================================================================
+  if (isLevel1) {
+    function initL2() {
+      try {
+        var overlayStyle = document.createElement("style");
+        overlayStyle.innerHTML = KILL_OVERLAY_CSS + " html, body { margin:0 !important; padding:0 !important; width:100vw !important; height:100vh !important; overflow:hidden !important; background:#000 !important; position:fixed !important; top:0 !important; left:0 !important; }";
+        (document.head || document.documentElement).appendChild(overlayStyle);
+      } catch(e) {}
+
+      document.documentElement.innerHTML = "<html><head></head><body style='margin:0;padding:0;background:#000;width:100vw;height:100vh;overflow:hidden;'></body></html>";
+
+      const newChildFrame = document.createElement("iframe");
+      newChildFrame.src = window.location.href;
+      newChildFrame.style.cssText = "width:100vw !important; height:100vh !important; border:none !important; position:absolute !important; top:0 !important; left:0 !important; margin:0 !important; padding:0 !important;";
+      newChildFrame.id = "core_player_frame";
+      newChildFrame.setAttribute("allow", "autoplay; encrypted-media; fullscreen");
+      newChildFrame.setAttribute("allowfullscreen", "true");
+      newChildFrame.setAttribute("tabindex", "0");
+
+      document.body.appendChild(newChildFrame);
+
+      window.addEventListener("message", function(e) {
+        if (e.data && (e.data.type === "TOGGLE_PLAY" || e.data.type === "SEEK")) {
+          if (newChildFrame && newChildFrame.contentWindow) {
+            newChildFrame.contentWindow.postMessage(e.data, "*");
+          }
+        }
+      });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initL2);
+    } else {
+      initL2();
+    }
+    return;
+  }
+
+  // =========================================================================
+  // LỚP 3: CORE PLAYER - CHỌN ĐỘ PHÂN GIẢI CAO NHẤT
+  // =========================================================================
+  if (isLevel2) {
+    var hasReloadedOnce = false;
+    var autoNextTriggered = false;
+    var maxQualitySet = false;
+
+    function sendToastToTop(msg) {
+      try {
+        window.top.postMessage({ type: "TOAST_MSG", msg: msg }, "*");
+      } catch(e) {}
+    }
+
+    function triggerFullScreen() {
+      try {
+        window.top.postMessage({ type: "REQ_FULLSCREEN" }, "*");
+      } catch(e) {}
+    }
+
+    // TỰ ĐỘNG CHỌN ĐỘ PHÂN GIẢI CAO NHẤT
+    function setHighestQuality() {
+      if (maxQualitySet) return;
+
+      // Dành cho JWPlayer
+      if (typeof jwplayer === 'function') {
+        try {
+          var p = jwplayer();
+          if (p && typeof p.getQualityLevels === 'function') {
+            var levels = p.getQualityLevels();
+            if (levels && levels.length > 0) {
+              var maxIdx = 0;
+              var maxRes = 0;
+              levels.forEach(function(lvl, idx) {
+                var res = lvl.height || parseInt(lvl.label) || 0;
+                if (res > maxRes) {
+                  maxRes = res;
+                  maxIdx = idx;
+                }
+              });
+              p.setCurrentQuality(maxIdx);
+              maxQualitySet = true;
+              var label = levels[maxIdx].label || (maxRes ? maxRes + "p" : "Chất lượng cao nhất");
+              sendToastToTop("🎬 Độ phân giải: " + label);
+              return;
+            }
+          }
+        } catch(e) {}
+      }
+
+      // Dành cho thẻ video / HLS.js
+      if (window.hls && window.hls.levels) {
+        try {
+          var hlsLevels = window.hls.levels;
+          if (hlsLevels.length > 0) {
+            var topIdx = hlsLevels.length - 1;
+            window.hls.currentLevel = topIdx;
+            maxQualitySet = true;
+            var hlsLabel = hlsLevels[topIdx].height ? hlsLevels[topIdx].height + "p" : "Chất lượng cao nhất";
+            sendToastToTop("🎬 Độ phân giải: " + hlsLabel);
+            return;
+          }
+        } catch(e) {}
+      }
+    }
+
+    try {
+      var playerFixStyle = document.createElement("style");
+      playerFixStyle.innerHTML = KILL_OVERLAY_CSS + \`
+        html, body { margin: 0 !important; padding: 0 !important; width: 100vw !important; height: 100vh !important; overflow: hidden !important; background: #000 !important; position: absolute !important; top: 0 !important; left: 0 !important; }
+        video { width: 100vw !important; height: 100vh !important; top: 0 !important; left: 0 !important; object-fit: contain !important; position: absolute !important; z-index: 10 !important; pointer-events: auto !important; }
+        .jwplayer, .video-js { width: 100vw !important; height: 100vh !important; top: 0 !important; left: 0 !important; position: absolute !important; z-index: 10 !important; }
+        .jw-controlbar, .vjs-control-bar { display: flex !important; opacity: 1 !important; visibility: visible !important; z-index: 2147483647 !important; bottom: 0 !important; position: absolute !important; width: 100% !important; pointer-events: auto !important; }
+        .jw-controls, .vjs-controls { pointer-events: auto !important; }
+      \`;
+      (document.head || document.documentElement).appendChild(playerFixStyle);
+    } catch(e) {}
+
+    function forceKillOverlayAndPlayback() {
+      try {
+        var ov = document.querySelectorAll("#overlay, .overlay, [id*='overlay'], [class*='overlay'], #playback, [id*='playback'], [class*='playback']");
+        ov.forEach(function(el) {
+          if (el) {
+            el.style.setProperty("pointer-events", "none", "important");
+            el.style.setProperty("z-index", "-1", "important");
+          }
+        });
+      } catch(e) {}
+    }
+
+    function destroyContinueDialog() {
+      try {
+        var allElements = document.querySelectorAll("div, section, article, span, p, button, a");
+        allElements.forEach(function(el) {
+          if (el.children.length <= 4) {
+            var txt = (el.innerText || el.textContent || "").toLowerCase();
+            if (txt.includes("continue watching") || txt.includes("you have watched up to")) {
+              var targetBtns = el.querySelectorAll("button, a, div[role='button'], .btn");
+              if (targetBtns.length === 0) targetBtns = document.querySelectorAll("button, [role='button']");
+
+              targetBtns.forEach(function(btn) {
+                var btnTxt = (btn.innerText || btn.textContent || "").toLowerCase();
+                if (btnTxt.includes("continue") || btnTxt.includes("xem tiếp") || btn.classList.contains("jw-prompt-resume") || btn.style.backgroundColor.includes("rgb(72, 187, 120)") || btn.style.backgroundColor.includes("green")) {
+                  ['mousedown', 'mouseup', 'click'].forEach(function(eventType) {
+                    var clickEvent = new MouseEvent(eventType, { view: window, bubbles: true, cancelable: true });
+                    btn.dispatchEvent(clickEvent);
+                  });
+                  btn.click();
+                  sendToastToTop("Đã bấm Xem tiếp");
+                  if (el.style) el.style.setProperty("display", "none", "important");
+                }
+              });
+            }
+          }
+        });
+      } catch(e) {}
+    }
+
+    try {
+      var obsL3 = new MutationObserver(function() {
+        forceKillOverlayAndPlayback();
+        destroyContinueDialog();
+        bindVideoEvents();
+        setHighestQuality();
+      });
+      obsL3.observe(document.documentElement || document.body, { childList: true, subtree: true, attributes: true });
+    } catch(e) {}
+
+    function bindVideoEvents() {
+      var videoEl = document.querySelector("video");
+      if (videoEl && !videoEl.__BOUND_EVENTS__) {
+        videoEl.__BOUND_EVENTS__ = true;
+        
+        videoEl.addEventListener("timeupdate", function() {
+          if (videoEl.duration && videoEl.currentTime) {
+            var timeLeft = videoEl.duration - videoEl.currentTime;
+            if (timeLeft <= 5 && timeLeft > 0 && !autoNextTriggered) {
+              autoNextTriggered = true;
+              sendToastToTop("⏭️ Đã hết phim. Tự động chuyển tập kế...");
+              window.top.postMessage({ type: "EP_NAV", direction: 1 }, "*");
+            }
+          }
+        });
+
+        videoEl.addEventListener("play", function() {
+          triggerFullScreen();
+          setHighestQuality();
+        });
+      }
+
+      if (typeof jwplayer === 'function') {
+        try {
+          var p = jwplayer();
+          if (p && typeof p.on === 'function' && !p.__BOUND_JW__) {
+            p.__BOUND_JW__ = true;
+            p.on('time', function(e) {
+              if (e.duration && e.position) {
+                var remaining = e.duration - e.position;
+                if (remaining <= 5 && remaining > 0 && !autoNextTriggered) {
+                  autoNextTriggered = true;
+                  sendToastToTop("⏭️ Đã hết phim. Tự động chuyển tập kế...");
+                  window.top.postMessage({ type: "EP_NAV", direction: 1 }, "*");
+                }
+              }
+            });
+            p.on('play', function() {
+              triggerFullScreen();
+              setHighestQuality();
+            });
+            p.on('ready', function() {
+              setHighestQuality();
+            });
+          }
+        } catch(e) {}
+      }
+    }
+
+    function executeAutoplay() {
+      try {
+        if (typeof jwplayer === 'function') {
+          var p = jwplayer();
+          if (p && typeof p.play === 'function') {
+            p.play(true);
+            triggerFullScreen();
+            setHighestQuality();
+            return true;
+          }
+        }
+        var videoEl = document.querySelector("video");
+        if (videoEl) {
+          videoEl.muted = false;
+          var promise = videoEl.play();
+          if (promise !== undefined) {
+            promise.then(function() {
+              triggerFullScreen();
+              setHighestQuality();
+            }).catch(function() {
+              videoEl.muted = true;
+              videoEl.play();
+              triggerFullScreen();
+              setHighestQuality();
+            });
+          }
+          return true;
+        }
+        var bigPlayBtn = document.querySelector(".jw-display-icon-container, .jw-icon-play, .vjs-big-play-button");
+        if (bigPlayBtn) {
+          bigPlayBtn.click();
+          triggerFullScreen();
+          setHighestQuality();
+          return true;
+        }
+      } catch(e) {}
+      return false;
+    }
+
+    function togglePlayCore() {
+      try {
+        if (typeof jwplayer === 'function') {
+          var p = jwplayer();
+          if (p && typeof p.getState === 'function') {
+            var state = p.getState();
+            if (state === "playing") {
+              p.pause(true);
+              sendToastToTop("Tạm dừng");
+            } else {
+              p.play(true);
+              sendToastToTop("Đang phát");
+              triggerFullScreen();
+            }
+            return;
+          }
+        }
+        var videoEl = document.querySelector("video");
+        if (videoEl) {
+          if (videoEl.paused) {
+            videoEl.play();
+            sendToastToTop("Đang phát");
+            triggerFullScreen();
+          } else {
+            videoEl.pause();
+            sendToastToTop("Tạm dừng");
+          }
+          return;
+        }
+        executeAutoplay();
+      } catch(e) {}
+    }
+
+    function seekCore(seconds) {
+      try {
+        if (typeof jwplayer === 'function') {
+          var p = jwplayer();
+          if (p && typeof p.getPosition === 'function' && typeof p.seek === 'function') {
+            var pos = p.getPosition();
+            p.seek(pos + seconds);
+            sendToastToTop((seconds > 0 ? "Tua tới +" : "Tua lùi ") + seconds + "s");
+            return;
+          }
+        }
+        var videoEl = document.querySelector("video");
+        if (videoEl) {
+          videoEl.currentTime += seconds;
+          sendToastToTop((seconds > 0 ? "Tua tới +" : "Tua lùi ") + seconds + "s");
         }
       } catch(e) {}
     }
 
-    if (savedServerIdx !== -1 && savedEpIdx !== -1) {
-      var isSameEp = (selectedServerIdx === savedServerIdx && selectedEpIdx === savedEpIdx);
-      var isNextEp = (selectedServerIdx === savedServerIdx && selectedEpIdx === (savedEpIdx + 1));
+    function startVideoHealthCheck() {
+      setTimeout(function() {
+        var isVideoOk = false;
 
-      if (!isSameEp && !isNextEp) {
-        var savedEpName = serversList[savedServerIdx].episodes[savedEpIdx].name || ("Tập " + (savedEpIdx + 1));
-        document.getElementById("v-hist-txt").innerHTML = 'Lịch sử xem: Bạn từng xem đến <strong>' + savedEpName + '</strong> (' + serversList[savedServerIdx].name + ')';
-        
-        histBar.style.display = "block";
-        epPanel.classList.add("active");
-        triggerTitleDisplay();
-
-        function closeHistBar() {
-          if (histAutoCloseTimeout) clearTimeout(histAutoCloseTimeout);
-          histBar.style.display = "none";
-          epPanel.classList.remove("active"); 
+        if (typeof jwplayer === 'function') {
+          try {
+            var p = jwplayer();
+            if (p && typeof p.getState === 'function') {
+              var st = p.getState();
+              if (st === "playing" || st === "buffering" || st === "paused") {
+                isVideoOk = true;
+              }
+            }
+          } catch(e) {}
         }
 
-        if (histAutoCloseTimeout) clearTimeout(histAutoCloseTimeout);
-        histAutoCloseTimeout = setTimeout(function() {
-          closeHistBar();
-        }, 15000);
-
-        document.getElementById("v-btn-resume").onclick = function() {
-          closeHistBar();
-          selectEpisode(savedServerIdx, savedEpIdx, true);
-        };
-
-        document.getElementById("v-btn-next").onclick = function() {
-          closeHistBar();
-          var nextEpIndex = savedEpIdx + 1;
-          if (nextEpIndex < serversList[savedServerIdx].episodes.length) {
-            selectEpisode(savedServerIdx, nextEpIndex, true);
-          } else {
-            showToast("Đã là tập cuối của " + serversList[savedServerIdx].name);
+        if (!isVideoOk) {
+          var videoEl = document.querySelector("video");
+          if (videoEl && !videoEl.error && (videoEl.readyState >= 2 || videoEl.currentTime > 0 || !videoEl.paused)) {
+            isVideoOk = true;
           }
-        };
+        }
 
-        document.getElementById("v-btn-close").onclick = function() {
-          closeHistBar();
-        };
-      }
+        if (!isVideoOk) {
+          if (!hasReloadedOnce) {
+            hasReloadedOnce = true;
+            sendToastToTop("❌ Không thấy video hoặc video bị lỗi. Đang tự tải lại trang sau 10s...");
+            setTimeout(function() {
+              window.top.postMessage({ type: "RELOAD_IFRAME" }, "*");
+            }, 10000);
+          } else {
+            sendToastToTop("⚠️ Tải lại vẫn lỗi! Đang tự động chuyển sang tập tiếp theo sau 10s...");
+            setTimeout(function() {
+              window.top.postMessage({ type: "EP_NAV", direction: 1 }, "*");
+            }, 10000);
+          }
+        }
+      }, 10000);
     }
-  }
 
-  // Chạy ngay khi DOM sẵn sàng
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initPlayer);
-  } else {
-    initPlayer();
+    if (document.readyState === "complete") {
+      startVideoHealthCheck();
+      bindVideoEvents();
+      setHighestQuality();
+    } else {
+      window.addEventListener("load", function() {
+        startVideoHealthCheck();
+        bindVideoEvents();
+        setHighestQuality();
+      });
+    }
+
+    window.addEventListener("message", function(e) {
+      if (e.data) {
+        if (e.data.type === "TOGGLE_PLAY") {
+          togglePlayCore();
+        } else if (e.data.type === "SEEK") {
+          seekCore(e.data.seconds || 10);
+        }
+      }
+    });
+
+    window.addEventListener("click", function() {
+      executeAutoplay();
+    }, { once: true });
+
+    var autoPlayAttempts = 0;
+    var autoPlayInterval = setInterval(function() {
+      autoPlayAttempts++;
+      forceKillOverlayAndPlayback();
+      destroyContinueDialog();
+      bindVideoEvents();
+      executeAutoplay();
+      setHighestQuality();
+      if (autoPlayAttempts > 20) clearInterval(autoPlayInterval);
+    }, 400);
   }
 })();
   `;

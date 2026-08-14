@@ -10,6 +10,7 @@ function getManifest() {
         "baseUrl": "https://edge.narto-drama.com",
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/nartodrama.png",
         "isEnabled": true,
+      debug:true,
        "type": "shortfilm",
         "playerType": "exoplayer",
       "subtitleCat": true
@@ -67,7 +68,7 @@ function getFilterConfig() {
 // =============================================================================
 function getUrlList(slug, filtersJson) {
     try {
-        log("getUrlList[url]: \n" + slug);
+        console.log("getUrlList[url]: \n" + slug);
 
         // 1. Kiểm tra nếu slug là link tuyệt đối (chứa http)
         if (slug && slug.indexOf("http") > -1) {
@@ -230,7 +231,7 @@ function getUrlYears() {
 
 function parseListResponse(html, $url) {
     try {
-        log("parseListResponse[url]: \n" + $url);
+        console.log("parseListResponse[url]: \n" + $url);
         var items = [];
         _$(html).find("article[class*='card']").each(function() {
             var href = this.attr("data-watch-url");
@@ -258,13 +259,15 @@ function parseListResponse(html, $url) {
             }
         });
         
-        return JSON.stringify({
+        var $return = JSON.stringify({
             "items": items,
             "pagination": {
                 "currentPage": 1,
                 "totalPages": 999
             }
         });
+      console.log("return1:\n" + $return)
+      return $return
     } catch (e) {
         log("parseListResponse[err]:\n " + e);
         return JSON.stringify({
@@ -300,7 +303,7 @@ function parseSearchResponse(html, url) {
 
 function parseMovieDetail(html, url) {
     try {
-        log("parseMovieDetail[url]: \n" + url);
+        console.log("parseMovieDetail[url]: \n" + url);
         
         // === BƯỚC 1: ĐỒNG NHẤT ID PHIM BẰNG REGEX META ===
         var idMatch = /<link\s+rel="canonical"\s+href="([^"]+)"/i.exec(html) ||
@@ -378,7 +381,7 @@ function parseMovieDetail(html, url) {
             episodes: items
         });
 
-        return JSON.stringify({
+        var $return = JSON.stringify({
             id: id,
             title: lname,
             posterUrl: limg,
@@ -396,7 +399,8 @@ function parseMovieDetail(html, url) {
             director: ldirec || "",
             extra: extra
         });
-
+      console.log($return)
+      return $return
     } catch (e) {
         log("parseMovieDetail[err]:\n " + e);
         return JSON.stringify({
