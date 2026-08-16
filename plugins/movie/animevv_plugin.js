@@ -6,7 +6,7 @@ function getManifest() {
         "id": "animevv",
         "name": "Nguồn Animevv",
         "description": "Nguồn phim Animevv...",
-        "version": "1.2.4",
+        "version": "1.2.6",
         "info": "",
         "BASEURL": BASEURL,
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/animevv.png",
