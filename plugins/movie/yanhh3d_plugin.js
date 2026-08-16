@@ -1,19 +1,19 @@
-// https://bilutv.asia
-BASEURL = "http://vkey.vn/yanhh3d";
-
+BASEURL = "http://yanhh3d.pw";
+var popup_html = "<div class='donate-container'><h2 class='donate-heading'>DONATE</h2><p class='donate-description'>Anh em yêu quý có thể mời bọn mình 2 ly cà phê nhé. Để có động lực duy trì App, cập nhật plugin và tìm thêm nhiều nguồn mới và hay cho anh em. Một chút lòng thành cũng làm bọn mình tiếp tục hoạt động tốt hơn, cám ơn anh em.</p><div class='donate-grid'><div class='donate-card'><div class='donate-title'>Donate Tác giả Plugin</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qrht.png' alt='Donate Tác giả Plugin' /></div></div><div class='donate-card'><div class='donate-title'>Donate Tác giả App</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qryb.png' alt='Donate Tác giả App' /></div></div></div></div><style>.donate-container{max-width:800px;margin:0 auto;padding:10px;box-sizing:border-box;font-family:Arial,sans-serif;text-align:center;color:#eee}.donate-heading{font-size:22px;font-weight:bold;margin:0 0 12px 0;color:#fff;text-transform:uppercase;letter-spacing:1px}.donate-description{font-size:14px;line-height:1.5;margin-bottom:18px;color:#ccc}.donate-grid{display:flex;flex-direction:row;justify-content:center;align-items:stretch;gap:16px}.donate-card{flex:1;min-width:0;background:#22252a;border-radius:12px;padding:14px;border:1px solid #33373e;display:flex;flex-direction:column;align-items:center}.donate-title{font-weight:bold;font-size:15px;margin-bottom:12px;color:#fff}.qr-wrapper{width:100%;max-width:240px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:#181a1d;border-radius:8px;padding:8px;box-sizing:border-box}.qr-wrapper img{width:100%;height:100%;object-fit:contain;border-radius:4px}@media(max-width:600px){.donate-grid{flex-direction:column}.donate-heading{font-size:18px;margin-bottom:8px}.donate-description{font-size:13px;margin-bottom:12px}.qr-wrapper{max-width:180px}}</style>"
 function getManifest() {
     return JSON.stringify({
         "id": "yanhh3d",
         "name": "Yanhh3d",
         "description": "Trang xem phim Hoạt Hình siêu hay.",
-      	"info":"Trang này bị nhà mạng chặn nên cần dns để xem. Bạn tải app 1.1.1.1 về dùng hoặc thử bật DNS và DPI trong app này.",
-        "version": "1.3.5",
-        "baseUrl": "http://vkey.vn/yanhh3d",
+      	"info":"Nếu không load được hãy vào \nCài Đặt => Kho plugin => Đăng nhập để xem URL mới của trang là gì rồi nhập domain mới và lưu lại. \nHoặc dùng DNS để xem. Bạn cần tải app 1.1.1.1 về dùng hoặc thử bật DNS và DPI trong cài đặt app này.",
+        "version": "1.3.7",
+        "baseUrl": "http://yanhh3d.team",
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/yanhh3d.png",
         "isEnabled": true,
         "layoutType": "HORIZONTAL",
-        "type": "MOVIE",
-        "playerType": "exoplayer"
+        "author": "Alokillgtv",
+        "type": "ANIME",
+        "playerType": "embedtoexoplay"
     });
 }
 
@@ -450,16 +450,17 @@ function parseDetailResponse(html, url) {
         }
 
         var streamlink = selectedLink ? selectedLink.replace(/(https?:\/\/[^\/]+)\/[^]+?\/([^\/]+\.m3u8)$/, '$1/stream/m3u8/$2') : "";
-        
+      
+        console.log("StreamLink\n" + streamlink)
         return JSON.stringify({
-            "url": streamlink,
+            "url": url,
             "isEmbed": false,
-            "mimeType": "application/x-mpegURL",
             "headers": {
-                "Referer": BASEURL,
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            },
-            "subtitles": []
+                "Referer": "https://yanhh3d.mom",
+                "Origin": "https://yanhh3d.mom",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+              "Custom-Js": customJS(streamlink),
+            }
         });
 
     } catch (e) {
@@ -467,7 +468,226 @@ function parseDetailResponse(html, url) {
         return JSON.stringify({ "url": "", "headers": {} });
     }
 }
+/*
+function parseEmbedResponse(html, url, datasend) {
+  console.log("embed Raw:\n" + html)
+  try {
+      if(html.indexOf("html") > -1){
+          console.log("Mở sniffer tìm link m3u8")
+          return JSON.stringify({
+              url: url,
+              isEmbed: false,
+              headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Referer": BASEURL,
+                "Origin": BASEURL
+              },
+              "Custom-Js": runJS(),
+          });
+      }
+      else{
+          console.log("parseEmbedResponse link m3u8 " + url);
+            return JSON.stringify({
+              url: url,
+              mimeType: "application/x-mpegURL",
+              isEmbed: false,
+              headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Referer": BASEURL,
+                "Origin": BASEURL
+              }
+            });
+      }
+      
+  } catch (e) {
+    console.log("[Lỗi parseEmbedResponse]", e);
+    return JSON.stringify({ url: "", isEmbed: false, headers: {} });
+  }
+}
+*/
 
+function customJS(initialLink) {
+  return `
+(function () {
+    'use strict';
+
+    // Biến trạng thái
+    let baseM3u8Url = null;
+    let hasSentToBridge = false;
+    let fallbackTimer = null;
+
+    // Lưu lại hàm fetch gốc ngay từ đầu để dùng nội bộ, tránh bị hook vòng lặp
+    const rawFetch = window.fetch;
+    const rawXHROpen = XMLHttpRequest.prototype.open;
+    const rawSetAttribute = Element.prototype.setAttribute;
+
+    // ==========================================
+    // 1. HỆ THỐNG TOAST MINI
+    // ==========================================
+    function injectToastStyles() {
+        if (document.getElementById('ts-toast-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'ts-toast-styles';
+        style.textContent = \`
+            #ts-toast-container { position: fixed; top: 15px; right: 15px; z-index: 999999999; display: flex; flex-direction: column; gap: 8px; max-width: 420px; pointer-events: none; font-family: monospace; }
+            .ts-toast { background: #1e1e2e; color: #cdd6f4; border-left: 4px solid #a6e3a1; padding: 10px 14px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); font-size: 11px; line-height: 1.4; pointer-events: auto; word-break: break-all; animation: tsSlideIn 0.25s ease-out, tsFadeOut 0.5s ease 9.5s forwards; }
+            .ts-toast-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+            .ts-toast-title { font-weight: bold; color: #a6e3a1; }
+            .ts-toast-time { font-size: 10px; color: #a6adc8; }
+            .ts-toast-body { max-height: 120px; overflow-y: auto; white-space: pre-wrap; background: #11111b; padding: 6px; border-radius: 4px; }
+            @keyframes tsSlideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+            @keyframes tsFadeOut { from { opacity: 1; } to { opacity: 0; } }
+        \`;
+        (document.head || document.documentElement).appendChild(style);
+    }
+
+    function showToast(title, content) {
+        try {
+            injectToastStyles();
+            let container = document.getElementById('ts-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'ts-toast-container';
+                (document.body || document.documentElement).appendChild(container);
+            }
+            const toast = document.createElement('div');
+            toast.className = 'ts-toast';
+            const timeStr = new Date().toLocaleTimeString();
+            const contentFormatted = typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content);
+            toast.innerHTML = \`<div class="ts-toast-header"><span class="ts-toast-title">\${title}</span><span class="ts-toast-time">\${timeStr}</span></div><div class="ts-toast-body">\${contentFormatted}</div>\`;
+            container.appendChild(toast);
+            setTimeout(() => toast && toast.remove(), 10000);
+        } catch (e) { console.error('Toast error:', e); }
+    }
+
+    // ==========================================
+    // 2. LOGIC NATIVE BRIDGE & STREAM ANALYSIS
+    // ==========================================
+
+    function isTargetUrl(url) {
+        if (!url || typeof url !== 'string') return false;
+        return url.includes('.m3u8') || url.includes('.mpd');
+    }
+
+    function hasToken(url) {
+        if (!url.includes('?')) return false;
+        const queryString = url.split('?')[1] || '';
+        return queryString.length > 15 || queryString.includes('token') || queryString.includes('oh=') || queryString.includes('bytestart');
+    }
+
+    function sendToNativeBridge(playUrl, isTokenUrl) {
+        if (hasSentToBridge) return; // Tránh gửi đúp
+        hasSentToBridge = true;
+        
+        if (fallbackTimer) {
+            clearTimeout(fallbackTimer);
+            fallbackTimer = null;
+        }
+
+        const pageUrl = window.location.href;
+        if (window.SnifferBridge && typeof window.SnifferBridge.play === 'function') {
+            try {
+                window.SnifferBridge.play(playUrl, pageUrl);
+                showToast(isTokenUrl ? '🚀 Gửi Native: Link Có Token' : '⚡ Gửi Native: Link Gốc Trực Tiếp', { playUrl, pageUrl });
+            } catch (err) {
+                showToast('❌ Lỗi SnifferBridge.play', err.message);
+            }
+        } else {
+            showToast('⚠️ SnifferBridge Chưa Sẵn Sàng', \`Link: \${playUrl}\`);
+        }
+    }
+
+    async function verifyAndProcessRawM3u8(url) {
+        try {
+            showToast('🔍 Đang fetch thử link gốc...', url);
+            // Dùng rawFetch để không bị lặp vô hạn vào hook của chính mình
+            const response = await rawFetch(url);
+            
+            if (response.ok) {
+                const text = await response.text();
+                // Kiểm tra xem file trả về có đúng chuẩn M3U8 không
+                if (text.includes('#EXTM3U')) {
+                    if (!hasSentToBridge) {
+                        showToast('✅ Link gốc phát được ngay (Không cần token)', 'Gửi tới Native lập tức!');
+                        sendToNativeBridge(url, false);
+                    }
+                    return;
+                }
+            }
+            throw new Error(\`Status \${response.status} hoặc không phải M3U8 chuẩn.\`);
+        } catch (error) {
+            // Lỗi 403, 401 hoặc CORS -> Cần token
+            showToast('⏳ Link gốc bị khóa. Bắt đầu chờ Iframe/Network lấy Token...', error.message);
+            
+            // Cài đặt hàng chờ 20s (nếu không lấy được token nào thì gửi tạm link gốc)
+            if (!fallbackTimer && !hasSentToBridge) {
+                fallbackTimer = setTimeout(() => {
+                    if (!hasSentToBridge && baseM3u8Url) {
+                        showToast('⏳ Hết 20s không thấy Token', 'Kích hoạt Fallback gửi link gốc.');
+                        sendToNativeBridge(baseM3u8Url, false);
+                    }
+                }, 20000);
+            }
+        }
+    }
+
+    function processDetectedUrl(url) {
+        if (!isTargetUrl(url)) return;
+        if (hasSentToBridge) return; // Nếu đã gửi rồi thì bỏ qua mọi link sau đó
+
+        const isToken = hasToken(url);
+
+        if (isToken) {
+            sendToNativeBridge(url, true);
+        } else {
+            // Chỉ lưu và test link gốc lần đầu tiên
+            if (!baseM3u8Url) {
+                baseM3u8Url = url;
+                verifyAndProcessRawM3u8(url);
+            }
+        }
+    }
+
+    // ==========================================
+    // 3. HOOK NETWORK & DOM
+    // ==========================================
+
+    window.fetch = async function (...args) {
+        const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : '');
+        processDetectedUrl(url);
+        return rawFetch.apply(this, args);
+    };
+
+    XMLHttpRequest.prototype.open = function (method, url) {
+        processDetectedUrl(url);
+        return rawXHROpen.apply(this, arguments);
+    };
+
+    Element.prototype.setAttribute = function (name, value) {
+        if (this.tagName === 'IFRAME' && this.closest && this.closest('#video-player')) {
+            processDetectedUrl(value);
+        }
+        return rawSetAttribute.apply(this, arguments);
+    };
+
+    const domObserver = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    const iframes = node.tagName === 'IFRAME' ? [node] : node.querySelectorAll('#video-player iframe');
+                    iframes.forEach(iframe => {
+                        processDetectedUrl(iframe.src);
+                    });
+                }
+            });
+        });
+    });
+
+    domObserver.observe(document.documentElement, { childList: true, subtree: true });
+
+})();
+`;
+}
 function sortEpisodesByName(data) {
     try {
         data.forEach(server => {
