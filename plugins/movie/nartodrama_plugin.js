@@ -1,5 +1,6 @@
-var BASEURL = "https://edge.narto-drama.com"; 
+var BASEURL = "https://nartodrame.alokillgtv.workers.dev"; 
 var DEV = false;
+var popup_html = "<div class='donate-container'><h2 class='donate-heading'>DONATE</h2><p class='donate-description'>Anh em yêu quý có thể mời bọn mình 2 ly cà phê nhé. Để có động lực duy trì App, cập nhật plugin và tìm thêm nhiều nguồn mới và hay cho anh em. Một chút lòng thành cũng làm bọn mình tiếp tục hoạt động tốt hơn, cám ơn anh em.</p><div class='donate-grid'><div class='donate-card'><div class='donate-title'>Donate Tác giả Plugin</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qrht.png' alt='Donate Tác giả Plugin' /></div></div><div class='donate-card'><div class='donate-title'>Donate Tác giả App</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qryb.png' alt='Donate Tác giả App' /></div></div></div></div><style>.donate-container{max-width:800px;margin:0 auto;padding:10px;box-sizing:border-box;font-family:Arial,sans-serif;text-align:center;color:#eee}.donate-heading{font-size:22px;font-weight:bold;margin:0 0 12px 0;color:#fff;text-transform:uppercase;letter-spacing:1px}.donate-description{font-size:14px;line-height:1.5;margin-bottom:18px;color:#ccc}.donate-grid{display:flex;flex-direction:row;justify-content:center;align-items:stretch;gap:16px}.donate-card{flex:1;min-width:0;background:#22252a;border-radius:12px;padding:14px;border:1px solid #33373e;display:flex;flex-direction:column;align-items:center}.donate-title{font-weight:bold;font-size:15px;margin-bottom:12px;color:#fff}.qr-wrapper{width:100%;max-width:240px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:#181a1d;border-radius:8px;padding:8px;box-sizing:border-box}.qr-wrapper img{width:100%;height:100%;object-fit:contain;border-radius:4px}@media(max-width:600px){.donate-grid{flex-direction:column}.donate-heading{font-size:18px;margin-bottom:8px}.donate-description{font-size:13px;margin-bottom:12px}.qr-wrapper{max-width:180px}}</style>"
 function getManifest() {
     return JSON.stringify({
         "id": "nartodrama",
@@ -7,20 +8,21 @@ function getManifest() {
         "description": "Phim Ngắn lồng tiếng vietsub hay",
         "version": "1.1.8",
         "info": "Nguồn phim ngắn siêu hay, một vài bộ phim nên xem theo chiều dọc. App có hỗ trợ nhé. Hãy nhấn thử lại nếu không tải được video.",
-        "baseUrl": "https://edge.narto-drama.com",
+        "baseUrl": "https://nartodrame.alokillgtv.workers.dev",
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/nartodrama.png",
         "isEnabled": true,
-      debug:true,
+        "author": "Alokillgtv",
        "type": "shortfilm",
         "playerType": "exoplayer",
+        popup_html: popup_html,
       "subtitleCat": true
     })
 };
-
+// "type": "shortfilm",
 function log(msg) {
   	if(DEV){
       if (typeof nativeLog !== 'undefined') {
-          nativeLog("[" + BASEURL.replace(/^(https?:\/\/)?(www\.)?/, "") + "]: " + msg);
+          nativeconsole.log("[" + BASEURL.replace(/^(https?:\/\/)?(www\.)?/, "") + "]: " + msg);
       } else if (typeof console !== 'undefined' && console.log) {
           console.log("[" + BASEURL.replace(/^(https?:\/\/)?(www\.)?/, "") + "]: " + msg);
       }
@@ -34,7 +36,7 @@ function getHomeSections() {
         var menulist = buildMenu(listurl, true);
         return JSON.stringify(menulist);
     } catch (e) {
-        log("getHomeSections[err]:\n " + e);
+        console.log("getHomeSections[err]:\n " + e);
         return JSON.stringify([]);
     }
 }
@@ -45,7 +47,7 @@ function getPrimaryCategories() {
         var menulist = buildMenu(listurl);
         return JSON.stringify(menulist);
     } catch (e) {
-        log("getPrimaryCategories[err]:\n " + e);
+        console.log("getPrimaryCategories[err]:\n " + e);
         return JSON.stringify([]);
     }
 }
@@ -58,7 +60,7 @@ function getFilterConfig() {
             category: menulist
         });
     } catch (e) {
-        log("getFilterConfig[err]:\n " + e);
+        console.log("getFilterConfig[err]:\n " + e);
         return JSON.stringify({ category: [] });
     }
 }
@@ -83,12 +85,12 @@ function getUrlList(slug, filtersJson) {
                     if (pageSearch > 1 && slug.indexOf("page=") === -1) {
                         var sepSearch = slug.indexOf("?") > -1 ? "&" : "?";
                         var resSearch = slug + sepSearch + "page=" + pageSearch;
-                        log("getUrlList[url]: \n" + resSearch);
+                        console.log("getUrlList[url]: \n" + resSearch);
                         return resSearch;
                     }
                 } catch (jsonErr) {}
             }
-            log("getUrlList[url]: \n" + slug);
+            console.log("getUrlList[url]: \n" + slug);
             return slug;
         }
 
@@ -129,18 +131,18 @@ function getUrlList(slug, filtersJson) {
 
         // 5. Làm sạch dấu // thừa ở path (giữ nguyên https://)
         var finalUrl = resultUrl.replace(/([^:]\/)\/+/g, "$1");
-        log("getUrlList[url]: \n" + finalUrl);
+        console.log("getUrlList[url]: \n" + finalUrl);
         return finalUrl;
 
     } catch (e) {
-        log("getUrlList[err]:\n " + e);
+        console.log("getUrlList[err]:\n " + e);
         if (slug && slug.indexOf("http") > -1) {
-            log("getUrlList[url]: \n" + slug);
+            console.log("getUrlList[url]: \n" + slug);
             return slug;
         }
         var fallback = BASEURL + (slug ? (slug.indexOf("/") === 0 ? slug : "/" + slug) : "");
         var finalFallback = fallback.replace(/([^:]\/)\/+/g, "$1");
-        log("getUrlList[url]: \n" + finalFallback);
+        console.log("getUrlList[url]: \n" + finalFallback);
         return finalFallback;
     }
 }
@@ -171,38 +173,38 @@ function getUrlSearch(keyword, filtersJson) {
         }
 
         var finalUrl = resultUrl.replace(/([^:]\/)\/+/g, "$1");
-        log("getUrlSearch[url]: \n" + finalUrl);
+        console.log("getUrlSearch[url]: \n" + finalUrl);
         return finalUrl;
 
     } catch (e) {
-        log("getUrlSearch[err]:\n " + e);
+        console.log("getUrlSearch[err]:\n " + e);
         var fallback = BASEURL + "/search?lang=vi-VN&q=" + encodeURIComponent(keyword || "");
         var finalFallback = fallback.replace(/([^:]\/)\/+/g, "$1");
-        log("getUrlSearch[url]: \n" + finalFallback);
+        console.log("getUrlSearch[url]: \n" + finalFallback);
         return finalFallback;
     }
 }
 
 function getUrlDetail(slug) {
     try {
-        log("getUrlDetail[url]: \n" + slug);
+        console.log("getUrlDetail[url]: \n" + slug);
         if (!slug) return "";
         if (slug.indexOf('http') === 0) return slug;
         var detailUrl = BASEURL + "/" + slug;
-        log("getUrlDetail[url]: \n" + detailUrl);
+        console.log("getUrlDetail[url]: \n" + detailUrl);
         return detailUrl;
     } catch (e) {
-        log("getUrlDetail[err]:\n " + e);
+        console.log("getUrlDetail[err]:\n " + e);
         return "";
     }
 }
 
 function getUrlCategories() { 
     try {
-        log("getUrlCategories[url]: \n" + BASEURL);
+        console.log("getUrlCategories[url]: \n" + BASEURL);
         return BASEURL; 
     } catch (e) {
-        log("getUrlCategories[err]:\n " + e);
+        console.log("getUrlCategories[err]:\n " + e);
         return "";
     }
 }
@@ -211,7 +213,7 @@ function getUrlCountries() {
     try {
         return ""; 
     } catch (e) {
-        log("getUrlCountries[err]:\n " + e);
+        console.log("getUrlCountries[err]:\n " + e);
         return "";
     }
 }
@@ -220,7 +222,7 @@ function getUrlYears() {
     try {
         return ""; 
     } catch (e) {
-        log("getUrlYears[err]:\n " + e);
+        console.log("getUrlYears[err]:\n " + e);
         return "";
     }
 }
@@ -228,7 +230,22 @@ function getUrlYears() {
 // =============================================================================
 // PARSERS
 // =============================================================================
-
+function decodeHTMLtext(str) {
+      try {
+          if (!str) return "";
+          return str.replace(/&#(\d+);|&#x([0-9a-fA-F]+);/g, (match, dec, hex) => {
+              if (dec) {
+                  return String.fromCharCode(parseInt(dec, 10));
+              }
+              if (hex) {
+                  return String.fromCharCode(parseInt(hex, 16));
+              }
+              return match;
+          });
+      } catch (e) {
+          console.log("decodeHTMLEntities[err]:\n " + e);
+      }
+  }
 function parseListResponse(html, $url) {
     try {
         console.log("parseListResponse[url]: \n" + $url);
@@ -239,7 +256,10 @@ function parseListResponse(html, $url) {
                 href = BASEURL + href;
             }
             href = href.replace(/(^[\s\S]*?)\?[\s\S]*$/i,"$1/1?lang=vi-VN");
-            var title = this.attr("data-movie-title");
+            var title = decodeHTMLtext(this.attr("data-movie-title"));
+            if(!title){
+              title = decodeHTMLtext(this.attr("data-search-title"));
+            }
             var src = this.find("img").attr("src");
             if (src.indexOf("http") == -1) {
                 src = BASEURL + src;
@@ -269,7 +289,7 @@ function parseListResponse(html, $url) {
       console.log("return1:\n" + $return)
       return $return
     } catch (e) {
-        log("parseListResponse[err]:\n " + e);
+        console.log("parseListResponse[err]:\n " + e);
         return JSON.stringify({
             "items": [{
                 "id": $url || "error_url",
@@ -287,10 +307,10 @@ function parseListResponse(html, $url) {
 
 function parseSearchResponse(html, url) {
     try {
-        log("parseSearchResponse[url]: \n" + url);
+        console.log("parseSearchResponse[url]: \n" + url);
         return parseListResponse(html, url);
     } catch (e) {
-        log("parseSearchResponse[err]:\n " + e);
+        console.log("parseSearchResponse[err]:\n " + e);
         return JSON.stringify({
             "items": [],
             "pagination": {
@@ -339,10 +359,10 @@ function parseMovieDetail(html, url) {
         if (rmatch && rmatch[1]) limg = rmatch[1];
 
         rmatch = html.match(/meta\s+property="og:title"\s+content="([^"]+)"/i);
-        if (rmatch && rmatch[1]) lname = rmatch[1];
+        if (rmatch && rmatch[1]) lname = decodeHTMLtext(rmatch[1]);
 
         rmatch = html.match(/meta\s+property="og:description"\s+content="([^"]+)"/i);
-        if (rmatch && rmatch[1]) ldes = rmatch[1];
+        if (rmatch && rmatch[1]) ldes = decodeHTMLtext(rmatch[1]);
         var year = 2026;
         var extra = "";
         category = _$(html).find(".movie-tag-pill").textAll(" - ");
@@ -367,7 +387,7 @@ function parseMovieDetail(html, url) {
         for (var $j = 0; $j < $objepi.length; $j++) {
             var $movie = $objepi[$j];
             var $number = $movie.number;
-            var link = "https://edge.narto-drama.com/e/rs/detail/" + slug + "/" + $number + "/refresh-source?lang=vi-VN&force=1";
+            var link = BASEURL + "/e/rs/detail/" + slug + "/" + $number + "/refresh-source?lang=vi-VN&force=1";
 
             var item = {
                 id: link,
@@ -399,10 +419,10 @@ function parseMovieDetail(html, url) {
             director: ldirec || "",
             extra: extra
         });
-      console.log($return)
+      console.log("Return 2:\n" + $return)
       return $return
     } catch (e) {
-        log("parseMovieDetail[err]:\n " + e);
+        console.log("parseMovieDetail[err]:\n " + e);
         return JSON.stringify({
             id: slug || url || "error",
             title: "error",
@@ -413,7 +433,7 @@ function parseMovieDetail(html, url) {
 
 function parseDetailResponse(html, url) {
     try {
-        log("parseDetailResponse[url]: \n" + url);
+        console.log("parseDetailResponse[url]: \n" + url);
         var $objmv = JSON.parse(html);
         var rawStream = $objmv.direct_play_url || $objmv.play_url || "";
         var $subtitle = $objmv.direct_subtitle_url || "";
@@ -450,7 +470,7 @@ function parseDetailResponse(html, url) {
                 if (!$subtitle.startsWith("/")) {
                     $subtitle = "/" + $subtitle;
                 }
-                $subtitle = "https://edge.narto-drama.com" + $subtitle;
+                $subtitle = BASEURL + $subtitle;
             }
 
             listsub.push({
@@ -460,7 +480,7 @@ function parseDetailResponse(html, url) {
             });
         }
 
-        log("parseDetailResponse[url]: \n" + finalStreamUrl);
+        console.log("parseDetailResponse[url]: \n" + finalStreamUrl);
 
         return JSON.stringify({
             "url": finalStreamUrl,
@@ -473,7 +493,7 @@ function parseDetailResponse(html, url) {
             "subtitles": listsub
         });
     } catch (e) {
-        log("parseDetailResponse[err]:\n " + e);
+        console.log("parseDetailResponse[err]:\n " + e);
         return JSON.stringify({
             "url": "",
             "headers": {}
@@ -498,7 +518,7 @@ function sortEpisodesByName(data) {
         }
         return data;
     } catch (e) {
-        log("sortEpisodesByName[err]:\n " + e);
+        console.log("sortEpisodesByName[err]:\n " + e);
         return data;
     }
 }
@@ -509,7 +529,7 @@ function parseCategoriesResponse(apiResponseJson) {
         var menulist = buildMenu(listurl);
         return JSON.stringify(menulist);
     } catch (e) {
-        log("parseCategoriesResponse[err]:\n " + e);
+        console.log("parseCategoriesResponse[err]:\n " + e);
         return JSON.stringify([]);
     }
 }
@@ -518,7 +538,7 @@ function parseCountriesResponse(html) {
     try {
         return "[]";
     } catch (e) {
-        log("parseCountriesResponse[err]:\n " + e);
+        console.log("parseCountriesResponse[err]:\n " + e);
         return "[]";
     }
 }
@@ -527,13 +547,13 @@ function parseYearsResponse(html) {
     try {
         return "[]";
     } catch (e) {
-        log("parseYearsResponse[err]:\n " + e);
+        console.log("parseYearsResponse[err]:\n " + e);
         return "[]";
     }
 }
 
 function getLISTmenu() {
-    return `[{\"link\":\"https://narto-drama.com/search?lang=vi-VN&q=l%E1%BB%93ng+ti%E1%BA%BFng\",\"name\":\"Lồng Tiếng\"},{\"link\":\"https://narto-drama.com/search?lang=vi-VN&q=kinh+d%E1%BB%8B\",\"name\":\"Kinh Dị\"},{\"link\":\"https://narto-drama.com/tag/bi-an-than-phan?lang=vi-VN&tab-provider=bibishort\",\"name\":\"Thân Phận Bí Ẩn\"},{\"link\":\"https://narto-drama.com/tag/hien-dai?lang=vi-VN&tab-provider=bibishort\",\"name\":\"Hiện Đại\"},{\"link\":\"https://narto-drama.com/tag/bao-thu?lang=vi-VN&tab-provider=bibishort\",\"name\":\"Báo Thù\"}]`;
+    return `[{\"link\":"${BASEURL}/search?lang=vi-VN&q=l%E1%BB%93ng+ti%E1%BA%BFng\",\"name\":\"Lồng Tiếng\"},{\"link\":\"${BASEURL}/search?lang=vi-VN&q=kinh+d%E1%BB%8B\",\"name\":\"Kinh Dị\"},{\"link\":\"${BASEURL}/tag/bi-an-than-phan?lang=vi-VN&tab-provider=bibishort\",\"name\":\"Thân Phận Bí Ẩn\"},{\"link\":\"${BASEURL}/tag/hien-dai?lang=vi-VN&tab-provider=bibishort\",\"name\":\"Hiện Đại\"},{\"link\":\"${BASEURL}/tag/bao-thu?lang=vi-VN&tab-provider=bibishort\",\"name\":\"Báo Thù\"}]`;
 }
 
 function buildMenu(menuStr, type) { 

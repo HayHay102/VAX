@@ -1,1245 +1,822 @@
-var BASEURL = "https://phimfun.net";
-var DEV = "";
-// https://www.whoreshub.com/categories/4k-porn/
-function getManifest() {
-  return JSON.stringify({
-    id: "phimfun",
-    name: "Nguồn Phim Fun",
-    description: "Nguồn phim mới.",
-    "version": "1.1.6",
-    info: "Nguồn phim dự phòng, có server riêng có thể sơ cưa khi những nguồn khác bị lỗi. Có cơ chế lưu lại tập vừa xem và có thể chuyển tập không cần quay lại menu phim.",
-    baseUrl: "https://phimfun.net",
-    iconUrl: "https://phimfun.net/Content/PhimFun/Imgs/phimfun.png",
-    isEnabled: true,
-    "layoutType": "HORIZONTAL",
-    type: "MOVIE",
-    playerType: "embed",
-  });
-}
-
-function log(msg) {
-  if (DEV && typeof console !== "undefined" && console.log) {
-    console.log(
-      "[" + BASEURL.replace(/^(https?:\/\/)?(www\.)?/, "") + "]: " + msg,
-    );
-  }
-}
-
-function getHomeSections() {
-    return JSON.stringify([
-       {
-            "slug": "/the-loai/phim-chieu-rap-1",
-            "title": "Phim Lẻ",
-            "type": "Horizontal"
-        },
-       {
-            "slug": "/the-loai/phim-le-1",
-            "title": "Phim Bộ",
-            "type": "Horizontal"
-        },
-        {
-            "slug": "/the-loai/phim-bo-1",
-            "title": "Thuyét Minh",
-            "type": "Horizontal"
-        },
-        {
-            "slug": "/the-loai/phim-cap-nhat-1",
-            "title": "Phim Mới",
-            "type": "Grid"
-        }
-    ]);
-}
-
-
-function getPrimaryCategories() {
-  try {
-    var listurl = getLISTmenu();
-    var menulist = buildMenu(listurl);
-    return JSON.stringify(menulist);
-  } catch (e) {
-    log("getPrimaryCategories[err]:\n " + e);
-  }
-}
-
-function getFilterConfig() {
-  try {
-    var listurl = getLISTmenu();
-    var menulist = buildMenu(listurl, "filter");
+  var BASEURL = "https://phimfun.net";
+  var DEV = "";
+  
+  // https://www.whoreshub.com/categories/4k-porn/
+  function getManifest() {
     return JSON.stringify({
-      category: menulist,
+      id: "phimfun",
+      name: "Nguồn Phim Fun",
+      description: "Nguồn phim mới.",
+      "version": "1.1.6",
+      info: "Nguồn phim dự phòng, có server riêng có thể sơ cưa khi những nguồn khác bị lỗi. Có cơ chế lưu lại tập vừa xem và có thể chuyển tập không cần quay lại menu phim.",
+      baseUrl: "https://phimfun.net",
+      iconUrl: "https://phimfun.net/Content/PhimFun/Imgs/phimfun.png",
+      isEnabled: true,
+      debug: true,
+      "layoutType": "HORIZONTAL",
+      type: "MOVIE",
+      playerType: "exoplayer",
     });
-  } catch (e) {
-    log("getFilterConfig[err]:\n " + e);
   }
-}
-
-// =============================================================================
-// HELPER: CURSOR BASE64 ENCODE / DECODE
-// =============================================================================
-function decodeHTMLEntities(str) {
-  try {
-    if (!str) return "";
-    return str.replace(/&#(\d+);|&#x([0-9a-fA-F]+);/g, (match, dec, hex) => {
-      if (dec) {
-        return String.fromCharCode(parseInt(dec, 10));
-      }
-      if (hex) {
-        return String.fromCharCode(parseInt(hex, 16));
-      }
-      return match;
-    });
-  } catch (e) {
-    log("decodeHTMLEntities[err]:\n " + e);
-  }
-}
-
-function getUrlList(slug, filtersJson) {
-  try {
-    if (slug && slug.indexOf("http") > -1) {
-      log("getUrlList[url]: \n" + slug);
-      return slug;
+  
+  function log(msg) {
+    if (DEV && typeof console !== "undefined" && console.log) {
+      console.log(
+        "[" + BASEURL.replace(/^(https?:\/\/)?(www\.)?/, "") + "]: " + msg,
+      );
     }
-
-    var page = 1;
-    var path = slug || "";
-
-    if (filtersJson) {
-      var fixedJson2 = filtersJson
-        .replace(/([{,])\s*([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
-        .replace(/:,/g, ":");
-      try {
-        var filters = JSON.parse(fixedJson2);
-        page = parseInt(filters.page) || 1;
-        if (filters.category) {
-          if (Array.isArray(filters.category) && filters.category.length > 0) {
-            path = filters.category[0].slug;
-          } else if (typeof filters.category === "string") {
-            path = filters.category;
+  }
+  
+  function getHomeSections() {
+      return JSON.stringify([
+         {
+              "slug": "/the-loai/phim-chieu-rap-1",
+              "title": "Phim Lẻ",
+              "type": "Horizontal"
+          },
+         {
+              "slug": "/the-loai/phim-le-1",
+              "title": "Phim Bộ",
+              "type": "Horizontal"
+          },
+          {
+              "slug": "/the-loai/phim-bo-1",
+              "title": "Thuyét Minh",
+              "type": "Horizontal"
+          },
+          {
+              "slug": "/the-loai/phim-cap-nhat-1",
+              "title": "Phim Mới",
+              "type": "Grid"
           }
-        }
-      } catch (jsonErr) {}
-    }
-
-    var resultUrl = BASEURL;
-    if (path) {
-      resultUrl += path;
-    }
-    if (page > 1) {
-      resultUrl = resultUrl.replace(/(\d+)$/i, "");
-      resultUrl += page;
-    }
-
-    var finalUrl = resultUrl.replace(/([^:]\/)\/+/g, "$1");
-    log("getUrlList[url]: \n" + finalUrl);
-    return finalUrl;
-  } catch (e) {
-    log("getUrlList[err]:\n " + e);
-    if (slug && slug.indexOf("http") > -1) {
-      return slug;
-    }
-    var fallback = BASEURL + (slug ? "/" + slug : "");
-    return fallback.replace(/([^:]\/)\/+/g, "$1");
+      ]);
   }
-}
-
-function getUrlSearch(keyword, filtersJson) {
-  try {
-    var resultUrl = "";
-    if (filtersJson) {
-      var fixedJson = filtersJson
-        .replace(/([{,])\s*([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
-        .replace(/:,/g, ":");
-      try {
-        var filters = JSON.parse(fixedJson);
-        var page = parseInt(filters.page) || 1;
-        if (page > 1) {
-          resultUrl =
-            BASEURL +
-            "/search?k=" +
-            encodeURIComponent(keyword) +
-            "&page=" +
-            page;
-        } else {
+  
+  
+  function getPrimaryCategories() {
+    try {
+      var listurl = getLISTmenu();
+      var menulist = buildMenu(listurl);
+      return JSON.stringify(menulist);
+    } catch (e) {
+      log("getPrimaryCategories[err]:\n " + e);
+    }
+  }
+  
+  function getFilterConfig() {
+    try {
+      var listurl = getLISTmenu();
+      var menulist = buildMenu(listurl, "filter");
+      return JSON.stringify({
+        category: menulist,
+      });
+    } catch (e) {
+      log("getFilterConfig[err]:\n " + e);
+    }
+  }
+  
+  // =============================================================================
+  // HELPER: CURSOR BASE64 ENCODE / DECODE
+  // =============================================================================
+  function decodeHTMLEntities(str) {
+    try {
+      if (!str) return "";
+      return str.replace(/&#(\d+);|&#x([0-9a-fA-F]+);/g, (match, dec, hex) => {
+        if (dec) {
+          return String.fromCharCode(parseInt(dec, 10));
+        }
+        if (hex) {
+          return String.fromCharCode(parseInt(hex, 16));
+        }
+        return match;
+      });
+    } catch (e) {
+      log("decodeHTMLEntities[err]:\n " + e);
+    }
+  }
+  
+  function getUrlList(slug, filtersJson) {
+    try {
+      if (slug && slug.indexOf("http") > -1) {
+        log("getUrlList[url]: \n" + slug);
+        return slug;
+      }
+  
+      var page = 1;
+      var path = slug || "";
+  
+      if (filtersJson) {
+        var fixedJson2 = filtersJson
+          .replace(/([{,])\s*([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
+          .replace(/:,/g, ":");
+        try {
+          var filters = JSON.parse(fixedJson2);
+          page = parseInt(filters.page) || 1;
+          if (filters.category) {
+            if (Array.isArray(filters.category) && filters.category.length > 0) {
+              path = filters.category[0].slug;
+            } else if (typeof filters.category === "string") {
+              path = filters.category;
+            }
+          }
+        } catch (jsonErr) {}
+      }
+  
+      var resultUrl = BASEURL;
+      if (path) {
+        resultUrl += path;
+      }
+      if (page > 1) {
+        resultUrl = resultUrl.replace(/(\d+)$/i, "");
+        resultUrl += page;
+      }
+  
+      var finalUrl = resultUrl.replace(/([^:]\/)\/+/g, "$1");
+      log("getUrlList[url]: \n" + finalUrl);
+      return finalUrl;
+    } catch (e) {
+      log("getUrlList[err]:\n " + e);
+      if (slug && slug.indexOf("http") > -1) {
+        return slug;
+      }
+      var fallback = BASEURL + (slug ? "/" + slug : "");
+      return fallback.replace(/([^:]\/)\/+/g, "$1");
+    }
+  }
+  
+  function getUrlSearch(keyword, filtersJson) {
+    try {
+      var resultUrl = "";
+      if (filtersJson) {
+        var fixedJson = filtersJson
+          .replace(/([{,])\s*([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
+          .replace(/:,/g, ":");
+        try {
+          var filters = JSON.parse(fixedJson);
+          var page = parseInt(filters.page) || 1;
+          if (page > 1) {
+            resultUrl =
+              BASEURL +
+              "/search?k=" +
+              encodeURIComponent(keyword) +
+              "&page=" +
+              page;
+          } else {
+            resultUrl = BASEURL + "/search?k=" + encodeURIComponent(keyword);
+          }
+        } catch (jsonErr) {
           resultUrl = BASEURL + "/search?k=" + encodeURIComponent(keyword);
         }
-      } catch (jsonErr) {
+      } else {
         resultUrl = BASEURL + "/search?k=" + encodeURIComponent(keyword);
       }
-    } else {
-      resultUrl = BASEURL + "/search?k=" + encodeURIComponent(keyword);
+  
+      log("getUrlSearch[url]: \n" + resultUrl);
+      return resultUrl;
+    } catch (e) {
+      log("getUrlSearch[err]:\n " + e);
     }
-
-    log("getUrlSearch[url]: \n" + resultUrl);
-    return resultUrl;
-  } catch (e) {
-    log("getUrlSearch[err]:\n " + e);
   }
-}
-
-function getUrlDetail(slug) {
-  try {
-    if (!slug) return "";
-    var resultUrl = slug.indexOf("http") === 0 ? slug : BASEURL + "/" + slug;
-    log("getUrlDetail[url]: \n" + resultUrl);
-    return resultUrl;
-  } catch (e) {
-    log("getUrlDetail[err]:\n " + e);
-  }
-}
-
-function getUrlCategories() {
-  try {
-    log("getUrlCategories[url]: \n" + BASEURL);
-    return BASEURL;
-  } catch (e) {
-    log("getUrlCategories[err]:\n " + e);
-  }
-}
-
-function getUrlCountries() {
-  try {
-    return "";
-  } catch (e) {
-    log("getUrlCountries[err]:\n " + e);
-  }
-}
-
-function getUrlYears() {
-  try {
-    return "";
-  } catch (e) {
-    log("getUrlYears[err]:\n " + e);
-  }
-}
-
-// =============================================================================
-// PARSERS
-// =============================================================================
-
-function fixHref(href) {
-  try {
-    if (!href) return "";
-
-    let cleanHref = href.trim();
-    const ignorePattern =
-      /^(#|https?:\/\/|\/\/|mailto:|tel:|javascript:|data:|blob:)/i;
-
-    if (ignorePattern.test(cleanHref)) {
-      return cleanHref;
+  
+  function getUrlDetail(slug) {
+    try {
+      if (!slug) return "";
+      var resultUrl = slug.indexOf("http") === 0 ? slug : BASEURL + "/" + slug;
+      log("getUrlDetail[url]: \n" + resultUrl);
+      return resultUrl;
+    } catch (e) {
+      log("getUrlDetail[err]:\n " + e);
     }
-
-    if (cleanHref.startsWith("/")) {
-      try {
-        const urlObj = new URL(BASEURL);
-        return urlObj.origin + cleanHref;
-      } catch (e) {
-        return BASEURL + cleanHref;
+  }
+  
+  function getUrlCategories() {
+    try {
+      log("getUrlCategories[url]: \n" + BASEURL);
+      return BASEURL;
+    } catch (e) {
+      log("getUrlCategories[err]:\n " + e);
+    }
+  }
+  
+  function getUrlCountries() {
+    try {
+      return "";
+    } catch (e) {
+      log("getUrlCountries[err]:\n " + e);
+    }
+  }
+  
+  function getUrlYears() {
+    try {
+      return "";
+    } catch (e) {
+      log("getUrlYears[err]:\n " + e);
+    }
+  }
+  
+  // =============================================================================
+  // PARSERS
+  // =============================================================================
+  
+  function fixHref(href) {
+    try {
+      if (!href) return "";
+  
+      let cleanHref = href.trim();
+      const ignorePattern =
+        /^(#|https?:\/\/|\/\/|mailto:|tel:|javascript:|data:|blob:)/i;
+  
+      if (ignorePattern.test(cleanHref)) {
+        return cleanHref;
       }
-    }
-
-    return BASEURL + cleanHref;
-  } catch (e) {
-    log("fixHref[err]:\n " + e);
-  }
-}
-
-function parseListResponse(html, $url) {
-  try {
-    if ($url) log("parseListResponse[url]: \n" + $url);
-
-    var quality = "";
-    var items = [];
-    _$(html)
-      .find(".MovieList")
-      .find("li")
-      .each(function () {
-        var href = this.find("a").attr("href");
-        href = fixHref(href);
-        href = href.replace("/phim/", "/xem-phim/");
-        var title = this.find("img").attr("alt");
-        title = decodeHTMLEntities(title);
-        var src = this.find("img").attr("src");
-        if (src.indexOf("base64") > -1) {
-          src = this.find("img").attr("data-src");
+  
+      if (cleanHref.startsWith("/")) {
+        try {
+          const urlObj = new URL(BASEURL);
+          return urlObj.origin + cleanHref;
+        } catch (e) {
+          return BASEURL + cleanHref;
         }
-        src = fixHref(src);
-
-        var episode_current = this.find(".mc__ep-badge").text().trim();
-
-        function isValidMediaUrl(url) {
-          if (!url || typeof url !== "string") return false;
-
-          var cleanUrl = url.trim();
-
-          if (
-            cleanUrl.indexOf("_spEsc") > -1 ||
-            cleanUrl.indexOf("'+") > -1 ||
-            cleanUrl.indexOf("+'") > -1 ||
-            cleanUrl.indexOf("${") > -1 ||
-            cleanUrl.indexOf("javascript:") > -1
-          ) {
-            return false;
+      }
+  
+      return BASEURL + cleanHref;
+    } catch (e) {
+      log("fixHref[err]:\n " + e);
+    }
+  }
+  
+  function parseListResponse(html, $url) {
+    try {
+      if ($url) log("parseListResponse[url]: \n" + $url);
+  
+      var quality = "";
+      var items = [];
+      _$(html)
+        .find(".MovieList")
+        .find("li")
+        .each(function () {
+          var href = this.find("a").attr("href");
+          href = fixHref(href);
+          href = href.replace("/phim/", "/xem-phim/");
+          var title = this.find("img").attr("alt");
+          title = decodeHTMLEntities(title);
+          var src = this.find("img").attr("src");
+          if (src.indexOf("base64") > -1) {
+            src = this.find("img").attr("data-src");
           }
-
-          var httpPattern = /^https?:\/\/[^\s"'<>+]+$/i;
-          return httpPattern.test(cleanUrl);
-        }
-
-        if (isValidMediaUrl(href)) {
-          var cleanThumb = (src || "").replace(/&amp;/g, "&").trim();
-
-          if (cleanThumb && cleanThumb.indexOf("http") !== 0) {
-            cleanThumb = "https:" + cleanThumb;
-          }
-
-          items.push({
-            id: href.trim(),
-            title: (title || "").trim(),
-            posterUrl: cleanThumb,
-            backdropUrl: cleanThumb,
-            quality: quality || "",
-            lang: "",
-            episode_current: episode_current || "",
-          });
-        }
-      });
-
-    return JSON.stringify({
-      items: items,
-      pagination: {
-        currentPage: 1,
-        totalPages: 999,
-      },
-    });
-  } catch (e) {
-    log("parseListResponse[err]:\n " + e);
-    return JSON.stringify({
-      items: [
-        {
-          id: $url || "error_url",
-          title: "Lỗi: " + e,
-          posterUrl: "",
-          backdropUrl: "",
-        },
-      ],
-      pagination: {
-        currentPage: 1,
-        totalPages: 1,
-      },
-    });
-  }
-}
-
-
-
-function parseSearchResponse(html, url) {
-  try {
-    if (url) log("parseSearchResponse[url]: \n" + url);
-    return parseListResponse(html, url);
-  } catch (e) {
-    log("parseSearchResponse[err]:\n " + e);
-  }
-}
-
-function parseMovieDetail(html, url) {
-  try {
-    if (url) log("parseMovieDetail[url]: \n" + url);
-
-    var idMatch =
-      /<link\s+rel="canonical"\s+href="([^"]+)"/i.exec(html) ||
-      /<meta\s+property="og:url"\s+content="([^"]+)"/i.exec(html);
-    var id = idMatch ? idMatch[1] : url || "";
-
-    var slug = "";
-    if (id) {
-      var slugMatch = /\/phim\/([^/_.]+)/.exec(id);
-      slug = slugMatch ? slugMatch[1] : id;
-    }
-    if (!slug) {
-      var slugMatch2 = /\/phim\/([^/_.]+)/.exec(html);
-      slug = slugMatch2 ? slugMatch2[1] : "";
-    }
-
-    var lurl = "";
-    var limg = "";
-    var lname = "Đang cập nhật...";
-    var ldes = "Không có mô tả.";
-    var ldirec = "";
-    var lactor = "";
-    var lduran = "";
-    var status = "";
-    var category = "";
-    var episode_current = "";
-
-    var rmatch = html.match(/meta\s+property="og:url"\s+content="([^"]+)"/i);
-    if (rmatch && rmatch[1]) lurl = rmatch[1];
-
-    rmatch = html.match(/meta\s+property="og:image"\s+content="([^"]+)"/i);
-    if (rmatch && rmatch[1]) limg = rmatch[1];
-
-    if (limg.indexOf("//") === 0) {
-      limg = "https:" + limg;
-    } else if (limg.indexOf("http") === -1) {
-      limg = BASEURL + limg;
-    }
-    lname = _$(html).find("h1").text();
-    lname = decodeHTMLEntities(lname);
-    var ldes = _$(html).find("h2:content('Thông tin về phim')").next().text();
-    ldes = decodeHTMLEntities(ldes);
-    var year = 2026;
-    var extra = "";
-
-    var rawText = _$(html).find(".Date").text();
-    var match = rawText.match(/\b(19|20)\d{2}\b/);
-
-    if (match) {
-      year = parseInt(match[0], 10);
-    }
-
-    if (isNaN(year)) {
-      year = 2026;
-    }
-    status = _$(html)
-      .find(".aim-hero__meta")
-      .find(".aim-status--airing")
-      .text();
-
-    var categoryResult = [];
-    _$(html)
-      .find(".Description")
-      .find(".Genre")
-      .find("a")
-      .each(function () {
-        var link = this.attr("href") || this.find("a").attr("href");
-        var name = this.text().replace(/\s+/g, " ").trim();
-        name = decodeHTMLEntities(name);
-
-        if (name && link) {
-          var slug = typeof getSlug === "function" ? getSlug(link) : link;
-          categoryResult.push("[" + name + "](" + slug + ")");
-        }
-      });
-
-    category = categoryResult.join(", ");
-    var actorResult = [];
-    _$(html)
-      .find(".Description")
-      .find(".Cast")
-      .find("a")
-      .each(function () {
-        var link = this.attr("href") || this.find("a").attr("href");
-        var name = this.text().replace(/\s+/g, " ").trim();
-        name = decodeHTMLEntities(name);
-
-        if (name && link) {
-          var slug = typeof getSlug === "function" ? getSlug(link) : link;
-          actorResult.push("[" + name + "](" + slug + ")");
-        }
-      });
-
-    lactor = actorResult.join(", ");
-
-    quality = _$(html).find("span.Time").text();
-    episode_current = _$(html).find(".aim-hero__meta").find("span:last").text();
-    rating = _$(html).find(".post-ratings").text();
-    rating = parseInt(rating, 10);
-    var servers = [];
-    stastus = 0;
-    numSV = 0;
-    $listSV = _$(html)
-      .find(".SeasonBx:content('Danh sách máy chủ')")
-      .find("a")
-      .each(function () {
-        numSV++;
-        var nameSV = "Server " + numSV;
-        var items = [];
-        _$(html)
-          .find(".SeasonBx:content('Danh sách tập')")
-          .find("#halim-list-server")
-          .find("a")
-          .each(function () {
-            var link = this.attr("href");
-            link = fixHref(link);
-            if (numSV > 1) {
-              link = link + "?sv" + numSV + "=true";
+          src = fixHref(src);
+  
+          var episode_current = this.find(".mc__ep-badge").text().trim();
+  
+          function isValidMediaUrl(url) {
+            if (!url || typeof url !== "string") return false;
+  
+            var cleanUrl = url.trim();
+  
+            if (
+              cleanUrl.indexOf("_spEsc") > -1 ||
+              cleanUrl.indexOf("'+") > -1 ||
+              cleanUrl.indexOf("+'") > -1 ||
+              cleanUrl.indexOf("${") > -1 ||
+              cleanUrl.indexOf("javascript:") > -1
+            ) {
+              return false;
             }
-            var name = this.attr("title");
+  
+            var httpPattern = /^https?:\/\/[^\s"'<>+]+$/i;
+            return httpPattern.test(cleanUrl);
+          }
+  
+          if (isValidMediaUrl(href)) {
+            var cleanThumb = (src || "").replace(/&amp;/g, "&").trim();
+  
+            if (cleanThumb && cleanThumb.indexOf("http") !== 0) {
+              cleanThumb = "https:" + cleanThumb;
+            }
+  
             items.push({
-              id: link,
-              name: name,
-              slug: name.replace(/[\s\S]*?(\d+)/, "tap-$1"),
+              id: href.trim(),
+              title: (title || "").trim(),
+              posterUrl: cleanThumb,
+              backdropUrl: cleanThumb,
+              quality: quality || "",
+              lang: "",
+              episode_current: episode_current || "",
             });
-            stastus++;
-          });
-        servers.push({
-          name: nameSV,
-          episodes: items,
-        });
-        servers = sortEpisodesByName(servers);
-      });
-    episode_current = "Đang có: " + status;
-
-    return JSON.stringify({
-      id: id,
-      title: lname,
-      posterUrl: limg,
-      backdropUrl: limg,
-      description: ldes,
-      quality: quality,
-      year: year,
-      rating: rating,
-      status: status,
-      category: category,
-      episode_current: episode_current,
-      servers: servers,
-      duration: lduran || "",
-      casts: lactor || "",
-      director: ldirec || "",
-      extra: extra,
-    });
-  } catch (e) {
-    log("parseMovieDetail[err]:\n " + e);
-    return JSON.stringify({
-      id: slug || url || "error",
-      title: "error",
-      servers: [],
-    });
-  }
-}
-
-function sortEpisodesByName(data) {
-  try {
-    if (!Array.isArray(data)) return data;
-
-    data.forEach(function (server) {
-      if (server.episodes && Array.isArray(server.episodes)) {
-        server.episodes.sort(function (a, b) {
-          var nameA = a.name || "";
-          var nameB = b.name || "";
-
-          var matchA = nameA.match(/\d+(\.\d+)?/);
-          var matchB = nameB.match(/\d+(\.\d+)?/);
-
-          var numA = matchA ? parseFloat(matchA[0]) : null;
-          var numB = matchB ? parseFloat(matchB[0]) : null;
-
-          if (numA !== null && numB !== null) {
-            if (numA !== numB) {
-              return numA - numB;
-            }
           }
-
-          if (numA !== null) return -1;
-          if (numB !== null) return 1;
-
-          return nameA.localeCompare(nameB, undefined, {
-            numeric: true,
-            sensitivity: "base",
-          });
         });
-      }
-    });
-
-    return data;
-  } catch (e) {
-    log("sortEpisodesByName[err]:\n " + e);
+  
+      return JSON.stringify({
+        items: items,
+        pagination: {
+          currentPage: 1,
+          totalPages: 999,
+        },
+      });
+    } catch (e) {
+      log("parseListResponse[err]:\n " + e);
+      return JSON.stringify({
+        items: [
+          {
+            id: $url || "error_url",
+            title: "Lỗi: " + e,
+            posterUrl: "",
+            backdropUrl: "",
+          },
+        ],
+        pagination: {
+          currentPage: 1,
+          totalPages: 1,
+        },
+      });
+    }
   }
-}
+  
+  
+  
+  function parseSearchResponse(html, url) {
+    try {
+      if (url) log("parseSearchResponse[url]: \n" + url);
+      return parseListResponse(html, url);
+    } catch (e) {
+      log("parseSearchResponse[err]:\n " + e);
+    }
+  }
+  
+  function parseMovieDetail(html, url) {
+    try {
+      if (url) log("parseMovieDetail[url]: \n" + url);
+  
+      var idMatch =
+        /<link\s+rel="canonical"\s+href="([^"]+)"/i.exec(html) ||
+        /<meta\s+property="og:url"\s+content="([^"]+)"/i.exec(html);
+      var id = idMatch ? idMatch[1] : url || "";
+  
+      var slug = "";
+      if (id) {
+        var slugMatch = /\/phim\/([^/_.]+)/.exec(id);
+        slug = slugMatch ? slugMatch[1] : id;
+      }
+      if (!slug) {
+        var slugMatch2 = /\/phim\/([^/_.]+)/.exec(html);
+        slug = slugMatch2 ? slugMatch2[1] : "";
+      }
+  
+      var lurl = "";
+      var limg = "";
+      var lname = "Đang cập nhật...";
+      var ldes = "Không có mô tả.";
+      var ldirec = "";
+      var lactor = "";
+      var lduran = "";
+      var status = "";
+      var category = "";
+      var episode_current = "";
+  
+      var rmatch = html.match(/meta\s+property="og:url"\s+content="([^"]+)"/i);
+      if (rmatch && rmatch[1]) lurl = rmatch[1];
+  
+      rmatch = html.match(/meta\s+property="og:image"\s+content="([^"]+)"/i);
+      if (rmatch && rmatch[1]) limg = rmatch[1];
+  
+      if (limg.indexOf("//") === 0) {
+        limg = "https:" + limg;
+      } else if (limg.indexOf("http") === -1) {
+        limg = BASEURL + limg;
+      }
+      lname = _$(html).find("h1").text();
+      lname = decodeHTMLEntities(lname);
+      var ldes = _$(html).find("h2:content('Thông tin về phim')").next().text();
+      ldes = decodeHTMLEntities(ldes);
+      var year = 2026;
+      var extra = "";
+  
+      var rawText = _$(html).find(".Date").text();
+      var match = rawText.match(/\b(19|20)\d{2}\b/);
+  
+      if (match) {
+        year = parseInt(match[0], 10);
+      }
+  
+      if (isNaN(year)) {
+        year = 2026;
+      }
+      status = _$(html)
+        .find(".aim-hero__meta")
+        .find(".aim-status--airing")
+        .text();
+  
+      var categoryResult = [];
+      _$(html)
+        .find(".Description")
+        .find(".Genre")
+        .find("a")
+        .each(function () {
+          var link = this.attr("href") || this.find("a").attr("href");
+          var name = this.text().replace(/\s+/g, " ").trim();
+          name = decodeHTMLEntities(name);
+  
+          if (name && link) {
+            var slug = typeof getSlug === "function" ? getSlug(link) : link;
+            categoryResult.push("[" + name + "](" + slug + ")");
+          }
+        });
+  
+      category = categoryResult.join(", ");
+      var actorResult = [];
+      _$(html)
+        .find(".Description")
+        .find(".Cast")
+        .find("a")
+        .each(function () {
+          var link = this.attr("href") || this.find("a").attr("href");
+          var name = this.text().replace(/\s+/g, " ").trim();
+          name = decodeHTMLEntities(name);
+  
+          if (name && link) {
+            var slug = typeof getSlug === "function" ? getSlug(link) : link;
+            actorResult.push("[" + name + "](" + slug + ")");
+          }
+        });
+  
+      lactor = actorResult.join(", ");
+  
+      quality = _$(html).find("span.Time").text();
+      episode_current = _$(html).find(".aim-hero__meta").find("span:last").text();
+      rating = _$(html).find(".post-ratings").text();
+      rating = parseInt(rating, 10);
+      var servers = [];
+      stastus = 0;
+      numSV = 0;
+      $listSV = _$(html)
+        .find(".SeasonBx:content('Danh sách máy chủ')")
+        .find("a")
+        .each(function () {
+          numSV++;
+          var nameSV = "Server " + numSV;
+          var items = [];
+          _$(html)
+            .find(".SeasonBx:content('Danh sách tập')")
+            .find("#halim-list-server")
+            .find("a")
+            .each(function () {
+              var link = this.attr("href");
+              link = fixHref(link);
+              if (numSV > 1) {
+                link = link + "?sv" + numSV + "=true";
+              }
+              var name = this.attr("title");
+              items.push({
+                id: link,
+                name: name,
+                slug: name.replace(/[\s\S]*?(\d+)/, "tap-$1"),
+              });
+              stastus++;
+            });
+          servers.push({
+            name: nameSV,
+            episodes: items,
+          });
+          servers = sortEpisodesByName(servers);
+        });
+      episode_current = "Đang có: " + status;
+  
+      return JSON.stringify({
+        id: id,
+        title: lname,
+        posterUrl: limg,
+        backdropUrl: limg,
+        description: ldes,
+        quality: quality,
+        year: year,
+        rating: rating,
+        status: status,
+        category: category,
+        episode_current: episode_current,
+        servers: servers,
+        duration: lduran || "",
+        casts: lactor || "",
+        director: ldirec || "",
+        extra: extra,
+      });
+    } catch (e) {
+      log("parseMovieDetail[err]:\n " + e);
+      return JSON.stringify({
+        id: slug || url || "error",
+        title: "error",
+        servers: [],
+      });
+    }
+  }
+  
+  function sortEpisodesByName(data) {
+    try {
+      if (!Array.isArray(data)) return data;
+  
+      data.forEach(function (server) {
+        if (server.episodes && Array.isArray(server.episodes)) {
+          server.episodes.sort(function (a, b) {
+            var nameA = a.name || "";
+            var nameB = b.name || "";
+  
+            var matchA = nameA.match(/\d+(\.\d+)?/);
+            var matchB = nameB.match(/\d+(\.\d+)?/);
+  
+            var numA = matchA ? parseFloat(matchA[0]) : null;
+            var numB = matchB ? parseFloat(matchB[0]) : null;
+  
+            if (numA !== null && numB !== null) {
+              if (numA !== numB) {
+                return numA - numB;
+              }
+            }
+  
+            if (numA !== null) return -1;
+            if (numB !== null) return 1;
+  
+            return nameA.localeCompare(nameB, undefined, {
+              numeric: true,
+              sensitivity: "base",
+            });
+          });
+        }
+      });
+  
+      return data;
+    } catch (e) {
+      log("sortEpisodesByName[err]:\n " + e);
+    }
+  }
 
 function parseDetailResponse(html, url) {
-    try {
-        var dataSV = {};
-        var $stream = _$(html).find("#iframeStream").attr("src");
-        var servers = [];
-        dataSV.stream = $stream;
-        stastus = 0;
-        numSV = 0;
-        $listSV = _$(html).find(".SeasonBx:content('Danh sách máy chủ')").find("a").each(function() {
-            numSV++;
-            var nameSV = "Server " + numSV;
-            var items = [];
-            _$(html).find(".SeasonBx:content('Danh sách tập')").find("#halim-list-server").find("a").each(function() {
-                var link = this.attr("href");
-                link = fixHref(link);
-                if (numSV > 1) {
-                    link = link + "?sv" + numSV + "=true";
-                }
-                var name = this.attr("title");
-                items.push({
-                    id: link,
-                    name: name,
-                    slug: name.replace(/[\s\S]*?(\d+)/, "tap-$1")
-                })
-                stastus++;
-            });
-            servers.push({
-                name: nameSV,
-                episodes: items
-            })
-            servers = sortEpisodesByName(servers);
-        })
-        dataSV.servers = servers;
-        var customJS = rawJS(dataSV);
-        return JSON.stringify({
-            "url": url,
-            "isEmbed": false, // Chuyển về false để ưu tiên ExoPlayer native
-            //"mimeType": "application/x-mpegURL", // Dùng biến mimeType đã xử lý
-            "headers": {
-                "Referer": BASEURL,
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Custom-Js": customJS
-            }
+  console.log("parseDetailResponse [Tầng 1]: " + url);
+  try {
+
+// Bắt thẻ <iframe ... id="iframeStream" ... src="..."
+const regex = /<iframe\b[^>]*\bid=["']iframeStream["'][^>]*\bsrc=["']([^"']+)["']/i;
+
+const match = html.match(regex);
+const src = match ? match[1] : null;
+
+console.log(src);
+// Kết quả: https://moviking.neuronix.sbs/embed?id=0979bf3465cb4047ad3e36e05dff77d7&amp;web=phimfun.net&amp;lang=vi      
+         return JSON.stringify({
+          url: src,
+          isEmbed: true, // Bật isEmbed để App tiếp tục chuỗi Fetch
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Referer": "https://moviking.neuronix.sbs/",
+            "Origin": "https://moviking.neuronix.sbs"
+          },
+          datasend: 1
         });
-    } catch (e) {
-        console.log("stream error: " + e);
-        return JSON.stringify({
-            "url": "",
-            "headers": {}
-        });
-    }
+
+  } catch (e) {
+    console.log("[Lỗi parseDetailResponse]", e);
+    return JSON.stringify({ url: "", isEmbed: false, headers: {} });
+  }
 }
+
+// =========================================================
+// TẦNG 2: NHẬN TOKEN TỪ APP -> DỰNG LINK STREAM BITLUNA
+// =========================================================
+function parseEmbedResponse(html, url, datasend) {
+  console.log("datasend: " + datasend)
+  try {
+  if(datasend == 1){
+    // 1. Bóc các biến từ HTML gốc bằng Regex (Thuần JS)
+    var videoIdMatch = html.match(/var\s+videoId\s*=\s*['"]([^'"]+)['"]/i);
+    var videoId = videoIdMatch ? videoIdMatch[1] : "";
+
+    if (!videoId) {
+      var urlIdMatch = url.match(/[?&]id=([^&]+)/i);
+      videoId = urlIdMatch ? urlIdMatch[1] : "";
+    }
+
+    var subIdMatch = html.match(/var\s+subId\s*=\s*['"]([^'"]*)['"]/i);
+    var subId = subIdMatch ? subIdMatch[1] : "";
+
+    var webMatch = html.match(/var\s+web\s*=\s*['"]([^'"]+)['"]/i);
+    var web = webMatch ? webMatch[1] : "faphimtv.com";
+
+    var cdnMatch = html.match(/var\s+cdn\s*=\s*['"]([^'"]+)['"]/i);
+    var cdn = cdnMatch ? cdnMatch[1] : "https://cdn4.bitluna.shop";
+
+    var langMatch = html.match(/var\s+lang\s*=\s*['"]([^'"]+)['"]/i);
+    var lang = langMatch ? langMatch[1] : "vi";
+
+    if (!videoId) {
+      console.log("❌ Lỗi: Không bóc được videoId!");
+      return JSON.stringify({ url: "", isEmbed: false, headers: {} });
+    }
+
+    var domainMatch = url.match(/^(https?:\/\/[^\/]+)/);
+    var targetDomain = "https://moviking.neuronix.sbs";
+
+    // 2. MẸO: Đóng gói metadata vào Query String để Tầng 2 đọc lại
+    var nextUrl = targetDomain + "/geturl" + 
+                  "?cdn=" + encodeURIComponent(cdn) + 
+                  "&videoId=" + encodeURIComponent(videoId) + 
+                  "&subId=" + encodeURIComponent(subId) + 
+                  "&web=" + encodeURIComponent(web) + 
+                  "&lang=" + encodeURIComponent(lang);
+
+    var postBody = "renderer=" + encodeURIComponent("ANGLE (Software, Microsoft Basic Render Driver Direct3D11 vs_5_0 ps_5_0)") +
+                   "&id=" + encodeURIComponent(videoId) +
+                   "&videoId=" + encodeURIComponent(videoId) +
+                   "&domain=" + encodeURIComponent(url);
+
+    console.log("🚀 Yêu cầu App POST lên /geturl:", nextUrl);
+
+    // 3. Trả về isEmbed = true để App gọi POST /geturl
+    return JSON.stringify({
+      url: nextUrl,
+      isEmbed: true, // Bật isEmbed để App tiếp tục chuỗi Fetch
+      postBody: postBody,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://moviking.neuronix.sbs/",
+        "Origin": "https://moviking.neuronix.sbs",
+         "X-Requested-With": "XMLHttpRequest"
+      },
+      datasend: 2
+    });
+  }
+    
+   if(datasend == 2){
+    console.log("parseEmbedResponse [Tầng 3]: " + url);
+
+    // Helper bóc Query Param từ `url` trong QuickJS
+    function getParam(param, searchUrl) {
+      var match = searchUrl.match(new RegExp('[?&]' + param + '=([^&]*)'));
+      return match ? decodeURIComponent(match[1]) : '';
+    }
+
+    // 1. Đọc lại các biến từ URL đã đóng gói ở Tầng 1
+    var cdn = getParam("cdn", url) || "https://cdn4.bitluna.shop";
+    var videoId = getParam("videoId", url);
+    var subId = getParam("subId", url);
+    var web = getParam("web", url) || "faphimtv.com";
+    var lang = getParam("lang", url) || "vi";
+
+    // 2. `html` ở đây chính là chuỗi Token (token1=...&token2=...) do App POST /geturl trả về
+    var tokenData = (html || "").trim();
+
+    if (!tokenData || tokenData.indexOf("<html") !== -1) {
+      console.log("❌ Lỗi: App lấy Token từ /geturl thất bại!");
+      return JSON.stringify({ url: "", isEmbed: false, headers: {} });
+    }
+    // 3. Ghép thành link Bitluna m3u8 hoàn chỉnh
+    var finalStreamUrl = cdn + "/streaming?id=" + videoId + 
+                         "&subId=" + subId + 
+                         "&web=" + web + 
+                         "&" + tokenData + 
+                         "&cdn=" + encodeURIComponent(cdn) + 
+                         "&lang=" + lang;
+
+    console.log("🎯 Final Stream Bitluna URL:", finalStreamUrl);
+
+    // 4. Mã Interceptor chèn vào WebView/Player của App để sửa file M3U8
+    
+    // 5. Trả về isEmbed: false -> Báo App dừng chuỗi Fetch và đưa link cho Player phát!
+
+      return JSON.stringify({
+        url: finalStreamUrl,
+        isEmbed: true,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Referer": "https://moviking.neuronix.sbs/",
+          "Origin": "https://moviking.neuronix.sbs"
+        },
+        datasend: 3
+      });
+    }
+    else{
+      console.log("parseEmbedResponse [Tầng 4]: " + url);
+      console.log("parseEmbedResponse [Tầng 4]: raw" + html);
+      var result = extractMediaInfo(html, url);
+      console.log("Link stream: " + result.link)
+      console.log("Link sub: " + result.sub);
+      // mimeType: "application/x-mpegURL",
+      return JSON.stringify({
+        url: result.link,
+        mimeType: "application/x-mpegURL",
+        isEmbed: false,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Referer": "https://moviking.neuronix.sbs/",
+          "Origin": "https://moviking.neuronix.sbs",
+          "Block-Ads": true,
+          "Block-Css": ""
+        },
+        subtitles: [{
+          lang: "Vietnamese",
+          url: result.sub,
+          mimeType: "text/vtt"
+        }]
+      });
+    }
+  } catch (e) {
+    console.log("[Lỗi parseEmbedResponse]", e);
+    return JSON.stringify({ url: "", isEmbed: false, headers: {} });
+  }
+}
+function extractMediaInfo(htmlString, baseUrl) {
+    // 1. Bóc tách tất cả các biến JS (var, let, const) trong HTML vào Map
+    var varsMap = {};
+    var varRegex = /(?:var|let|const)\s+([a-zA-Z0-9_]+)\s*=\s*["']([^"']*)["']/g;
+    var vMatch;
+    while ((vMatch = varRegex.exec(htmlString)) !== null) {
+        varsMap[vMatch[1]] = vMatch[2];
+    }
+
+    // 2. ƯU TIÊN LẤY CDN TỪ BIẾN 'var cdn = ...' TRONG HTML
+    var targetCdn = "";
+    if (varsMap["cdn"]) {
+        targetCdn = varsMap["cdn"].trim();
+        // Nếu CDN thiếu protocol (vd: "cdn4.bitluna.shop") -> Bổ sung https://
+        if (!/^https?:\/\//i.test(targetCdn)) {
+            targetCdn = "https://" + targetCdn;
+        }
+        // Xóa dấu / ở cuối CDN nếu có
+        targetCdn = targetCdn.replace(/\/+$/, "");
+    } else if (baseUrl) {
+        // Dự phòng nếu HTML không có var cdn -> Lấy Domain từ baseUrl
+        var originMatch = baseUrl.match(/^(https?:\/\/[^\/]+)/i);
+        targetCdn = originMatch ? originMatch[1] : "";
+    }
+
+    // 3. Trích xuất biểu thức 'var url = ...' trong HTML
+    var rawLink = "";
+    var urlLineMatch = htmlString.match(/var\s+url\s*=\s*([^;\r\n]+)/);
+
+    if (urlLineMatch) {
+        var expr = urlLineMatch[1];
+        var parts = expr.split("+");
+        var assembled = "";
+
+        for (var i = 0; i < parts.length; i++) {
+            var part = parts[i].trim();
+            // Nếu là chuỗi hằng số ('https://No/segment/'...)
+            var strMatch = part.match(/^["']([^"']*)["']$/);
+            if (strMatch) {
+                assembled += strMatch[1];
+            } else if (varsMap[part] !== undefined) {
+                // Nếu là tên biến (videoId, token1, token3...)
+                assembled += varsMap[part];
+            }
+        }
+        rawLink = assembled;
+    }
+
+    // 4. GỘP CDN: Thay thế 'https://No', 'http://No', '//No' bằng targetCdn
+    var finalStreamUrl = "";
+    if (rawLink) {
+        finalStreamUrl = rawLink.replace(/^(https?:)?\/\/(No|undefined|null)(?=\/|$)/i, targetCdn);
+
+        // Trường hợp link là đường dẫn tương đối (/segment/...)
+        if (/^\//.test(finalStreamUrl)) {
+            finalStreamUrl = targetCdn + finalStreamUrl;
+        }
+    }
+
+    // 5. Trích xuất Subtitle Tiếng Việt nếu có
+    var tracksMatch = htmlString.match(/tracks:\s*(\[[\s\S]*?\])\s*,/);
+    var rawSub = "";
+    if (tracksMatch) {
+        try {
+            var tracks = JSON.parse(tracksMatch[1]);
+            var viTrack = tracks.find(function(t) { 
+                return t && (t.label === "Vietnamese" || t.language === "vi"); 
+            });
+            if (viTrack && viTrack.file) rawSub = viTrack.file;
+        } catch (e) {}
+    }
+
+    // Bù Domain CDN cho Subtitle
+    if (rawSub && !/^https?:\/\//i.test(rawSub)) {
+        rawSub = rawSub.replace(/^(https?:)?\/\/(No|undefined|null)(?=\/|$)/i, "");
+        if (rawSub.startsWith("/")) {
+            rawSub = targetCdn + rawSub;
+        } else {
+            rawSub = targetCdn + "/" + rawSub;
+        }
+    }
+
+    return {
+        link: finalStreamUrl,
+        sub: rawSub,
+        headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Referer": "https://moviking.neuronix.sbs/",
+            "Origin": "https://moviking.neuronix.sbs"
+        }
+    };
+}
+
+
 
 //JSON.parse(parseDetailResponse(sourceHTML, "https://phimfun.net/xem-phim/musafir-cafe-20273/tap-1"))
-
-function rawJS(config) {
-    // Chuyển config thành chuỗi JSON an toàn trước khi inject vào string
-    var safeConfigString = JSON.stringify(config || {});
-
-    return `
-
-(function() {
-    // -------------------------------------------------------------
-    // 1. TẠO VÀ CHÈN LOADING SCREEN NGAY LẬP TỨC (TRƯỚC KHI WEB TẢI XONG)
-    // -------------------------------------------------------------
-    var styleLoading = document.createElement('style');
-    styleLoading.id = 'loading-screen-style';
-    styleLoading.textContent = \`
-        @keyframes rawSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #raw-initial-loading {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            background-color: #000000 !important;
-            z-index: 2147483647 !important;
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: center !important;
-            color: #ffffff !important;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-        }
-        #raw-initial-loading .spinner {
-            border: 3px solid rgba(255,255,255,0.1) !important;
-            border-top: 3px solid #e50914 !important;
-            border-radius: 50% !important;
-            width: 45px !important;
-            height: 45px !important;
-            animation: rawSpin 0.8s linear infinite !important;
-        }
-        #raw-initial-loading .text {
-            margin-top: 16px !important;
-            font-size: 14px !important;
-            color: #cccccc !important;
-            font-weight: 500 !important;
-            letter-spacing: 0.5px !important;
-        }
-    \`;
-
-    var loaderDiv = document.createElement('div');
-    loaderDiv.id = 'raw-initial-loading';
-    loaderDiv.innerHTML = '<div class="spinner"></div><div class="text">Đang khởi tạo trình phát...</div>';
-
-    var targetHead = document.head || document.documentElement;
-    if (targetHead) {
-        targetHead.appendChild(styleLoading);
-        targetHead.appendChild(loaderDiv);
-    }
-
-    // -------------------------------------------------------------
-    // 2. CHUỖI SCRIPT LOGIC CHÍNH (INJECT CÓ SẴN DỮ LIỆU CONFIG)
-    // -------------------------------------------------------------
-    var mainLogicCode = \`
-        if (document.head) { 
-            document.head.innerHTML = '<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">'; 
-        }
-        document.documentElement.style.cssText = 'margin:0 !important; padding:0 !important; width:100vw !important; height:100vh !important; overflow:hidden !important; background:#000 !important;';
-        document.body.innerHTML = '';
-        document.body.style.cssText = 'margin:0 !important; padding:0 !important; width:100vw !important; height:100vh !important; overflow:hidden !important; background:#000 !important; position:fixed !important; top:0 !important; left:0 !important; z-index:0 !important;';
-
-        // Nhận dữ liệu config đã được stringify thành công
-        const DATA = ${safeConfigString};
-        const INITIAL_STREAM = DATA.stream || "";
-        const CURRENT_URL = DATA.current || "";
-        const SERVERS = Array.isArray(DATA.servers) ? DATA.servers : [];
-        const AUTO_HIDE_TIME = 15000;
-        const movieId = DATA.movieId || "movie_default_id";
-        const storageKey = "anime_history_" + movieId;
-        const widthStorageKey = "anime_player_iframe_width";
-        const heightStorageKey = "anime_player_iframe_height";
-        const scaleStorageKey = "anime_player_iframe_scale";
-
-        let currentServerIndex = 0;
-        let currentEpisodeIndex = 0;
-        let hideTimer = null;
-
-        let styleTag = document.createElement('style');
-        styleTag.textContent = \\\`
-            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-            * { box-sizing: border-box !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; }
-            #framePlay { position: fixed !important; top: 50% !important; left: 50% !important; transform-origin: center center !important; border: none !important; margin: 0 !important; padding: 0 !important; z-index: 1 !important; display: block !important; transition: width 0.15s ease, height 0.15s ease, transform 0.15s ease !important; }
-            #iframe-event-overlay { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 10 !important; background: transparent !important; cursor: pointer !important; }
-            .floating-control-ui { opacity: 0 !important; pointer-events: none !important; transition: opacity 0.4s ease !important; }
-            .floating-control-ui.active-show { opacity: 1 !important; pointer-events: auto !important; }
-            #center-play-notice { position: fixed !important; top: calc(50% + 50px) !important; left: 50% !important; transform: translate(-50%, -50%) !important; z-index: 999999 !important; background: rgba(15, 15, 18, 0.92) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; border: 1px solid rgba(255, 255, 255, 0.2) !important; color: #fff !important; padding: 12px 24px !important; border-radius: 30px !important; font-size: 14px !important; font-weight: 600 !important; box-shadow: 0 8px 32px rgba(0,0,0,0.7) !important; pointer-events: none !important; transition: opacity 0.3s ease, transform 0.3s ease !important; opacity: 0; text-align: center !important; white-space: nowrap !important; }
-            #server-select-box { appearance: none !important; -webkit-appearance: none !important; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e") !important; background-repeat: no-repeat !important; background-position: right 6px center !important; background-size: 10px !important; padding-right: 22px !important; }
-            .dim-btn { background: rgba(255, 255, 255, 0.12) !important; color: #fff !important; border: none !important; border-radius: 4px !important; width: 22px !important; height: 22px !important; cursor: pointer !important; font-size: 13px !important; font-weight: bold !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; padding: 0 !important; line-height: 1 !important; }
-            .dim-btn:hover { background: rgba(255, 255, 255, 0.25) !important; }
-            .dim-input { width: 38px !important; background: transparent !important; border: none !important; color: #fff !important; text-align: center !important; font-size: 12px !important; font-weight: 700 !important; outline: none !important; padding: 0 !important; }
-            .dim-input::-webkit-outer-spin-button, .dim-input::-webkit-inner-spin-button { -webkit-appearance: none !important; margin: 0 !important; }
-            .dim-input[type=number] { -moz-appearance: textfield !important; }
-            .ep-grid-btn { display: flex !important; align-items: center !important; justify-content: center !important; padding: 8px 12px !important; border-radius: 6px !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: #fff !important; cursor: pointer !important; font-size: 12px !important; font-weight: 700 !important; text-align: center !important; white-space: nowrap !important; transition: all 0.2s ease !important; user-select: none !important; box-sizing: border-box !important; width: 100% !important; min-height: 36px !important; }
-            .ep-grid-btn:hover { border-color: rgba(255, 255, 255, 0.3) !important; }
-            .ep-grid-btn.active { background-color: #e50914 !important; border-color: #e50914 !important; }
-            .ep-grid-btn.inactive { background-color: rgba(255, 255, 255, 0.08) !important; }
-            .toast-action-btn { background: rgba(255, 255, 255, 0.15) !important; color: #fff !important; border: 1px solid rgba(255, 255, 255, 0.2) !important; padding: 5px 10px !important; border-radius: 5px !important; font-size: 11px !important; font-weight: 700 !important; cursor: pointer !important; transition: background 0.2s ease !important; display: inline-flex !important; align-items: center !important; }
-            .toast-action-btn:hover { background: rgba(255, 255, 255, 0.3) !important; }
-            .toast-action-btn.primary { background: #e50914 !important; border-color: #e50914 !important; }
-            .toast-action-btn.primary:hover { background: #b80710 !important; }
-        \\\`;
-        document.head.appendChild(styleTag);
-
-        let overlay = document.createElement('div');
-        overlay.id = 'loading-overlay';
-        Object.assign(overlay.style, {
-            position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
-            backgroundColor: '#000', zIndex: '999998', display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center', color: '#fff'
-        });
-
-        function showLoading(msg) {
-            msg = msg || 'Đang tải...';
-            overlay.innerHTML = '<div style="border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #e50914; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite;"></div><div style="margin-top: 14px; font-size: 13px; color: #ccc; font-weight: 500;">' + msg + '</div>';
-            overlay.style.opacity = '1';
-            overlay.style.display = 'flex';
-            if (!document.getElementById('loading-overlay')) document.body.appendChild(overlay);
-        }
-
-        function hideLoading() {
-            var initLoader = document.getElementById('raw-initial-loading');
-            if (initLoader) initLoader.remove();
-            var initStyle = document.getElementById('loading-screen-style');
-            if (initStyle) initStyle.remove();
-
-            overlay.style.transition = 'opacity 0.25s ease';
-            overlay.style.opacity = '0';
-            setTimeout(function() { overlay.style.display = 'none'; }, 250);
-        }
-
-        function showCenterPlayNotice(text) {
-            let notice = document.getElementById('center-play-notice');
-            if (!notice) {
-                notice = document.createElement('div');
-                notice.id = 'center-play-notice';
-                document.body.appendChild(notice);
-            }
-            notice.textContent = text;
-            requestAnimationFrame(function() { notice.style.opacity = '1'; });
-            let overlayEvt = document.getElementById('iframe-event-overlay');
-            if (overlayEvt) overlayEvt.style.display = 'block';
-        }
-
-        function hideCenterPlayNotice() {
-            let notice = document.getElementById('center-play-notice');
-            if (notice) notice.style.opacity = '0';
-            let overlayEvt = document.getElementById('iframe-event-overlay');
-            if (overlayEvt) overlayEvt.style.display = 'none';
-        }
-
-        function showHistoryPrompt(savedSrvIdx, savedEpIdx, savedEpName, nextEpIdx, nextEpName) {
-            let toast = document.getElementById('mini-action-toast');
-            if (toast) toast.remove();
-            toast = document.createElement('div');
-            toast.id = 'mini-action-toast';
-            toast.className = 'floating-control-ui active-show';
-            toast.style.cssText = 'position: fixed !important; bottom: 20px !important; right: 20px !important; z-index: 2147483647 !important; background-color: rgba(22, 22, 26, 0.95) !important; backdrop-filter: blur(12px) !important; border: 1px solid rgba(255,255,255,0.2) !important; color: #fff !important; padding: 12px 16px !important; border-radius: 8px !important; font-size: 12px !important; box-shadow: 0 8px 24px rgba(0,0,0,0.6) !important; transition: opacity 0.4s ease !important; opacity: 0; display: flex !important; flex-direction: column !important; gap: 10px !important; max-width: 380px !important;';
-
-            let title = document.createElement('div');
-            title.innerHTML = '📍 Lần trước bạn đã xem đến <b>' + savedEpName + '</b>.';
-
-            let btnGroup = document.createElement('div');
-            btnGroup.style.cssText = 'display: flex !important; gap: 6px !important; align-items: center !important;';
-
-            let btnHistory = document.createElement('button');
-            btnHistory.className = 'toast-action-btn primary';
-            btnHistory.textContent = savedEpName;
-            btnHistory.onclick = function(e) { e.stopPropagation(); toast.remove(); fetchAndPlayEpisode(savedSrvIdx, savedEpIdx); };
-
-            let btnNext = null;
-            if (nextEpIdx !== null) {
-                btnNext = document.createElement('button');
-                btnNext.className = 'toast-action-btn';
-                btnNext.textContent = 'Xem ' + nextEpName;
-                btnNext.onclick = function(e) { e.stopPropagation(); toast.remove(); fetchAndPlayEpisode(savedSrvIdx, nextEpIdx); };
-            }
-
-            let btnCancel = document.createElement('button');
-            btnCancel.className = 'toast-action-btn';
-            btnCancel.textContent = 'Hủy ✕';
-            btnCancel.onclick = function(e) { e.stopPropagation(); toast.remove(); };
-
-            btnGroup.appendChild(btnHistory);
-            if (btnNext) btnGroup.appendChild(btnNext);
-            btnGroup.appendChild(btnCancel);
-            toast.appendChild(title);
-            toast.appendChild(btnGroup);
-            document.body.appendChild(toast);
-
-            requestAnimationFrame(function() { toast.classList.add('active-show'); });
-            resetAutoHideTimer();
-        }
-
-        function resetAutoHideTimer() {
-            let elements = document.querySelectorAll('.floating-control-ui');
-            elements.forEach(function(el) { el.classList.add('active-show'); });
-            if (hideTimer) clearTimeout(hideTimer);
-            hideTimer = setTimeout(function() {
-                elements.forEach(function(el) { el.classList.remove('active-show'); });
-                let popupGrid = document.getElementById("episode-grid-popup");
-                let scalePopupGrid = document.getElementById("scale-grid-popup");
-                if (popupGrid) popupGrid.style.display = "none";
-                if (scalePopupGrid) scalePopupGrid.style.display = "none";
-                let overlayEvt = document.getElementById('iframe-event-overlay');
-                if (overlayEvt) overlayEvt.style.display = 'block';
-            }, AUTO_HIDE_TIME);
-        }
-
-        function matchCurrentEpisode() {
-            let foundServer = 0;
-            let foundEpisode = 0;
-            if (CURRENT_URL) {
-                SERVERS.forEach(function(srv, sIdx) {
-                    if (srv && Array.isArray(srv.episodes)) {
-                        srv.episodes.forEach(function(ep, eIdx) {
-                            if (ep.id === CURRENT_URL || ep.url === CURRENT_URL || (ep.id && CURRENT_URL.includes(ep.id))) {
-                                foundServer = sIdx;
-                                foundEpisode = eIdx;
-                            }
-                        });
-                    }
-                });
-            }
-            currentServerIndex = foundServer;
-            currentEpisodeIndex = foundEpisode;
-
-            let savedHistoryRaw = localStorage.getItem(storageKey);
-            if (savedHistoryRaw) {
-                try {
-                    let savedHistory = JSON.parse(savedHistoryRaw);
-                    let savedSrvIdx = savedHistory.serverIndex || 0;
-                    let savedEpIdx = savedHistory.episodeIndex || 0;
-                    let diff = Math.abs(currentEpisodeIndex - savedEpIdx);
-
-                    if (diff > 2) {
-                        let savedSrv = SERVERS[savedSrvIdx];
-                        let savedEp = savedSrv && savedSrv.episodes ? savedSrv.episodes[savedEpIdx] : null;
-                        if (savedEp) {
-                            let savedEpName = savedEp.name || savedEp.slug || ('Tập ' + (savedEpIdx + 1));
-                            let nextEpIdx = (savedEpIdx + 1 < savedSrv.episodes.length) ? (savedEpIdx + 1) : null;
-                            let nextEpName = "";
-                            if (nextEpIdx !== null) {
-                                let nextEp = savedSrv.episodes[nextEpIdx];
-                                nextEpName = nextEp ? (nextEp.name || nextEp.slug || ('Tập ' + (nextEpIdx + 1))) : ('Tập ' + (nextEpIdx + 1));
-                            }
-                            setTimeout(function() { showHistoryPrompt(savedSrvIdx, savedEpIdx, savedEpName, nextEpIdx, nextEpName); }, 800);
-                        }
-                    }
-                } catch (e) { console.error("Error reading history", e); }
-            }
-            saveCurrentState();
-        }
-
-        function saveCurrentState() {
-            localStorage.setItem(storageKey, JSON.stringify({ serverIndex: currentServerIndex, episodeIndex: currentEpisodeIndex, timestamp: Date.now() }));
-        }
-
-        function getSavedWidth() { return parseInt(localStorage.getItem(widthStorageKey), 10) || window.innerWidth; }
-        function getSavedHeight() { return parseInt(localStorage.getItem(heightStorageKey), 10) || window.innerHeight; }
-        function getSavedScale() { return parseFloat(localStorage.getItem(scaleStorageKey)) || 1.0; }
-
-        function applyIframeDimensions(w, h, s) {
-            w = Math.max(150, parseInt(w, 10) || window.innerWidth);
-            h = Math.max(100, parseInt(h, 10) || window.innerHeight);
-            s = parseFloat(s) || 1.0;
-
-            let iframe = document.getElementById("framePlay");
-            if (iframe) {
-                iframe.style.setProperty('width', w + 'px', 'important');
-                iframe.style.setProperty('height', h + 'px', 'important');
-                iframe.style.setProperty('transform', 'translate(-50%, -50%) scale(' + s + ')', 'important');
-            }
-            localStorage.setItem(widthStorageKey, w);
-            localStorage.setItem(heightStorageKey, h);
-            localStorage.setItem(scaleStorageKey, s);
-
-            let wInput = document.getElementById("iframe-w-input");
-            let hInput = document.getElementById("iframe-h-input");
-            let scaleTrigger = document.getElementById("scale-select-trigger");
-
-            if (wInput && document.activeElement !== wInput) wInput.value = w;
-            if (hInput && document.activeElement !== hInput) hInput.value = h;
-            if (scaleTrigger) scaleTrigger.textContent = "Scale " + s.toFixed(1) + "x ▼";
-        }
-
-        function fetchAndPlayEpisode(serverIdx, epIdx) {
-            currentServerIndex = serverIdx;
-            currentEpisodeIndex = epIdx;
-            saveCurrentState();
-
-            let activeServer = SERVERS[currentServerIndex];
-            let activeEpisode = activeServer && activeServer.episodes ? activeServer.episodes[currentEpisodeIndex] : null;
-            if (!activeEpisode || !activeEpisode.id) return;
-
-            let epName = activeEpisode.name || ('Tập ' + (currentEpisodeIndex + 1));
-            showLoading('Đang tải ' + epName.toLowerCase() + '...');
-
-            fetch(activeEpisode.id, { headers: { 'Accept': 'text/html' } })
-                .then(function(res) { return res.text(); })
-                .then(function(htmlText) {
-                    let parser = new DOMParser();
-                    let doc = parser.parseFromString(htmlText, 'text/html');
-                    let iframeStream = doc.querySelector('#iframeStream');
-                    if (iframeStream && iframeStream.getAttribute('src')) {
-                        let realStreamUrl = iframeStream.getAttribute('src').trim();
-                        if (realStreamUrl.startsWith("//")) realStreamUrl = "https:" + realStreamUrl;
-                        let framePlay = document.getElementById('framePlay');
-                        if (framePlay) {
-                            framePlay.setAttribute("referrerpolicy", "no-referrer");
-                            framePlay.src = realStreamUrl;
-                            framePlay.onload = function() {
-                                hideLoading();
-                                showCenterPlayNotice('▶ Đã chuyển ' + epName + '. Vui lòng nhấn Play để tiếp tục xem!');
-                            };
-                        }
-                    } else { hideLoading(); }
-                })
-                .catch(function(err) { console.error(err); hideLoading(); })
-                .finally(function() {
-                    updateEpisodeGridState();
-                    updateNavState();
-                    resetAutoHideTimer();
-                });
-        }
-
-        function initBaseLayout() {
-            matchCurrentEpisode();
-            showLoading("Đang tải...");
-
-            let framePlay = document.createElement("iframe");
-            framePlay.id = "framePlay";
-            framePlay.scrolling = "no";
-            framePlay.setAttribute("referrerpolicy", "no-referrer");
-            framePlay.setAttribute("allowfullscreen", "true");
-            framePlay.setAttribute("allow", "autoplay; fullscreen; picture-in-picture");
-
-            let cleanInitialStream = INITIAL_STREAM;
-            if (cleanInitialStream.startsWith("//")) cleanInitialStream = "https:" + cleanInitialStream;
-            framePlay.src = cleanInitialStream;
-            framePlay.onload = function() {
-                hideLoading();
-                applyIframeDimensions(getSavedWidth(), getSavedHeight(), getSavedScale());
-                showCenterPlayNotice('▶ Vui lòng nhấn Play để xem video!');
-            };
-            document.body.appendChild(framePlay);
-
-            let eventOverlay = document.createElement("div");
-            eventOverlay.id = "iframe-event-overlay";
-            function handleOverlayTrigger() { resetAutoHideTimer(); hideCenterPlayNotice(); }
-            eventOverlay.addEventListener('mousemove', handleOverlayTrigger);
-            eventOverlay.addEventListener('click', handleOverlayTrigger);
-            eventOverlay.addEventListener('touchstart', handleOverlayTrigger, { passive: true });
-            document.body.appendChild(eventOverlay);
-
-            let container = document.createElement("div");
-            container.id = "floating-select-box";
-            container.className = "floating-control-ui active-show";
-            Object.assign(container.style, {
-                position: "fixed", top: "16px", right: "20px", zIndex: "999999",
-                backgroundColor: "rgba(22, 22, 26, 0.92)", backdropFilter: "blur(16px)",
-                webkitBackdropFilter: "blur(16px)", padding: "5px 8px", borderRadius: "8px",
-                border: "1px solid rgba(255, 255, 255, 0.15)", boxShadow: "0 6px 24px rgba(0,0,0,0.6)",
-                color: "#fff", fontSize: "12px", display: "flex", flexDirection: "row",
-                alignItems: "center", gap: "6px", boxSizing: "border-box", flexWrap: "nowrap"
-            });
-
-            function createDimensionControl(type) {
-                let isW = (type === 'W');
-                let group = document.createElement("div");
-                Object.assign(group.style, {
-                    display: "flex", alignItems: "center", gap: "2px",
-                    backgroundColor: "rgba(255, 255, 255, 0.08)", padding: "2px 5px",
-                    borderRadius: "5px", border: "1px solid rgba(255,255,255,0.1)", boxSizing: "border-box"
-                });
-
-                let lbl = document.createElement("span");
-                lbl.textContent = isW ? "W:" : "H:";
-                lbl.style.cssText = "font-size: 11px !important; color: #aaa !important; font-weight: 700 !important; margin-right: 2px !important;";
-
-                let btnMinus = document.createElement("button");
-                btnMinus.className = "dim-btn";
-                btnMinus.textContent = "-";
-                btnMinus.onclick = function(e) {
-                    e.stopPropagation();
-                    let curW = getSavedWidth(), curH = getSavedHeight(), curS = getSavedScale();
-                    applyIframeDimensions(isW ? curW - 20 : curW, isW ? curH : curH - 20, curS);
-                };
-
-                let input = document.createElement("input");
-                input.id = isW ? "iframe-w-input" : "iframe-h-input";
-                input.type = "number";
-                input.className = "dim-input";
-                input.value = isW ? getSavedWidth() : getSavedHeight();
-                input.onchange = function(e) {
-                    let val = parseInt(e.target.value, 10);
-                    if (!isNaN(val)) {
-                        let curW = getSavedWidth(), curH = getSavedHeight(), curS = getSavedScale();
-                        applyIframeDimensions(isW ? val : curW, isW ? curH : val, curS);
-                    }
-                };
-                input.onkeydown = function(e) { e.stopPropagation(); };
-
-                let btnPlus = document.createElement("button");
-                btnPlus.className = "dim-btn";
-                btnPlus.textContent = "+";
-                btnPlus.onclick = function(e) {
-                    e.stopPropagation();
-                    let curW = getSavedWidth(), curH = getSavedHeight(), curS = getSavedScale();
-                    applyIframeDimensions(isW ? curW + 20 : curW, isW ? curH : curH + 20, curS);
-                };
-
-                group.appendChild(lbl); group.appendChild(btnMinus); group.appendChild(input); group.appendChild(btnPlus);
-                return group;
-            }
-
-            let widthCtrl = createDimensionControl('W');
-            let heightCtrl = createDimensionControl('H');
-
-            let scaleTrigger = document.createElement("span");
-            scaleTrigger.id = "scale-select-trigger";
-            scaleTrigger.textContent = "Scale " + getSavedScale().toFixed(1) + "x ▼";
-            styleClickable(scaleTrigger, "rgba(255, 255, 255, 0.08)");
-
-            let serverSelect = document.createElement("select");
-            serverSelect.id = "server-select-box";
-            styleSelect(serverSelect);
-
-            SERVERS.forEach(function(srv, idx) {
-                let opt = document.createElement("option");
-                opt.value = idx;
-                opt.textContent = srv.name || ("Server " + (idx + 1));
-                opt.style.backgroundColor = "#1c1c1e";
-                opt.style.color = "#fff";
-                serverSelect.appendChild(opt);
-            });
-            serverSelect.value = currentServerIndex;
-            serverSelect.onchange = function(e) {
-                let newSrvIdx = parseInt(e.target.value, 10) || 0;
-                currentServerIndex = newSrvIdx;
-                renderEpisodeGrid();
-                fetchAndPlayEpisode(currentServerIndex, currentEpisodeIndex);
-            };
-
-            let epTrigger = document.createElement("span");
-            epTrigger.id = "ep-select-trigger";
-            styleClickable(epTrigger, "#e50914");
-
-            container.appendChild(widthCtrl);
-            container.appendChild(heightCtrl);
-            container.appendChild(scaleTrigger);
-            container.appendChild(serverSelect);
-            container.appendChild(epTrigger);
-
-            let scalePopupGrid = createPopup("scale-grid-popup", "240px");
-            let popupGrid = createPopup("episode-grid-popup", "340px");
-
-            scaleTrigger.onclick = function(e) {
-                e.stopPropagation();
-                popupGrid.style.display = "none";
-                scalePopupGrid.style.display = (scalePopupGrid.style.display === "grid") ? "none" : "grid";
-            };
-
-            epTrigger.onclick = function(e) {
-                e.stopPropagation();
-                scalePopupGrid.style.display = "none";
-                popupGrid.style.display = (popupGrid.style.display === "grid") ? "none" : "grid";
-            };
-
-            function handleOutsideClick(e) {
-                if (!container.contains(e.target) && !popupGrid.contains(e.target) && !scalePopupGrid.contains(e.target)) {
-                    popupGrid.style.display = "none";
-                    scalePopupGrid.style.display = "none";
-                }
-            }
-            document.addEventListener("click", handleOutsideClick);
-            document.addEventListener("touchstart", handleOutsideClick, { passive: true });
-
-            let navPrev = createNavButton("nav-prev-item", "&#10094;", "left", "30px");
-            navPrev.onclick = function(e) {
-                e.stopPropagation();
-                if (currentEpisodeIndex > 0) fetchAndPlayEpisode(currentServerIndex, currentEpisodeIndex - 1);
-            };
-
-            let navNext = createNavButton("nav-next-item", "&#10095;", "right", "30px");
-            navNext.onclick = function(e) {
-                e.stopPropagation();
-                let activeServer = SERVERS[currentServerIndex];
-                if (activeServer && activeServer.episodes && currentEpisodeIndex < activeServer.episodes.length - 1) {
-                    fetchAndPlayEpisode(currentServerIndex, currentEpisodeIndex + 1);
-                }
-            };
-
-            document.body.appendChild(container);
-            document.body.appendChild(popupGrid);
-            document.body.appendChild(scalePopupGrid);
-            document.body.appendChild(navPrev);
-            document.body.appendChild(navNext);
-
-            resetAutoHideTimer();
-            renderEpisodeGrid();
-            renderScaleGrid();
-            applyIframeDimensions(getSavedWidth(), getSavedHeight(), getSavedScale());
-        }
-
-        function createPopup(id, width) {
-            let el = document.createElement("div");
-            el.id = id;
-            el.className = "floating-control-ui active-show";
-            Object.assign(el.style, {
-                position: "fixed", top: "58px", right: "20px", zIndex: "1000000",
-                backgroundColor: "rgba(22, 22, 26, 0.95)", backdropFilter: "blur(12px)",
-                border: "1px solid rgba(255, 255, 255, 0.15)", padding: "10px", borderRadius: "10px",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.8)", width: width, maxHeight: "250px",
-                overflowY: "auto", display: "none", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px"
-            });
-            return el;
-        }
-
-        function createNavButton(id, arrow, side, offset) {
-            let btn = document.createElement("span");
-            btn.id = id;
-            btn.className = "floating-control-ui active-show";
-            btn.innerHTML = arrow;
-            Object.assign(btn.style, {
-                position: "fixed", top: "50%", zIndex: "999999", transform: "translateY(-50%)",
-                width: "42px", height: "42px", borderRadius: "50%", backgroundColor: "rgba(20, 20, 20, 0.6)",
-                backdropFilter: "blur(8px)", border: "1px solid rgba(255, 255, 255, 0.12)", color: "#fff",
-                fontSize: "16px", fontWeight: "bold", cursor: "pointer", display: "flex",
-                alignItems: "center", justifyContent: "center", userSelect: "none"
-            });
-            btn.style[side] = offset;
-            return btn;
-        }
-
-        function renderEpisodeGrid() {
-            let popupGrid = document.getElementById("episode-grid-popup");
-            if (!popupGrid) return;
-            popupGrid.innerHTML = "";
-            let activeServer = SERVERS[currentServerIndex];
-            let episodes = activeServer ? (activeServer.episodes || []) : [];
-            episodes.forEach(function(ep, idx) {
-                let epItem = document.createElement("div");
-                epItem.className = "ep-grid-btn " + (idx === currentEpisodeIndex ? "active" : "inactive");
-                epItem.textContent = ep.name || ep.slug || ("Tập " + (idx + 1));
-                epItem.onclick = function(e) {
-                    e.stopPropagation();
-                    popupGrid.style.display = "none";
-                    fetchAndPlayEpisode(currentServerIndex, idx);
-                };
-                popupGrid.appendChild(epItem);
-            });
-            updateEpisodeGridState();
-        }
-
-        function updateEpisodeGridState() {
-            let epTrigger = document.getElementById("ep-select-trigger");
-            if (epTrigger) {
-                let activeServer = SERVERS[currentServerIndex];
-                let ep = activeServer && activeServer.episodes ? activeServer.episodes[currentEpisodeIndex] : null;
-                epTrigger.textContent = (ep ? (ep.name || ep.slug) : "Chọn Tập") + " ▼";
-            }
-        }
-
-        function updateNavState() {
-            let navPrev = document.getElementById("nav-prev-item");
-            let navNext = document.getElementById("nav-next-item");
-            let activeServer = SERVERS[currentServerIndex];
-            let maxEp = activeServer && activeServer.episodes ? activeServer.episodes.length : 0;
-            if (navPrev) navPrev.style.opacity = currentEpisodeIndex <= 0 ? "0.3" : "1";
-            if (navNext) navNext.style.opacity = currentEpisodeIndex >= maxEp - 1 ? "0.3" : "1";
-        }
-
-        function renderScaleGrid() {
-            let scalePopupGrid = document.getElementById("scale-grid-popup");
-            if (!scalePopupGrid) return;
-            scalePopupGrid.innerHTML = "";
-            let curSavedScale = getSavedScale();
-            for (let sVal = 0.5; sVal <= 2.05; sVal += 0.1) {
-                let formattedVal = Math.round(sVal * 10) / 10;
-                let item = document.createElement("div");
-                item.className = "ep-grid-btn " + ((Math.abs(formattedVal - curSavedScale) < 0.05) ? "active" : "inactive");
-                item.textContent = formattedVal.toFixed(1) + "x";
-                item.onclick = function(e) {
-                    e.stopPropagation();
-                    scalePopupGrid.style.display = "none";
-                    applyIframeDimensions(getSavedWidth(), getSavedHeight(), formattedVal);
-                };
-                scalePopupGrid.appendChild(item);
-            }
-        }
-
-        function styleSelect(el) {
-            Object.assign(el.style, {
-                padding: "4px 8px", borderRadius: "5px", border: "1px solid rgba(255, 255, 255, 0.12)",
-                backgroundColor: "rgba(255, 255, 255, 0.08)", color: "#fff", cursor: "pointer",
-                fontSize: "12px", outline: "none", boxSizing: "border-box", fontWeight: "600"
-            });
-        }
-
-        function styleClickable(el, bgColor) {
-            Object.assign(el.style, {
-                padding: "4px 10px", borderRadius: "5px", border: "1px solid rgba(255, 255, 255, 0.1)",
-                backgroundColor: bgColor, color: "#fff", cursor: "pointer", fontSize: "12px",
-                fontWeight: "700", textAlign: "center", transition: "background 0.2s", display: "inline-block",
-                userSelect: "none", boxSizing: "border-box", flexShrink: "0"
-            });
-        }
-
-        initBaseLayout();
-    \`;
-
-    // -------------------------------------------------------------
-    // 3. CHỜ WEBSITE TẢI XONG MỚI CHÈN THẺ <SCRIPT> CHỨA MAIN LOGIC VÀO BODY
-    // -------------------------------------------------------------
-    function injectScriptOnLoad() {
-        var scriptTag = document.createElement('script');
-        scriptTag.type = 'text/javascript';
-        scriptTag.textContent = mainLogicCode;
-        if (document.body) {
-            document.body.appendChild(scriptTag);
-        } else {
-            document.documentElement.appendChild(scriptTag);
-        }
-    }
-
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-        injectScriptOnLoad();
-    } else {
-        window.addEventListener('DOMContentLoaded', injectScriptOnLoad);
-    }
-})();
-`;
-}
 
 
 /*

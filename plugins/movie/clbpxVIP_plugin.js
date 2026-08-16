@@ -1,19 +1,21 @@
 BASEURL = "https://clbpx.alokillgtv.workers.dev";
 BASESOURCE = "";
+var popup_html = "<div class='donate-container'><h2 class='donate-heading'>DONATE</h2><p class='donate-description'>Anh em yêu quý có thể mời bọn mình 2 ly cà phê nhé. Để có động lực duy trì App, cập nhật plugin và tìm thêm nhiều nguồn mới và hay cho anh em. Một chút lòng thành cũng làm bọn mình tiếp tục hoạt động tốt hơn, cám ơn anh em.</p><div class='donate-grid'><div class='donate-card'><div class='donate-title'>Donate Tác giả Plugin</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qrht.png' alt='Donate Tác giả Plugin' /></div></div><div class='donate-card'><div class='donate-title'>Donate Tác giả App</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qryb.png' alt='Donate Tác giả App' /></div></div></div></div><style>.donate-container{max-width:800px;margin:0 auto;padding:10px;box-sizing:border-box;font-family:Arial,sans-serif;text-align:center;color:#eee}.donate-heading{font-size:22px;font-weight:bold;margin:0 0 12px 0;color:#fff;text-transform:uppercase;letter-spacing:1px}.donate-description{font-size:14px;line-height:1.5;margin-bottom:18px;color:#ccc}.donate-grid{display:flex;flex-direction:row;justify-content:center;align-items:stretch;gap:16px}.donate-card{flex:1;min-width:0;background:#22252a;border-radius:12px;padding:14px;border:1px solid #33373e;display:flex;flex-direction:column;align-items:center}.donate-title{font-weight:bold;font-size:15px;margin-bottom:12px;color:#fff}.qr-wrapper{width:100%;max-width:240px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:#181a1d;border-radius:8px;padding:8px;box-sizing:border-box}.qr-wrapper img{width:100%;height:100%;object-fit:contain;border-radius:4px}@media(max-width:600px){.donate-grid{flex-direction:column}.donate-heading{font-size:18px;margin-bottom:8px}.donate-description{font-size:13px;margin-bottom:12px}.qr-wrapper{max-width:180px}}</style>"
 function getManifest() {
     return JSON.stringify({
         "id": "clbpxVIP",
         "name": "CLB Phim Xưa VIP",
-        "version": "1.5",
+        "version": "1.6",
         "info": "",
         "BASEURL": "https://clbpx.alokillgtv.workers.dev",
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/clbpx.png",
         "isEnabled": true,
         "isAdult": false,
+        "adblock": false,
         "type": "MOVIE",
         "playerType": "embed",
         "layoutType": "HORIZONTAL",
-        "popup_html": "<div class='donate-container'><h2 class='donate-heading'>DONATE</h2><p class='donate-description'>Anh em yêu quý có thể mời bọn mình 2 ly cà phê nhé. Để có động lực duy trì App, cập nhật plugin và tìm thêm nhiều nguồn mới và hay cho anh em. Một chút lòng thành cũng làm bọn mình tiếp tục hoạt động tốt hơn, cám ơn anh em.</p><div class='donate-grid'><div class='donate-card'><div class='donate-title'>Donate Tác giả Plugin</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qrht.png' alt='Donate Tác giả Plugin' /></div></div><div class='donate-card'><div class='donate-title'>Donate Tác giả App</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qryb.png' alt='Donate Tác giả App' /></div></div></div></div><style>.donate-container{max-width:800px;margin:0 auto;padding:10px;box-sizing:border-box;font-family:Arial,sans-serif;text-align:center;color:#eee}.donate-heading{font-size:22px;font-weight:bold;margin:0 0 12px 0;color:#fff;text-transform:uppercase;letter-spacing:1px}.donate-description{font-size:14px;line-height:1.5;margin-bottom:18px;color:#ccc}.donate-grid{display:flex;flex-direction:row;justify-content:center;align-items:stretch;gap:16px}.donate-card{flex:1;min-width:0;background:#22252a;border-radius:12px;padding:14px;border:1px solid #33373e;display:flex;flex-direction:column;align-items:center}.donate-title{font-weight:bold;font-size:15px;margin-bottom:12px;color:#fff}.qr-wrapper{width:100%;max-width:240px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:#181a1d;border-radius:8px;padding:8px;box-sizing:border-box}.qr-wrapper img{width:100%;height:100%;object-fit:contain;border-radius:4px}@media(max-width:600px){.donate-grid{flex-direction:column}.donate-heading{font-size:18px;margin-bottom:8px}.donate-description{font-size:13px;margin-bottom:12px}.qr-wrapper{max-width:180px}}</style>"
+        popup_html: popup_html
     });
 }
 
@@ -292,15 +294,18 @@ function parseMovieDetail(htmlResponse) {
             boldSections.push(bMatch[1]);
         }
 
+        // ✅ Đã sửa: Chuẩn hóa URL bằng Regex cực kỳ an toàn, không lo lỗi crash
         function normalizeEpUrl(rawUrl) {
             if (!rawUrl) return "";
-            if (typeof BASEURL !== 'undefined') {
-                if (rawUrl.startsWith("http")) {
-                    return rawUrl.replace(/^https?:\/\/[^\/]+(\/api\/clbpx)?/, BASEURL);
-                }
-                return BASEURL + (rawUrl.startsWith("/") ? "" : "/") + rawUrl;
+            // Loại bỏ domain cũ nếu có (http://domain.com hoặc https://domain.com)
+            var pathAndQuery = rawUrl.replace(/^https?:\/\/[^\/]+/i, '');
+            
+            // Bắt buộc phải có dấu / ở đầu đường dẫn
+            if (!pathAndQuery.startsWith('/')) {
+                pathAndQuery = '/' + pathAndQuery;
             }
-            return rawUrl;
+
+            return "https://example.com" + pathAndQuery;
         }
 
         if (boldSections.length > 0) {
@@ -336,7 +341,7 @@ function parseMovieDetail(htmlResponse) {
                     
                     var vMatch = epUrl.match(/[?&]v=([a-zA-Z0-9_-]+)/);
                     var videoId = vMatch ? vMatch[1] : "";
-                    if (videoId) saveEp.push(videoId); // ✅ Đã sửa lỗi dư thừa cú pháp
+                    if (videoId) saveEp.push(videoId);
 
                     sectionEpisodes.push({
                         id: epUrl,
@@ -362,7 +367,7 @@ function parseMovieDetail(htmlResponse) {
 
         if (servers.length === 0) {
             var episodes = [];
-            var fallbackSaveEp = []; // ✅ Đã đổi tên biến để tránh trùng lặp
+            var fallbackSaveEp = [];
             var allLinksRegex = /<a href="([^"]*clbpx(?:\.html)?\?v=[a-zA-Z0-9_-]+)"[^>]*>([\s\S]*?)<\/a>/gi;
             var lMatch;
           
@@ -501,6 +506,8 @@ function parseMovieDetail(htmlResponse) {
     }
 }
 
+
+
 function parseDetailResponse(htmlResponse, fallbackUrl, datasend) {
     try {
         console.log("parseDetailResponse url:\n" + fallbackUrl);
@@ -526,7 +533,8 @@ function parseDetailResponse(htmlResponse, fallbackUrl, datasend) {
             headers: {
                 "Referer": "https://clbphimxua.com/",
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                "Custom-Js": checkraw
+                "Custom-Js": checkraw,
+                "Block-Ads": true
             }
         });
     } catch (error) {
@@ -537,6 +545,60 @@ function parseDetailResponse(htmlResponse, fallbackUrl, datasend) {
 
 function rawJS(initialVideoId, fallbackUrl, movieKey) {
     return `
+
+
+(function initDomInspector() {
+  if (window === window.top) {
+    if (typeof window.bridgeLog !== 'function') {
+      window.bridgeLog = function(msg) {
+        try {
+          if (window.SnifferBridge && typeof window.SnifferBridge.log === 'function') {
+            window.SnifferBridge.log(msg);
+          } else if (typeof console !== 'undefined' && console.log) {
+            console.log(msg);
+          }
+        } catch(e) {}
+      };
+    }
+
+    window.addEventListener('message', function(e) {
+      if (e.data && e.data.type === 'INSPECT_ELEMENT_RESULT') {
+        window.bridgeLog("=== PHẦN TỬ ĐƯỢC CLICK ===");
+        window.bridgeLog("Host: " + e.data.host);
+        window.bridgeLog("Target: " + e.data.target);
+        window.bridgeLog("Hierarchy: " + e.data.hierarchy);
+      }
+    });
+  }
+
+  document.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    var el = e.target;
+    var chain = [];
+
+    while (el && el !== document) {
+      var tag = el.tagName ? el.tagName.toLowerCase() : "";
+      var id = el.id ? "#" + el.id : "";
+      var cls = (el.className && typeof el.className === 'string') ? 
+        "." + el.className.trim().split(/\\s+/).join(".") : "";
+      
+      chain.push(tag + id + cls);
+      el = el.parentElement;
+    }
+
+    try {
+      window.top.postMessage({
+        type: 'INSPECT_ELEMENT_RESULT',
+        host: window.location.hostname || 'iframe',
+        target: chain[0] || 'unknown',
+        hierarchy: chain.join(" -> ")
+      }, '*');
+    } catch(err) {}
+  }, true);
+})();
+
 (function () {
   if (window.__CUSTOM_PLAYER_INITED__) return;
   window.__CUSTOM_PLAYER_INITED__ = true;
@@ -555,11 +617,8 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
   const isLevel1 = (!isTop && window.parent === window.top);
   const isLevel2 = (!isTop && !isLevel1);
 
-  var KILL_OVERLAY_CSS = "#playback, #overlay, [id*='overlay'], [class*='overlay'], [id*='playback'], [class*='playback'], .jw-controls-backdrop, .jw-display-icon-container { pointer-events: none !important; }";
+  var KILL_OVERLAY_CSS = "#playback, #overlay, .mask, .blocker, [id*='overlay'], [class*='overlay'], [id*='playback'], [class*='playback'], .jw-controls-backdrop, .jw-display-icon-container { pointer-events: none !important; opacity: 0 !important; z-index: -9999 !important; }";
 
-  // =========================================================================
-  // BẮT SỰ KIỆN PHÍM VÀ CHUYỂN LỆNH TẬP TRUNG
-  // =========================================================================
   window.addEventListener("keydown", function(e) {
     var activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
     var isUIButton = (activeTag === "button" || (document.activeElement && document.activeElement.classList.contains("ep-item")));
@@ -628,7 +687,7 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
       var activeMovieKey = "${movieKey}";
       var fallbackUrlStr = "${fallbackUrl}";
       var initVid = "${initialVideoId}";
-      var movieTitle = "";
+      var globalMovieTitle = ""; 
       var loadingTimeout = null;
       var titleDisplayTimeout = null;
       var toastTimeout = null;
@@ -645,22 +704,26 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
       function decodeBase64Utf8(str) {
         if (!str) return null;
         try {
-          var base64 = decodeURIComponent(str);
-          base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
-          while (base64.length % 4 !== 0) { base64 += '='; }
-          var binary = atob(base64);
+          var cleanBase64 = str.replace(/-/g, '+').replace(/_/g, '/');
+          while (cleanBase64.length % 4 !== 0) { cleanBase64 += '='; }
+          
+          var binary = atob(cleanBase64);
           var bytes = new Uint8Array(binary.length);
-          for (var i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
+          for (var i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+          }
+          
           if (typeof TextDecoder !== "undefined") {
             return new TextDecoder("utf-8").decode(bytes);
           }
-          var escaped = "";
-          for (var j = 0; j < binary.length; j++) {
-            escaped += "%" + ("00" + binary.charCodeAt(j).toString(16)).slice(-2);
-          }
-          return decodeURIComponent(escaped);
+          
+          return decodeURIComponent(escape(binary));
         } catch (e) {
-          return null;
+          try {
+            return decodeURIComponent(str);
+          } catch(err) {
+            return null;
+          }
         }
       }
 
@@ -669,15 +732,15 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
       var css = KILL_OVERLAY_CSS + " " +
         "html, body { width: 100vw !important; height: 100vh !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: #000 !important; position: fixed !important; top: 0 !important; left: 0 !important; } " +
         "#player-frame { width: 100vw !important; height: 100vh !important; border: 0 !important; display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; z-index: 1 !important; margin: 0 !important; padding: 0 !important; } " +
-        ".v-fade-ctrl { opacity: 0.5; transition: opacity 0.3s ease; z-index: 999999999 !important; } .v-fade-ctrl:hover, body:active .v-fade-ctrl { opacity: 1; } " +
-        ".v-menu-wrap { position: absolute; top: 15px; right: 15px; z-index: 999999999 !important; } .v-btn-toggle { background: rgba(0, 0, 0, 0.85); color: #fff; border: 1px solid rgba(255,255,255,0.4); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; } .v-btn-toggle:focus { outline: 2px solid #e50914; opacity: 1; } " +
-        ".v-title-overlay { position: absolute; top: 15px; left: 15px; z-index: 999999999 !important; background: rgba(0,0,0,0.85); border: 1px solid rgba(255,255,255,0.3); padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: bold; color: #fff; max-width: calc(100vw - 160px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; transition: opacity 0.4s ease; opacity: 0; } .v-title-overlay.show { opacity: 1; } " +
+        ".v-fade-ctrl { opacity: 0.2; transition: opacity 0.3s ease; z-index: 999999999 !important; } .v-fade-ctrl:hover, body:active .v-fade-ctrl { opacity: 1; } " +
+        ".v-menu-wrap { position: absolute; top: 15px; right: 15px; z-index: 999999999 !important; display: flex; gap: 8px; } .v-btn-toggle { background: rgba(0, 0, 0, 0.85); color: #fff; border: 1px solid rgba(255,255,255,0.4); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; } .v-btn-toggle:focus { outline: 2px solid #e50914; opacity: 1; } " +
+        ".v-title-overlay { position: absolute; top: 15px; left: 15px; z-index: 999999999 !important; background: rgba(0,0,0,0.85); border: 1px solid rgba(255,255,255,0.4); padding: 8px 14px; border-radius: 6px; font-size: 14px; font-weight: bold; color: #fff; max-width: calc(100vw - 320px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; transition: opacity 0.4s ease; opacity: 1 !important; } " +
         ".v-playlist-panel { display: none; position: absolute; top: 45px; right: 0; width: calc(100vw - 30px); max-width: 340px; max-height: calc(80vh - 70px); background: rgba(15, 15, 15, 0.98); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 12px; overflow-y: auto; -webkit-overflow-scrolling: touch; box-shadow: 0 4px 25px rgba(0,0,0,0.9); z-index: 999999999 !important; } .v-playlist-panel.active { display: block; } " +
         ".server-tabs-container { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.15); -webkit-overflow-scrolling: touch; } .server-tab-item { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: #ccc; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap; font-weight: bold; } .server-tab-item:focus { outline: 2px solid #fff; } .server-tab-item.active { background: #e50914; color: #fff; border-color: #e50914; } " +
         ".ep-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; } .ep-item { background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.25); color: #fff; padding: 8px 2px; text-align: center; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ep-item:focus { outline: 2px solid #e50914; background: rgba(229, 9, 20, 0.5); } .ep-item.active { background: #e50914; font-weight: bold; border-color: #fff; } " +
         ".nav-ep-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.4); color: white; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; z-index: 999999999 !important; } .nav-ep-btn:focus { outline: 2px solid #e50914; } .nav-prev { left: 15px; } .nav-next { right: 15px; } " +
-        "#v-loading-layer { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 99999999 !important; pointer-events: none; } .spinner { width: 42px; height: 42px; border: 4px solid rgba(255,255,255,0.15); border-top-color: #e50914; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; } @keyframes spin { to { transform: rotate(360deg); } } " +
-        ".mini-toast { position: absolute; top: 65%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: rgba(0, 0, 0, 0.95); border: 2px solid #e50914; color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 14px; font-weight: bold; z-index: 999999999 !important; display: flex; align-items: center; gap: 8px; box-shadow: 0 0 20px rgba(229, 9, 20, 0.6); pointer-events: none; opacity: 0; transition: opacity 0.1s ease, transform 0.1s ease; text-align: center; } .mini-toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }";
+        ".v-load-txt{color:white!important; z-index: 9999999999 !important;}#v-loading-layer { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999999999 !important; pointer-events: none; } .spinner { width: 42px; height: 42px; border: 4px solid rgba(255,255,255,0.15); border-top-color: #e50914; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; } @keyframes spin { to { transform: rotate(360deg); } " +
+        ".mini-toast { position: absolute; top: 65%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: rgba(0, 0, 0, 0.95); border: 2px solid #e50914; color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 14px; font-weight: bold; z-index: 999999999 !important; display: flex; align-items: center; gap: 8px; box-shadow: 0 0 20px rgba(229, 9, 20, 0.6); pointer-events: none; opacity: 0; transition: opacity 0.1s ease, transform 0.1s ease; text-align: center;z-index: 99999999999 !important } .mini-toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1);  z-index: 99999999999 !important}";
       
       var style = document.createElement("style"); 
       style.appendChild(document.createTextNode(css)); 
@@ -701,15 +764,45 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
       
       var loadingOverlay = document.createElement("div"); 
       loadingOverlay.id = "v-loading-layer";
-      loadingOverlay.innerHTML = '<div class="spinner"></div><div id="v-load-txt" style="font-size:13px; font-weight:bold;">Đang tải...</div>';
+      loadingOverlay.innerHTML = '<div class="spinner"></div><div id="v-load-txt" style="font-size:13px; font-weight:bold;color:white!important;z-index:214748364723 !important">Đang tải...</div>';
       
       var miniToast = document.createElement("div"); 
       miniToast.className = "mini-toast";
       miniToast.id = "v-mini-toast";
 
+      // CUỘC HỘI TỤ MENU GÓC PHẢI
       var epContainer = document.createElement("div"); 
       epContainer.className = "v-menu-wrap v-fade-ctrl";
-      
+
+      // NÚT CHỈNH SCALE
+      var scaleToggleBtn = document.createElement("button");
+      scaleToggleBtn.className = "v-btn-toggle";
+      scaleToggleBtn.innerText = "Scale: Vừa khung";
+      scaleToggleBtn.setAttribute("tabindex", "0");
+
+      var scaleModes = [
+        { name: "Vừa khung", fit: "contain" },
+        { name: "Lấp đầy", fit: "cover" },
+        { name: "Đãn khung", fit: "fill" }
+      ];
+      var currentScaleIdx = 0;
+
+      scaleToggleBtn.onclick = function (e) {
+        e.stopPropagation();
+        currentScaleIdx = (currentScaleIdx + 1) % scaleModes.length;
+        var selectedMode = scaleModes[currentScaleIdx];
+        scaleToggleBtn.innerText = "Scale: " + selectedMode.name;
+
+        if (iframe && iframe.contentWindow) {
+          iframe.contentWindow.postMessage({ 
+            type: "CHANGE_SCALE", 
+            fit: selectedMode.fit,
+            name: selectedMode.name 
+          }, "*");
+        }
+      };
+
+      // NÚT DANH SÁCH TẬP
       var epToggleBtn = document.createElement("button"); 
       epToggleBtn.className = "v-btn-toggle"; 
       epToggleBtn.innerText = "Danh sách tập";
@@ -717,9 +810,6 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
       epToggleBtn.onclick = function (e) {
         e.stopPropagation();
         epPanel.classList.toggle("active"); 
-        if (epPanel.classList.contains("active")) {
-          triggerTitleDisplay();
-        }
       };
       
       var epPanel = document.createElement("div"); 
@@ -732,6 +822,7 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
       
       epPanel.appendChild(serverTabs); 
       epPanel.appendChild(epGrid); 
+      epContainer.appendChild(scaleToggleBtn);
       epContainer.appendChild(epToggleBtn); 
       epContainer.appendChild(epPanel);
 
@@ -755,7 +846,18 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
       document.body.appendChild(prevBtn); 
       document.body.appendChild(nextBtn);
 
-      // HIỂN THỊ TOAST TRONG 2 GIÂY (2000ms)
+      function focusPlayerIframe() {
+        try {
+          if (iframe) {
+            iframe.focus();
+            if (iframe.contentWindow) {
+              iframe.contentWindow.focus();
+              iframe.contentWindow.postMessage({ type: "FOCUS_LEVEL2" }, "*");
+            }
+          }
+        } catch(e) {}
+      }
+
       window.showMiniToast = function(msg) {
         miniToast.innerHTML = '⚡ <span>' + msg + '</span>';
         miniToast.classList.add("show");
@@ -765,16 +867,6 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
         }, 2000);
       };
 
-      function requestFullScreenTop() {
-        try {
-          var el = document.documentElement;
-          var rfs = el.requestFullscreen || el.webkitRequestFullScreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-          if (rfs && !document.fullscreenElement && !document.webkitFullscreenElement) {
-            rfs.call(el);
-          }
-        } catch(e) {}
-      }
-
       function triggerTitleDisplay() {
         if (!serversList || serversList.length === 0) return;
         var curServer = serversList[currentServerIndex];
@@ -782,21 +874,20 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
         
         var epObj = curServer.episodes[currentIndex];
         var epName = epObj.name || ("Tập " + (currentIndex + 1));
-        var displayStr = (movieTitle ? movieTitle + " - " : "") + epName;
+        var movieName = curServer.nameMV || globalMovieTitle || "";
+        
+        var displayStr = movieName ? (movieName + " - " + epName) : epName;
         
         titleOverlay.innerText = displayStr;
-        titleOverlay.classList.add("show");
-
-        if (titleDisplayTimeout) clearTimeout(titleDisplayTimeout);
-        titleDisplayTimeout = setTimeout(function() {
-          titleOverlay.classList.remove("show");
-        }, 8000);
+        document.title = displayStr; 
       }
 
       function showLoading(msg) {
         var el = document.getElementById("v-load-txt");
         if (el) el.innerText = msg || "Đang tải video...";
         loadingOverlay.style.display = "flex";
+        el.style.color = "white!important";
+        loadingOverlay.style.color = "white!important";
         if (loadingTimeout) clearTimeout(loadingTimeout);
         loadingTimeout = setTimeout(function() { hideLoading(); }, 10000);
       }
@@ -804,10 +895,12 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
       function hideLoading() {
         if (loadingTimeout) clearTimeout(loadingTimeout);
         loadingOverlay.style.display = "none";
+        focusPlayerIframe();
       }
 
-      iframe.onload = function() { 
-        hideLoading(); 
+      iframe.onload = function() {
+        hideLoading();
+        focusPlayerIframe();
       };
 
       try {
@@ -817,35 +910,43 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
         if (saveParamMatch && saveParamMatch[1]) {
           var decodedJson = decodeBase64Utf8(saveParamMatch[1]);
           if (decodedJson) {
-            rawData = JSON.parse(decodedJson);
+            try {
+              rawData = JSON.parse(decodedJson);
+            } catch(jsonErr) {
+              bridgeLog("Lỗi JSON Parse: " + jsonErr.message);
+            }
           }
         }
 
         if (Array.isArray(rawData) && rawData.length > 0) {
           rawData.forEach(function(server) {
-            if (server && server.nameMV && !movieTitle) {
-              movieTitle = server.nameMV;
+            if (server && server.nameMV && !globalMovieTitle) {
+              globalMovieTitle = server.nameMV;
             }
-            if (server && server.episodes && Array.isArray(server.episodes) && server.episodes.length > 0) {
+            
+            if (server && server.episodes && Array.isArray(server.episodes)) {
               var formattedEps = server.episodes.map(function(epItem, idx) {
-                if (typeof epItem === 'object' && epItem !== null) {
-                  return epItem;
-                }
+                var epId = (typeof epItem === 'object' && epItem !== null) ? (epItem.id || epItem.slug) : String(epItem);
+                var epName = (typeof epItem === 'object' && epItem !== null && epItem.name) ? epItem.name : ("Tập " + (idx + 1));
+                
                 return {
-                  id: String(epItem),
-                  name: "Tập " + (idx + 1),
-                  slug: String(epItem)
+                  id: String(epId),
+                  name: epName,
+                  slug: String(epId)
                 };
               });
 
               serversList.push({
                 name: server.name || server.server_name || ("Server " + (serversList.length + 1)),
+                nameMV: server.nameMV || globalMovieTitle || "",
                 episodes: formattedEps
               });
             }
           });
         }
-      } catch (e) {}
+      } catch (e) {
+        bridgeLog("Lỗi tổng trong quá trình parse data: " + e.message);
+      }
 
       function renderUI() {
         if (serversList.length === 0) return;
@@ -881,14 +982,6 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
         });
       }
 
-      function reloadCurrentIframe() {
-        if (iframe && iframe.src) {
-          var currentUrl = iframe.src;
-          iframe.src = "about:blank";
-          setTimeout(function() { iframe.src = currentUrl; }, 300);
-        }
-      }
-
       function selectEpisode(sIdx, epIdx, shouldChangeIframe) {
         if (serversList.length === 0) return;
         if (sIdx < 0 || sIdx >= serversList.length) return;
@@ -902,12 +995,14 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
         triggerTitleDisplay();
 
         var epObj = curServer.episodes[epIdx];
-        var rawId = epObj.id || epObj.slug || epObj.link || epObj.url || "";
+        var rawId = epObj.id || epObj.slug || "";
         var cleanId = extractId(rawId);
 
         if (shouldChangeIframe) {
           var epName = epObj.name || ("Tập " + (epIdx + 1));
-          showLoading("Đang tải " + epName + "...");
+          var movieName = curServer.nameMV || globalMovieTitle || "";
+          
+          showLoading("Đang tải " + (movieName ? movieName + " - " : "") + epName + "...");
           window.showMiniToast("Đang chuyển tới " + epName);
 
           var targetUrl = cleanId;
@@ -915,8 +1010,8 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
             targetUrl = ABYSS_BASE_URL + cleanId;
           }
           
-          bridgeLog("🎬 [CHUYỂN TẬP] " + (movieTitle ? movieTitle + " - " : "") + epName + " | Link: " + targetUrl);
           iframe.src = targetUrl;
+          focusPlayerIframe();
         }
       }
 
@@ -933,7 +1028,7 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
         for (var s = 0; s < serversList.length; s++) {
           var eps = serversList[s].episodes;
           for (var e = 0; e < eps.length; e++) {
-            var currentEpId = extractId(eps[e].id || eps[e].slug || eps[e].link || eps[e].url || "");
+            var currentEpId = extractId(eps[e].id || eps[e].slug || "");
             if (currentEpId && (currentEpId.toLowerCase() === targetId.toLowerCase())) {
               selectedServerIdx = s;
               selectedEpIdx = e;
@@ -955,10 +1050,6 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
             navigateEp(event.data.direction);
           } else if (event.data.type === "TOAST_MSG") {
             window.showMiniToast(event.data.msg);
-          } else if (event.data.type === "RELOAD_IFRAME") {
-            reloadCurrentIframe();
-          } else if (event.data.type === "REQ_FULLSCREEN") {
-            requestFullScreenTop();
           } else if (event.data.type === "CMD_TOGGLE_PLAY") {
             if (iframe && iframe.contentWindow) {
               iframe.contentWindow.postMessage({ type: "TOGGLE_PLAY" }, "*");
@@ -987,7 +1078,7 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
     function initL2() {
       try {
         var overlayStyle = document.createElement("style");
-        overlayStyle.innerHTML = KILL_OVERLAY_CSS + " html, body { margin:0 !important; padding:0 !important; width:100vw !important; height:100vh !important; overflow:hidden !important; background:#000 !important; position:fixed !important; top:0 !important; left:0 !important; }";
+        overlayStyle.innerHTML = "html, body { margin:0 !important; padding:0 !important; width:100vw !important; height:100vh !important; overflow:hidden !important; background:#000 !important; position:fixed !important; top:0 !important; left:0 !important; }";
         (document.head || document.documentElement).appendChild(overlayStyle);
       } catch(e) {}
 
@@ -1003,10 +1094,28 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
 
       document.body.appendChild(newChildFrame);
 
+      function focusLevel3() {
+        try {
+          if (newChildFrame) {
+            newChildFrame.focus();
+            if (newChildFrame.contentWindow) {
+              newChildFrame.contentWindow.focus();
+              newChildFrame.contentWindow.postMessage({ type: "FOCUS_CORE" }, "*");
+            }
+          }
+        } catch(e) {}
+      }
+
+      newChildFrame.onload = function() { focusLevel3(); };
+
       window.addEventListener("message", function(e) {
-        if (e.data && (e.data.type === "TOGGLE_PLAY" || e.data.type === "SEEK")) {
-          if (newChildFrame && newChildFrame.contentWindow) {
-            newChildFrame.contentWindow.postMessage(e.data, "*");
+        if (e.data) {
+          if (e.data.type === "TOGGLE_PLAY" || e.data.type === "SEEK" || e.data.type === "CHANGE_SCALE") {
+            if (newChildFrame && newChildFrame.contentWindow) {
+              newChildFrame.contentWindow.postMessage(e.data, "*");
+            }
+          } else if (e.data.type === "FOCUS_LEVEL2") {
+            focusLevel3();
           }
         }
       });
@@ -1020,220 +1129,153 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
     return;
   }
 
+    // =========================================================================
+  // LỚP 3: CORE PLAYER (MODULE TỰ ĐỘNG PLAY & GIÁM SÁT 1 PHÚT)
   // =========================================================================
-  // LỚP 3: CORE PLAYER - CHỌN ĐỘ PHÂN GIẢI CAO NHẤT
+    // =========================================================================
+  // LỚP 3: CORE PLAYER (AUTO HIGH QUALITY + LOCAL TOAST BOTTOM RIGHT + MONITOR)
   // =========================================================================
   if (isLevel2) {
-    var hasReloadedOnce = false;
-    var autoNextTriggered = false;
-    var maxQualitySet = false;
+    var hasSetQuality = false;
 
-    function sendToastToTop(msg) {
-      try {
-        window.top.postMessage({ type: "TOAST_MSG", msg: msg }, "*");
-      } catch(e) {}
+    // 1. TẠO TOAST TRỰC TIẾP TRONG LỚP 3 (GÓC DƯỚI BÊN PHẢI - NÂNG CAO LÊN TRÁNH THANH PROGRESS BAR)
+    var localToast = document.createElement("div");
+    localToast.id = "l3-custom-toast";
+    localToast.style.cssText = "position:fixed; bottom:70px; right:20px; background:rgba(0,0,0,0.85); color:#fff; border:1px solid #e50914; padding:8px 16px; border-radius:6px; font-size:13px; font-weight:bold; font-family:sans-serif; z-index:2147483647; opacity:0; transition:opacity 0.2s ease, transform 0.2s ease; transform:translateY(10px); pointer-events:none; box-shadow:0 4px 12px rgba(0,0,0,0.5);";
+    (document.body || document.documentElement).appendChild(localToast);
+
+    var toastTimer = null;
+    function showL3Toast(msg) {
+      // Gửi ra Top Frame (nếu top hỗ trợ hiển thị)
+      try { window.top.postMessage({ type: "TOAST_MSG", msg: msg }, "*"); } catch(e) {}
+      
+      // Hiển thị trực tiếp tại Lớp 3
+      localToast.innerText = "⚡ " + msg;
+      localToast.style.opacity = "1";
+      localToast.style.transform = "translateY(0)";
+      
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function() {
+        localToast.style.opacity = "0";
+        localToast.style.transform = "translateY(10px)";
+      }, 2500);
     }
 
-    function triggerFullScreen() {
-      try {
-        window.top.postMessage({ type: "REQ_FULLSCREEN" }, "*");
-      } catch(e) {}
+    var customScaleStyle = document.createElement("style");
+    customScaleStyle.id = "custom-jw-scale-style";
+    (document.head || document.documentElement).appendChild(customScaleStyle);
+
+    function applyScaleMode(fitMode) {
+      customScaleStyle.innerHTML = 
+        "video, .jw-video, .jw-media, video.jw-video { " +
+        "  object-fit: " + fitMode + " !important; " +
+        "  width: 100% !important; " +
+        "  height: 100% !important; " +
+        "}";
     }
+    applyScaleMode("contain");
 
-    // TỰ ĐỘNG CHỌN ĐỘ PHÂN GIẢI CAO NHẤT
-    function setHighestQuality() {
-      if (maxQualitySet) return;
-
-      // Dành cho JWPlayer
-      if (typeof jwplayer === 'function') {
-        try {
+    // 2. HÀM TỰ ĐỘNG CHỌN QUALITY CAO NHẤT (CÓ RETRY VÀ KIỂM TRA ĐỘ PHÂN GIẢI SỐ)
+    function autoSetBestQuality() {
+      if (hasSetQuality) return;
+      try {
+        if (typeof jwplayer === 'function') {
           var p = jwplayer();
-          if (p && typeof p.getQualityLevels === 'function') {
+          if (p && typeof p.getQualityLevels === 'function' && typeof p.setCurrentQuality === 'function') {
             var levels = p.getQualityLevels();
-            if (levels && levels.length > 0) {
-              var maxIdx = 0;
-              var maxRes = 0;
-              levels.forEach(function(lvl, idx) {
-                var res = lvl.height || parseInt(lvl.label) || 0;
-                if (res > maxRes) {
-                  maxRes = res;
-                  maxIdx = idx;
-                }
-              });
-              p.setCurrentQuality(maxIdx);
-              maxQualitySet = true;
-              var label = levels[maxIdx].label || (maxRes ? maxRes + "p" : "Chất lượng cao nhất");
-              sendToastToTop("🎬 Độ phân giải: " + label);
-              return;
-            }
-          }
-        } catch(e) {}
-      }
+            
+            // Nếu danh sách chưa sẵn sàng hoặc chỉ có 1 mức (Auto), bỏ qua chờ lần lặp sau
+            if (!levels || levels.length <= 1) return;
 
-      // Dành cho thẻ video / HLS.js
-      if (window.hls && window.hls.levels) {
-        try {
-          var hlsLevels = window.hls.levels;
-          if (hlsLevels.length > 0) {
-            var topIdx = hlsLevels.length - 1;
-            window.hls.currentLevel = topIdx;
-            maxQualitySet = true;
-            var hlsLabel = hlsLevels[topIdx].height ? hlsLevels[topIdx].height + "p" : "Chất lượng cao nhất";
-            sendToastToTop("🎬 Độ phân giải: " + hlsLabel);
-            return;
-          }
-        } catch(e) {}
-      }
-    }
-
-    try {
-      var playerFixStyle = document.createElement("style");
-      playerFixStyle.innerHTML = KILL_OVERLAY_CSS + \`
-        html, body { margin: 0 !important; padding: 0 !important; width: 100vw !important; height: 100vh !important; overflow: hidden !important; background: #000 !important; position: absolute !important; top: 0 !important; left: 0 !important; }
-        video { width: 100vw !important; height: 100vh !important; top: 0 !important; left: 0 !important; object-fit: contain !important; position: absolute !important; z-index: 10 !important; pointer-events: auto !important; }
-        .jwplayer, .video-js { width: 100vw !important; height: 100vh !important; top: 0 !important; left: 0 !important; position: absolute !important; z-index: 10 !important; }
-        .jw-controlbar, .vjs-control-bar { display: flex !important; opacity: 1 !important; visibility: visible !important; z-index: 2147483647 !important; bottom: 0 !important; position: absolute !important; width: 100% !important; pointer-events: auto !important; }
-        .jw-controls, .vjs-controls { pointer-events: auto !important; }
-      \`;
-      (document.head || document.documentElement).appendChild(playerFixStyle);
-    } catch(e) {}
-
-    function forceKillOverlayAndPlayback() {
-      try {
-        var ov = document.querySelectorAll("#overlay, .overlay, [id*='overlay'], [class*='overlay'], #playback, [id*='playback'], [class*='playback']");
-        ov.forEach(function(el) {
-          if (el) {
-            el.style.setProperty("pointer-events", "none", "important");
-            el.style.setProperty("z-index", "-1", "important");
-          }
-        });
-      } catch(e) {}
-    }
-
-    function destroyContinueDialog() {
-      try {
-        var allElements = document.querySelectorAll("div, section, article, span, p, button, a");
-        allElements.forEach(function(el) {
-          if (el.children.length <= 4) {
-            var txt = (el.innerText || el.textContent || "").toLowerCase();
-            if (txt.includes("continue watching") || txt.includes("you have watched up to")) {
-              var targetBtns = el.querySelectorAll("button, a, div[role='button'], .btn");
-              if (targetBtns.length === 0) targetBtns = document.querySelectorAll("button, [role='button']");
-
-              targetBtns.forEach(function(btn) {
-                var btnTxt = (btn.innerText || btn.textContent || "").toLowerCase();
-                if (btnTxt.includes("continue") || btnTxt.includes("xem tiếp") || btn.classList.contains("jw-prompt-resume") || btn.style.backgroundColor.includes("rgb(72, 187, 120)") || btn.style.backgroundColor.includes("green")) {
-                  ['mousedown', 'mouseup', 'click'].forEach(function(eventType) {
-                    var clickEvent = new MouseEvent(eventType, { view: window, bubbles: true, cancelable: true });
-                    btn.dispatchEvent(clickEvent);
-                  });
-                  btn.click();
-                  sendToastToTop("Đã bấm Xem tiếp");
-                  if (el.style) el.style.setProperty("display", "none", "important");
-                }
-              });
-            }
-          }
-        });
-      } catch(e) {}
-    }
-
-    try {
-      var obsL3 = new MutationObserver(function() {
-        forceKillOverlayAndPlayback();
-        destroyContinueDialog();
-        bindVideoEvents();
-        setHighestQuality();
-      });
-      obsL3.observe(document.documentElement || document.body, { childList: true, subtree: true, attributes: true });
-    } catch(e) {}
-
-    function bindVideoEvents() {
-      var videoEl = document.querySelector("video");
-      if (videoEl && !videoEl.__BOUND_EVENTS__) {
-        videoEl.__BOUND_EVENTS__ = true;
-        
-        videoEl.addEventListener("timeupdate", function() {
-          if (videoEl.duration && videoEl.currentTime) {
-            var timeLeft = videoEl.duration - videoEl.currentTime;
-            if (timeLeft <= 5 && timeLeft > 0 && !autoNextTriggered) {
-              autoNextTriggered = true;
-              sendToastToTop("⏭️ Đã hết phim. Tự động chuyển tập kế...");
-              window.top.postMessage({ type: "EP_NAV", direction: 1 }, "*");
-            }
-          }
-        });
-
-        videoEl.addEventListener("play", function() {
-          triggerFullScreen();
-          setHighestQuality();
-        });
-      }
-
-      if (typeof jwplayer === 'function') {
-        try {
-          var p = jwplayer();
-          if (p && typeof p.on === 'function' && !p.__BOUND_JW__) {
-            p.__BOUND_JW__ = true;
-            p.on('time', function(e) {
-              if (e.duration && e.position) {
-                var remaining = e.duration - e.position;
-                if (remaining <= 5 && remaining > 0 && !autoNextTriggered) {
-                  autoNextTriggered = true;
-                  sendToastToTop("⏭️ Đã hết phim. Tự động chuyển tập kế...");
-                  window.top.postMessage({ type: "EP_NAV", direction: 1 }, "*");
+            var bestIndex = -1;
+            
+            // Tìm theo Label chuẩn: 4k / 2160p -> 1080p -> 720p
+            var targets = ["2160", "4k", "1080", "720"];
+            for (var t = 0; t < targets.length; t++) {
+              for (var i = 0; i < levels.length; i++) {
+                var lbl = String(levels[i].label || "").toLowerCase();
+                if (lbl.indexOf(targets[t]) !== -1) {
+                  bestIndex = i;
+                  break;
                 }
               }
-            });
-            p.on('play', function() {
-              triggerFullScreen();
-              setHighestQuality();
-            });
-            p.on('ready', function() {
-              setHighestQuality();
-            });
+              if (bestIndex !== -1) break;
+            }
+
+            // Nếu không khớp chuỗi text, lọc theo giá trị width/height thực tế nếu có
+            if (bestIndex === -1) {
+              var maxRes = 0;
+              for (var j = 0; j < levels.length; j++) {
+                var res = levels[j].height || levels[j].width || 0;
+                if (res > maxRes) {
+                  maxRes = res;
+                  bestIndex = j;
+                }
+              }
+            }
+
+            // Mặc định cuối cùng: Lấy phần tử có Index lớn nhất
+            if (bestIndex === -1) {
+              bestIndex = levels.length - 1;
+            }
+
+            if (bestIndex !== -1) {
+              p.setCurrentQuality(bestIndex);
+              var qLabel = levels[bestIndex].label || (levels[bestIndex].height ? levels[bestIndex].height + "p" : "Cao nhất");
+              
+              showL3Toast("Chất lượng: " + qLabel);
+              hasSetQuality = true; // Khóa lại khi đã áp dụng thành công
+
+              // Ép play lại nếu việc chuyển Quality khiến video bị Pause
+              setTimeout(function() {
+                if (p.getState && p.getState() !== 'playing') {
+                  if (typeof p.play === 'function') p.play(true);
+                }
+              }, 300);
+            }
           }
-        } catch(e) {}
-      }
+        }
+      } catch(e) {}
     }
 
     function executeAutoplay() {
       try {
         if (typeof jwplayer === 'function') {
           var p = jwplayer();
-          if (p && typeof p.play === 'function') {
-            p.play(true);
-            triggerFullScreen();
-            setHighestQuality();
-            return true;
+          if (p && typeof p.getState === 'function') {
+            if (p.getState() === 'playing') {
+              autoSetBestQuality();
+              return true;
+            }
+            if (typeof p.play === 'function') p.play(true);
           }
         }
+
         var videoEl = document.querySelector("video");
         if (videoEl) {
+          if (!videoEl.paused && videoEl.currentTime > 0) {
+            autoSetBestQuality();
+            return true;
+          }
           videoEl.muted = false;
           var promise = videoEl.play();
           if (promise !== undefined) {
-            promise.then(function() {
-              triggerFullScreen();
-              setHighestQuality();
-            }).catch(function() {
-              videoEl.muted = true;
-              videoEl.play();
-              triggerFullScreen();
-              setHighestQuality();
+            promise.catch(function() { 
+              videoEl.muted = true; 
+              videoEl.play(); 
             });
           }
-          return true;
-        }
-        var bigPlayBtn = document.querySelector(".jw-display-icon-container, .jw-icon-play, .vjs-big-play-button");
-        if (bigPlayBtn) {
-          bigPlayBtn.click();
-          triggerFullScreen();
-          setHighestQuality();
-          return true;
         }
       } catch(e) {}
       return false;
+    }
+
+    function focusCorePlayer() {
+      try {
+        window.focus();
+        var v = document.querySelector("video");
+        if (v) v.focus();
+      } catch(e) {}
     }
 
     function togglePlayCore() {
@@ -1241,28 +1283,15 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
         if (typeof jwplayer === 'function') {
           var p = jwplayer();
           if (p && typeof p.getState === 'function') {
-            var state = p.getState();
-            if (state === "playing") {
-              p.pause(true);
-              sendToastToTop("Tạm dừng");
-            } else {
-              p.play(true);
-              sendToastToTop("Đang phát");
-              triggerFullScreen();
-            }
+            if (p.getState() === "playing") { p.pause(true); showL3Toast("Tạm dừng"); } 
+            else { p.play(true); showL3Toast("Đang phát"); }
             return;
           }
         }
         var videoEl = document.querySelector("video");
         if (videoEl) {
-          if (videoEl.paused) {
-            videoEl.play();
-            sendToastToTop("Đang phát");
-            triggerFullScreen();
-          } else {
-            videoEl.pause();
-            sendToastToTop("Tạm dừng");
-          }
+          if (videoEl.paused) { videoEl.play(); showL3Toast("Đang phát"); } 
+          else { videoEl.pause(); showL3Toast("Tạm dừng"); }
           return;
         }
         executeAutoplay();
@@ -1274,97 +1303,95 @@ function rawJS(initialVideoId, fallbackUrl, movieKey) {
         if (typeof jwplayer === 'function') {
           var p = jwplayer();
           if (p && typeof p.getPosition === 'function' && typeof p.seek === 'function') {
-            var pos = p.getPosition();
-            p.seek(pos + seconds);
-            sendToastToTop((seconds > 0 ? "Tua tới +" : "Tua lùi ") + seconds + "s");
+            p.seek(p.getPosition() + seconds);
+            showL3Toast((seconds > 0 ? "Tua tới +" : "Tua lùi ") + seconds + "s");
             return;
           }
         }
         var videoEl = document.querySelector("video");
         if (videoEl) {
           videoEl.currentTime += seconds;
-          sendToastToTop((seconds > 0 ? "Tua tới +" : "Tua lùi ") + seconds + "s");
+          showL3Toast((seconds > 0 ? "Tua tới +" : "Tua lùi ") + seconds + "s");
         }
       } catch(e) {}
     }
+    
+    // 3. GIÁM SÁT TRONG 1 PHÚT (EVALUATE CHẤT LƯỢNG KHI NÀO SẴN SÀNG)
+    (function monitorAndForcePlay() {
+      var elapsedTime = 0;
+      var intervalTime = 500;
 
-    function startVideoHealthCheck() {
-      setTimeout(function() {
-        var isVideoOk = false;
+      var monitorInterval = setInterval(function() {
+        elapsedTime += intervalTime;
+        
+        if (elapsedTime >= 60000) {
+          clearInterval(monitorInterval);
+          return;
+        }
 
-        if (typeof jwplayer === 'function') {
-          try {
-            var p = jwplayer();
-            if (p && typeof p.getState === 'function') {
-              var st = p.getState();
-              if (st === "playing" || st === "buffering" || st === "paused") {
-                isVideoOk = true;
-              }
+        try {
+          // Auto Click Continue Button
+          var notifyBtn = document.querySelector(".jwpl-notify-custom-continue, #overlay");
+          if (notifyBtn) {
+            var isVisible = (notifyBtn.offsetWidth > 0 || notifyBtn.offsetHeight > 0 || getComputedStyle(notifyBtn).display !== 'none');
+            if (isVisible) {
+              notifyBtn.click();
+              showL3Toast("Đã tự động tiếp tục phát");
             }
-          } catch(e) {}
-        }
+          }
 
-        if (!isVideoOk) {
+          // Kiểm tra và ép phát nếu bị dừng + Thử đổi Quality liên tục cho đến khi thành công
+          var isPaused = false;
+          if (typeof jwplayer === 'function') {
+            try {
+              var p = jwplayer();
+              if (p && typeof p.getState === 'function') {
+                if (p.getState() !== 'playing') {
+                  isPaused = true;
+                } else {
+                  autoSetBestQuality(); // Chạy liên tục mỗi 0.5s nếu chưa set thành công
+                }
+              }
+            } catch(e) {}
+          }
+
           var videoEl = document.querySelector("video");
-          if (videoEl && !videoEl.error && (videoEl.readyState >= 2 || videoEl.currentTime > 0 || !videoEl.paused)) {
-            isVideoOk = true;
+          if (videoEl && videoEl.paused) {
+            isPaused = true;
           }
-        }
 
-        if (!isVideoOk) {
-          if (!hasReloadedOnce) {
-            hasReloadedOnce = true;
-            sendToastToTop("❌ Không thấy video hoặc video bị lỗi. Đang tự tải lại trang sau 10s...");
-            setTimeout(function() {
-              window.top.postMessage({ type: "RELOAD_IFRAME" }, "*");
-            }, 10000);
-          } else {
-            sendToastToTop("⚠️ Tải lại vẫn lỗi! Đang tự động chuyển sang tập tiếp theo sau 10s...");
-            setTimeout(function() {
-              window.top.postMessage({ type: "EP_NAV", direction: 1 }, "*");
-            }, 10000);
+          if (isPaused) {
+            executeAutoplay();
           }
-        }
-      }, 10000);
-    }
+        } catch (e) {}
+      }, intervalTime);
+    })();
 
     if (document.readyState === "complete") {
-      startVideoHealthCheck();
-      bindVideoEvents();
-      setHighestQuality();
+      focusCorePlayer();
     } else {
-      window.addEventListener("load", function() {
-        startVideoHealthCheck();
-        bindVideoEvents();
-        setHighestQuality();
+      window.addEventListener("load", function() { 
+        focusCorePlayer(); 
       });
     }
 
     window.addEventListener("message", function(e) {
       if (e.data) {
-        if (e.data.type === "TOGGLE_PLAY") {
-          togglePlayCore();
-        } else if (e.data.type === "SEEK") {
-          seekCore(e.data.seconds || 10);
+        if (e.data.type === "TOGGLE_PLAY") togglePlayCore();
+        else if (e.data.type === "SEEK") seekCore(e.data.seconds || 10);
+        else if (e.data.type === "FOCUS_CORE") focusCorePlayer();
+        else if (e.data.type === "CHANGE_SCALE") {
+          applyScaleMode(e.data.fit);
+          showL3Toast("Tỷ lệ khung hình: " + e.data.name);
         }
       }
     });
-
-    window.addEventListener("click", function() {
-      executeAutoplay();
-    }, { once: true });
-
-    var autoPlayAttempts = 0;
-    var autoPlayInterval = setInterval(function() {
-      autoPlayAttempts++;
-      forceKillOverlayAndPlayback();
-      destroyContinueDialog();
-      bindVideoEvents();
-      executeAutoplay();
-      setHighestQuality();
-      if (autoPlayAttempts > 20) clearInterval(autoPlayInterval);
-    }, 400);
   }
+
+
 })();
   `;
 }
+
+
+

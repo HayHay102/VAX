@@ -1,4 +1,4 @@
-var BASEURL = "http://vkey.vn/hhpanda"; 
+var BASEURL = "https://hhpanda.st"; 
 var LOGGER = false;
 // https://www.whoreshub.com/categories/4k-porn/
 function getManifest() {
@@ -6,15 +6,16 @@ function getManifest() {
       "id": "hhpanda",
       "name": "Nguồn HHPanda",
       "description": "Anime siêu hay.",
-      "version": "1.2.1",
-      "info": "Nguồn phim hoạt hình chất lượng cao, tuy nhiên cơ chế chiếu phát của nó rất khó chịu. Chỉ phát được trên máy chủ của họ còn phát qua app sẽ bị mất góc không tràn viền.\r\nVì thế đã tích hợp bộ chỉnh kích cỡ video vào bên trong video. Bạn có thể chỉnh sao cho vừa màn hình. Chỉ cần chỉnh 1 lần là các lần sau sẽ dùng như vậy.",
-      "baseUrl": "http://vkey.vn/hhpanda",
-      "iconUrl": "http://vkey.vn/hhpanda/wp-content/uploads/2024/10/logo.webp",
+      "version": "1.4",
+      "info": "",
+      "baseUrl": "https://hhpanda.st",
+      "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/hhpanda.png",
       "isEnabled": true,
       "layoutType": "HORIZONTAL",
       "adblock": false,
-      "type": "MOVIE",
-      "playerTpye": "embedtoexoplay"
+      "type": "ANIME",
+      "popup_html": "<div class='donate-container'><h2 class='donate-heading'>DONATE</h2><p class='donate-description'>Anh em yêu quý có thể mời bọn mình 2 ly cà phê nhé. Để có động lực duy trì App, cập nhật plugin và tìm thêm nhiều nguồn mới và hay cho anh em. Một chút lòng thành cũng làm bọn mình tiếp tục hoạt động tốt hơn, cám ơn anh em.</p><div class='donate-grid'><div class='donate-card'><div class='donate-title'>Donate Tác giả Plugin</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qrht.png?cache=true' alt='Donate Tác giả Plugin' /></div></div><div class='donate-card'><div class='donate-title'>Donate Tác giả App</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qryb.png?cache=true' alt='Donate Tác giả App' /></div></div></div></div><style>.donate-container{max-width:800px;margin:0 auto;padding:10px;box-sizing:border-box;font-family:Arial,sans-serif;text-align:center;color:#eee}.donate-heading{font-size:22px;font-weight:bold;margin:0 0 12px 0;color:#fff;text-transform:uppercase;letter-spacing:1px}.donate-description{font-size:14px;line-height:1.5;margin-bottom:18px;color:#ccc}.donate-grid{display:flex;flex-direction:row;justify-content:center;align-items:stretch;gap:16px}.donate-card{flex:1;min-width:0;background:#22252a;border-radius:12px;padding:14px;border:1px solid #33373e;display:flex;flex-direction:column;align-items:center}.donate-title{font-weight:bold;font-size:15px;margin-bottom:12px;color:#fff}.qr-wrapper{width:100%;max-width:240px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:#181a1d;border-radius:8px;padding:8px;box-sizing:border-box}.qr-wrapper img{width:100%;height:100%;object-fit:contain;border-radius:4px}@media(max-width:600px){.donate-grid{flex-direction:column}.donate-heading{font-size:18px;margin-bottom:8px}.donate-description{font-size:13px;margin-bottom:12px}.qr-wrapper{max-width:180px}}</style>",
+      "playerType": "embed"
     })
 };
 
@@ -444,6 +445,7 @@ function parseMovieDetail(html, url) {
             duration: lduran || "",
             casts: lactor || "",
             director: ldirec || "",
+            datasend: lname,
             extra: extra
         });
 
@@ -568,7 +570,8 @@ function checkRaw(scriptStr, returnFixed) {
   }
 }
 
-function parseDetailResponse(html, pageUrl) {
+function parseDetailResponse(html, pageUrl, datasend) {
+    console.log("parseDetail:\n" + pageUrl)
     try {
         var $doc = _$(html);
         var currentlink = $doc.find("meta[property='og:url']").attr("content");
@@ -581,6 +584,9 @@ function parseDetailResponse(html, pageUrl) {
         }
         if (matchA && matchA[1]) {
             currenttap = matchA[1];
+        }
+        if(currentlink.indexOf("-full") > -1){
+          currenttap = "tap-full";
         }
         var currentid = $doc.find("#main-contents").attr("data-id");
         var typecurrent = $doc.find("#halim-ajax-list-server").find("span:first").attr("data-type");
@@ -610,7 +616,8 @@ function parseDetailResponse(html, pageUrl) {
             });
         });
         $dataSv.servers = servers;
-
+        $dataSv.name = datasend;
+        console.log("datasend: " + datasend)
         var serverHQ = [];
         $doc.find("#halim-ajax-list-server").find("span").each(function() {
             var name = this.text();
@@ -623,8 +630,9 @@ function parseDetailResponse(html, pageUrl) {
         $dataSv.HQ = serverHQ;
 
         var bypassJs = checkRaw(customJS($dataSv),true);
-        log("parseDetailResponse[url]: \n" + framelink);
-        return JSON.stringify({
+        console.log("parseDetailResponse[url]: \n" + framelink + "\ndataSv:\n" + JSON.stringify($dataSv));
+        
+        var $return = JSON.stringify({
             url: framelink,
             isEmbed: false,
             headers: {
@@ -635,8 +643,10 @@ function parseDetailResponse(html, pageUrl) {
             },
             subtitles: []
         });
+     // console.log("Return Data:\n" + $return)
+      return $return
     } catch (e) {
-        log("parseDetailResponse[err]:\n " + e);
+        console.log("parseDetailResponse[err]:\n " + e);
         return JSON.stringify({
             url: "",
             isEmbed: false,
@@ -655,114 +665,325 @@ JSON.parse(parseEmbedResponse(sourceHTML, BASEURL))
 // 'AHS': 'https://ahay.stream/embed-jw/75913'
 
 */
-
 function customJS(config) {
     const configStr = JSON.stringify(config);
 
     return `
 (function() {
-    // 1. CLEAR DỮ LIỆU CŨ LỖI
-    console.log('[PhimHDCS] SCRIPT RELOADED SUCCESSFULLY!');
-
+    const IS_IN_IFRAME = (window.self !== window.top);
     const CONFIG = ${configStr};
-    
-    // Đọc số tập chính xác từ CONFIG truyền vào
-    let currentTapNum = 1;
-    if (CONFIG.taphientai) {
-        let extracted = String(CONFIG.taphientai).replace(/[^0-9]/g, '');
-        if (extracted) currentTapNum = parseInt(extracted, 10);
-    }
 
-    // Đọc Scale và làm tròn chính xác 1 chữ số thập phân
-    function getCleanScale() {
-        let raw = localStorage.getItem("anime_player_iframe_scale") || "1.0";
-        let parsed = parseFloat(raw);
-        if (isNaN(parsed)) return 1.0;
-        return Math.round(parsed * 10) / 10; // Đảm bảo luôn ra 1.8, 1.9, 2.0 chuẩn 100%
-    }
-
-    // 2. HÀM RENDER ĐIỀU KHIỂN SCALE & TẬP
-    window.forceUpdateUI = function() {
-        const activeScale = getCleanScale();
-        
-        // Cập nhật Nút Scale trên Control Bar
-        const scaleBtn = document.getElementById("v-scale-trigger");
-        if (scaleBtn) scaleBtn.textContent = "Scale " + activeScale.toFixed(1) + "x ▼";
-
-        // Cập nhật Nút Tập trên Control Bar
-        const epBtn = document.getElementById("v-ep-trigger");
-        if (epBtn) epBtn.textContent = "Tập " + currentTapNum + " ▼";
-
-        // Cập nhật Grid Modal Scale
-        const scaleGrid = document.getElementById("v-scale-grid");
-        if (scaleGrid) {
-            scaleGrid.innerHTML = "";
-            for (let i = 5; i <= 40; i++) {
-                let val = Math.round(i) / 10; // 0.5, 0.6 ... 1.8, 1.9
-                let btn = document.createElement("span");
-                btn.textContent = val.toFixed(1) + "x";
-                
-                // SO SÁNH CHÍNH XÁC NGUYÊN THỂ NUMERIC
-                let isSelect = (val === activeScale);
-                
-                btn.style.cssText = "padding:6px; border-radius:4px; text-align:center; font-weight:bold; cursor:pointer; background:" + (isSelect ? "#e50914" : "#2a2a2a") + "; color:#fff;";
-                
-                btn.onclick = function(e) {
-                    e.stopPropagation();
-                    localStorage.setItem("anime_player_iframe_scale", val.toString());
-                    
-                    // Apply style scale lên iframe
-                    let iframe = document.getElementById("v-main-frame");
-                    if(iframe) {
-                        iframe.style.transform = "translate(-50%, -50%) scale(" + val + ")";
+    // ==========================================
+    // 0. LOGGER MODULE
+    // ==========================================
+    const LoggerModule = {
+        log: function(msg, showToast = true) {
+            console.log(msg);
+            if (IS_IN_IFRAME) {
+                try {
+                    window.top.postMessage({ type: 'PHIMHDCS_CROSS_LOG', msg: msg, showToast: showToast }, '*');
+                } catch(e) {}
+            } else {
+                try {
+                    if (window.SnifferBridge && typeof window.SnifferBridge.log === 'function') {
+                        window.SnifferBridge.log(msg);
                     }
-                    
-                    // Đóng modal & render lại
-                    document.getElementById("v-modal-overlay").style.display = "none";
-                    document.getElementById("v-scale-dialog").style.display = "none";
-                    window.forceUpdateUI();
-                };
-                scaleGrid.appendChild(btn);
+                } catch (e) {}
+                if (showToast) this.showToast(msg);
             }
-        }
+        },
+        showToast: function(msg) {
+            if (IS_IN_IFRAME || !document.body) return;
+            let container = document.getElementById('v-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'v-toast-container';
+                container.style.cssText = 'position: fixed; bottom: 20px; left: 20px; z-index: 9999999; display: flex; flex-direction: column; gap: 8px; pointer-events: none;';
+                document.body.appendChild(container);
+            }
 
-        // Cập nhật Grid Modal Tập
-        const epGrid = document.getElementById("v-ep-grid");
-        if (epGrid) {
-            epGrid.innerHTML = "";
-            let maxEpi = 40;
-            if (CONFIG.servers && CONFIG.servers[0] && CONFIG.servers[0].maxEpi) {
-                maxEpi = CONFIG.servers[0].maxEpi;
-            }
-            for (let i = 1; i <= maxEpi; i++) {
-                let btn = document.createElement("span");
-                btn.textContent = i;
-                let isSelect = (i === currentTapNum);
-                btn.style.cssText = "padding:6px; border-radius:4px; text-align:center; font-weight:bold; cursor:pointer; background:" + (isSelect ? "#e50914" : "#2a2a2a") + "; color:#fff;";
-                
-                btn.onclick = function(e) {
-                    e.stopPropagation();
-                    currentTapNum = i;
-                    document.getElementById("v-modal-overlay").style.display = "none";
-                    document.getElementById("v-ep-dialog").style.display = "none";
-                    
-                    // Reload Iframe
-                    let iframe = document.getElementById("v-main-frame");
-                    if(iframe) {
-                        iframe.src = "https://hhpanda.st/player/player.php?action=dox_ajax_player&post_id=" + CONFIG.movieid + "&chapter_st=tap-" + i + "&type=" + (CONFIG.hqhientai||"1080p") + "&sv=" + (CONFIG.serverhientai||"Vietsub");
-                    }
-                    window.forceUpdateUI();
-                };
-                epGrid.appendChild(btn);
-            }
+            const toastItem = document.createElement('div');
+            toastItem.style.cssText = 'background: rgba(15, 15, 15, 0.9); color: #fff; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; border-left: 4px solid #e50914; opacity: 1; transition: all 0.25s ease;';
+            toastItem.textContent = msg;
+            container.appendChild(toastItem);
+
+            setTimeout(() => {
+                toastItem.style.opacity = '0';
+                setTimeout(() => { if (toastItem.parentNode) toastItem.parentNode.removeChild(toastItem); }, 300);
+            }, 4000);
         }
     };
 
-    // Chạy ngay khi khởi tạo
-    setTimeout(window.forceUpdateUI, 200);
+    // ==========================================
+    // 1. LỚP 2 (IFRAME PLAYER)
+    // ==========================================
+    if (IS_IN_IFRAME) {
+        const style = document.createElement('style');
+        style.textContent = 'html, body { width: 100vw !important; height: 100vh !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: #000 !important; } .jwplayer, #player, video, iframe { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; object-fit: contain !important; }';
+        (document.head || document.documentElement).appendChild(style);
+
+        // KIỂM SOÁT JWPLAYER & ÉP PLAY TRONG 1 PHÚT
+        let playerCheckInterval = setInterval(() => {
+            try {
+                if (typeof window.jwplayer === 'function') {
+                    const playerInstance = window.jwplayer();
+                    if (playerInstance && typeof playerInstance.getState === 'function') {
+                        const state = playerInstance.getState();
+                        
+                        // Nếu chưa play hoặc đang dừng, ép Play ngay
+                        if (state === 'paused' || state === 'idle') {
+                            playerInstance.play(true);
+                            //LoggerModule.log('▶️ [Lớp 2] Đã ép kích hoạt Video Play!');
+                        }
+
+                        // Lắng nghe sự kiện để đảm bảo tiếp tục play nếu bị pause ngoài ý muốn trong 1 phút đầu
+                        playerInstance.on('pause', function() {
+                            playerInstance.play(true);
+                        });
+                        
+                        clearInterval(playerCheckInterval);
+                    }
+                }
+            } catch(e) {}
+        }, 1000);
+
+        // Tự động dừng check sau 60 giây (1 phút)
+        setTimeout(() => { clearInterval(playerCheckInterval); }, 60000);
+
+        window.addEventListener('keydown', function(e) {
+            //LoggerModule.log(e.keyCode)
+            if (e.keyCode === 33) { e.preventDefault(); window.top.postMessage({ type: 'PHIMHDCS_CHANGE_EP', dir: -1 }, '*'); }
+            if (e.keyCode === 34) { e.preventDefault(); window.top.postMessage({ type: 'PHIMHDCS_CHANGE_EP', dir: 1 }, '*'); }
+            if (e.keyCode === 38 || e.keyCode === 40 || e.keyCode === 8) { e.preventDefault(); window.top.postMessage({ type: 'PHIMHDCS_FOCUS_HOST', dir: (e.keyCode === 38 ? 'UP' : 'DOWN') }, '*'); }
+        }, true);
+
+        return;
+    }
+
+    // ==========================================
+    // 2. LỚP 1 (TRANG MẸ - HOST PAGE)
+    // ==========================================
+    function initPhimHDCS(oldIframe) {
+        if (window.__PHIMHDCS_INITED__) return;
+        window.__PHIMHDCS_INITED__ = true;
+
+        // Bơm CSS UI
+        const style = document.createElement('style');
+        style.textContent = \`
+            html, body { overflow: hidden !important; margin: 0 !important; padding: 0 !important; width: 100vw !important; height: 100vh !important; background: #000 !important; }
+            #v-player-wrapper { position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; background-color: #000; z-index: 999; }
+            .v-styled-iframe { position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; border: none !important; }
+            #v-title-badge { position: absolute; top: 12px; left: 12px; z-index: 9999; background: rgba(0,0,0,0.8); color: #fff; padding: 6px 14px; border-radius: 6px; font-size: 14px; font-weight: bold; }
+            #v-control-bar { position: absolute; top: 12px; right: 12px; z-index: 9999; display: flex; gap: 8px; background: rgba(0,0,0,0.8); padding: 6px 12px; border-radius: 6px; }
+            .v-nav-btn { position: absolute; top: 50%; z-index: 9999; transform: translateY(-50%); background: rgba(0,0,0,0.7); color: #fff; border: 1px solid rgba(255,255,255,0.2); width: 46px; height: 46px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+            .v-nav-btn:hover, .v-btn:hover, .v-grid-item:hover, .v-btn:focus, .v-grid-item:focus { background: #e50914 !important; border-color: #fff !important; }
+            #v-prev-ep { left: 2%; } #v-next-ep { right: 2%; }
+            .v-btn { background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 6px 12px; border-radius: 4px; font-size: 13px; cursor: pointer; font-weight: bold; }
+            #v-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100000; display: none; align-items: center; justify-content: center; }
+            .v-dialog { background: #181818; border: 1px solid #333; border-radius: 8px; width: 90%; max-width: 520px; max-height: 80vh; padding: 16px; display: none; flex-direction: column; color: #fff; }
+            .v-dialog-header { font-size: 16px; font-weight: bold; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px; }
+            .v-grid { display: flex; flex-wrap: wrap; gap: 10px; overflow-y: auto; max-height: 60vh; padding: 4px; }
+            .v-grid-item { padding: 8px 16px; border-radius: 6px; text-align: center; font-weight: bold; cursor: pointer; background: #2a2a2a; color: #fff; font-size: 13px; border: 1px solid #444; }
+            .v-grid-item.active { background: #e50914 !important; }
+        \`;
+        document.head.appendChild(style);
+
+        let currentTapNum = parseInt(String(CONFIG.taphientai || 1).replace(/[^0-9]/g, ''), 10) || 1;
+        let currentServerIndex = CONFIG.servers ? (parseInt(CONFIG.serverhientai || 1, 10) - 1) : 0;
+        if (currentServerIndex < 0) currentServerIndex = 0;
+
+        const movieName = CONFIG.name || "Đang xem phim";
+        let currentIframe = oldIframe;
+
+        const wrapper = document.createElement("div");
+        wrapper.id = "v-player-wrapper";
+        oldIframe.parentNode.insertBefore(wrapper, oldIframe);
+        wrapper.appendChild(oldIframe);
+
+        currentIframe.id = "v-main-frame";
+        currentIframe.classList.add("v-styled-iframe");
+        currentIframe.setAttribute("scrolling", "no");
+
+        const getCleanSvName = (idx) => {
+            if (!CONFIG.servers || !CONFIG.servers[idx]) return "Server " + (idx + 1);
+            let name = CONFIG.servers[idx].name || CONFIG.servers[idx].title || ("Server " + (idx + 1));
+            return name.replace(/^#/, '').replace(/:$/, '').trim();
+        };
+
+        const uiControls = document.createElement("div");
+        uiControls.innerHTML = \`
+            <div id="v-title-badge">\${movieName} - Tập \${currentTapNum} (\${getCleanSvName(currentServerIndex)})</div>
+            <div id="v-control-bar">
+                <button class="v-btn" id="v-remote-detail" title="Tự động đổi Server">Chi tiết 🔄</button>
+                <button class="v-btn" id="v-server-trigger">\${getCleanSvName(currentServerIndex)} ▼</button>
+                <button class="v-btn" id="v-ep-trigger">Tập \${currentTapNum} ▼</button>
+            </div>
+            <button class="v-nav-btn" id="v-prev-ep">❮</button>
+            <button class="v-nav-btn" id="v-next-ep">❯</button>
+
+            <div id="v-modal-overlay">
+                <div class="v-dialog" id="v-dialog-ep">
+                    <div class="v-dialog-header"><span>Danh Sách Tập</span><button class="v-btn" id="v-close-ep">✕</button></div>
+                    <div class="v-grid" id="v-grid-ep"></div>
+                </div>
+
+                <div class="v-dialog" id="v-dialog-sv">
+                    <div class="v-dialog-header"><span>Chọn Server</span><button class="v-btn" id="v-close-sv">✕</button></div>
+                    <div class="v-grid" id="v-grid-sv"></div>
+                </div>
+            </div>
+        \`;
+        wrapper.appendChild(uiControls);
+
+        function updateTitleBadge() {
+            const svName = getCleanSvName(currentServerIndex);
+            document.getElementById("v-title-badge").textContent = \`\${movieName} - Tập \${currentTapNum} (\${svName})\`;
+            document.getElementById("v-ep-trigger").textContent = \`Tập \${currentTapNum} ▼\`;
+            document.getElementById("v-server-trigger").textContent = \`\${svName} ▼\`;
+        }
+
+        const overlay = document.getElementById("v-modal-overlay");
+        const dialogEp = document.getElementById("v-dialog-ep");
+        const dialogSv = document.getElementById("v-dialog-sv");
+
+        function openModal(type) {
+            overlay.style.display = "flex";
+            if (type === "ep") {
+                renderEpList();
+                dialogEp.style.display = "flex";
+                dialogSv.style.display = "none";
+            } else {
+                renderSvList();
+                dialogSv.style.display = "flex";
+                dialogEp.style.display = "none";
+            }
+        }
+
+        function closeModal() {
+            overlay.style.display = "none";
+            dialogEp.style.display = "none";
+            dialogSv.style.display = "none";
+        }
+
+        function renderEpList() {
+            const grid = document.getElementById("v-grid-ep");
+            grid.innerHTML = "";
+            let maxEpi = (CONFIG.servers && CONFIG.servers[currentServerIndex] && CONFIG.servers[currentServerIndex].maxEpi) ? parseInt(CONFIG.servers[currentServerIndex].maxEpi, 10) : 40;
+
+            for (let i = 1; i <= maxEpi; i++) {
+                const item = document.createElement("div");
+                item.className = "v-grid-item" + (i === currentTapNum ? " active" : "");
+                item.textContent = "Tập " + i;
+                item.onclick = () => { closeModal(); changeEpisode(i); };
+                grid.appendChild(item);
+            }
+        }
+
+        function renderSvList() {
+            const grid = document.getElementById("v-grid-sv");
+            grid.innerHTML = "";
+            if (!CONFIG.servers) return;
+
+            CONFIG.servers.forEach((sv, idx) => {
+                const item = document.createElement("div");
+                item.className = "v-grid-item" + (idx === currentServerIndex ? " active" : "");
+                item.textContent = getCleanSvName(idx);
+                item.onclick = () => { closeModal(); changeServer(idx); };
+                grid.appendChild(item);
+            });
+        }
+
+        document.getElementById("v-ep-trigger").onclick = () => openModal("ep");
+        document.getElementById("v-server-trigger").onclick = () => openModal("sv");
+        document.getElementById("v-close-ep").onclick = closeModal;
+        document.getElementById("v-close-sv").onclick = closeModal;
+
+        // XỬ LÝ SỰ KIỆN NÚT REMOTE DETAIL (TỰ ĐỘNG CHUYỂN SERVER KẾ TIẾP)
+        document.getElementById("v-remote-detail").onclick = () => {
+            if (!CONFIG.servers || CONFIG.servers.length <= 1) {
+                LoggerModule.log('⚠️ Không có server khác để chuyển đổi!');
+                return;
+            }
+            let nextServerIndex = (currentServerIndex + 1) % CONFIG.servers.length;
+            changeServer(nextServerIndex);
+        };
+
+        // HÀM TẠO URL PLAYER CHUẨN API HHPANDA
+        function buildPlayerUrl(targetEp, svIndex) {
+            let postId = CONFIG.movieid || CONFIG.post_id || CONFIG.id || "";
+            let typeQuality = CONFIG.hqhientai || "pro";
+            
+            let svVal = (svIndex + 1);
+            if (CONFIG.servers && CONFIG.servers[svIndex]) {
+                svVal = CONFIG.servers[svIndex].sv || CONFIG.servers[svIndex].type || (svIndex + 1);
+            }
+
+            return \`https://hhpanda.st/player/player.php?action=dox_ajax_player&post_id=\${postId}&chapter_st=tap-\${targetEp}&type=\${typeQuality}&sv=\${svVal}\`;
+        }
+
+        // CHUYỂN TẬP
+        function changeEpisode(targetEp) {
+            currentTapNum = targetEp;
+            updateTitleBadge();
+
+            let newUrl = buildPlayerUrl(currentTapNum, currentServerIndex);
+            LoggerModule.log('⏭️ Đổi Tập ' + targetEp);
+            currentIframe.src = newUrl;
+        }
+
+        // CHUYỂN SERVER
+        function changeServer(svIndex) {
+            if (!CONFIG.servers || !CONFIG.servers[svIndex]) return;
+            currentServerIndex = svIndex;
+            updateTitleBadge();
+
+            let newUrl = buildPlayerUrl(currentTapNum, currentServerIndex);
+            LoggerModule.log('🔄 [Remote Detail] Đang đổi sang Server: ' + getCleanSvName(svIndex));
+            currentIframe.src = newUrl;
+        }
+
+        document.getElementById("v-prev-ep").onclick = () => changeEpisode(currentTapNum - 1);
+        document.getElementById("v-next-ep").onclick = () => changeEpisode(currentTapNum + 1);
+
+        window.addEventListener('message', function(event) {
+            if (!event.data) return;
+            if (event.data.type === 'PHIMHDCS_CROSS_LOG') {
+                LoggerModule.log(event.data.msg, event.data.showToast);
+            } else if (event.data.type === 'PHIMHDCS_CHANGE_EP') {
+                changeEpisode(currentTapNum + event.data.dir);
+            }
+        });
+    }
+
+    function findAndWrapIframe() {
+        const existingIframe = document.querySelector('iframe');
+        if (existingIframe) {
+            initPhimHDCS(existingIframe);
+            return;
+        }
+        const observer = new MutationObserver((mutations, obs) => {
+            const iframeFound = document.querySelector('iframe');
+            if (iframeFound) {
+                obs.disconnect();
+                initPhimHDCS(iframeFound);
+            }
+        });
+        observer.observe(document.documentElement || document, { childList: true, subtree: true });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', findAndWrapIframe, { once: true });
+    } else {
+        findAndWrapIframe();
+    }
 })();
     `;
 }
+
+
+
+
+
 
 
 
@@ -1210,3 +1431,4 @@ function _$(param) {
         return new MiniJQ([], []);
     }
 }
+

@@ -1,20 +1,23 @@
 var BASEURL = "https://vicdn.cc"; 
 var BASEAPI = BASEURL + "/api";
 var DEV = true;
+var popup_html = "<div class='donate-container'><h2 class='donate-heading'>DONATE</h2><p class='donate-description'>Anh em yêu quý có thể mời bọn mình 2 ly cà phê nhé. Để có động lực duy trì App, cập nhật plugin và tìm thêm nhiều nguồn mới và hay cho anh em. Một chút lòng thành cũng làm bọn mình tiếp tục hoạt động tốt hơn, cám ơn anh em.</p><div class='donate-grid'><div class='donate-card'><div class='donate-title'>Donate Tác giả Plugin</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qrht.png' alt='Donate Tác giả Plugin' /></div></div><div class='donate-card'><div class='donate-title'>Donate Tác giả App</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qryb.png' alt='Donate Tác giả App' /></div></div></div></div><style>.donate-container{max-width:800px;margin:0 auto;padding:10px;box-sizing:border-box;font-family:Arial,sans-serif;text-align:center;color:#eee}.donate-heading{font-size:22px;font-weight:bold;margin:0 0 12px 0;color:#fff;text-transform:uppercase;letter-spacing:1px}.donate-description{font-size:14px;line-height:1.5;margin-bottom:18px;color:#ccc}.donate-grid{display:flex;flex-direction:row;justify-content:center;align-items:stretch;gap:16px}.donate-card{flex:1;min-width:0;background:#22252a;border-radius:12px;padding:14px;border:1px solid #33373e;display:flex;flex-direction:column;align-items:center}.donate-title{font-weight:bold;font-size:15px;margin-bottom:12px;color:#fff}.qr-wrapper{width:100%;max-width:240px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:#181a1d;border-radius:8px;padding:8px;box-sizing:border-box}.qr-wrapper img{width:100%;height:100%;object-fit:contain;border-radius:4px}@media(max-width:600px){.donate-grid{flex-direction:column}.donate-heading{font-size:18px;margin-bottom:8px}.donate-description{font-size:13px;margin-bottom:12px}.qr-wrapper{max-width:180px}}</style>"
 function getManifest() {
   return JSON.stringify({
     id: "vicdn",
     name: "Nguồn Vicdn",
     description: "Nguồn phim Vicdn.",
-    "version": "1.5",
+    "version": "1.7",
     info: "Nguồn phim vietsub và thuyết minh mới.\n\n Hỗ trợ lồng tiếng và có tốc độ phát rất nhanh.",
     baseUrl: "https://vicdn.cc",
     iconUrl: "https://vaxplugin.alokillgtv.workers.dev/img/vicdn.png",
     "layoutType": "HORIZONTAL",
-    debug: true,
     isEnabled: true,
     "adblock": false,
     type: "MOVIE",
+    debug: true,
+    "author": "Alokillgtv",
+    popup_html: popup_html,
     playerType: "embed",
   });
 }
@@ -501,7 +504,8 @@ function parseDetailResponse(html, url) {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         Referer: BASEURL,
-        "Custom-Js": customJS
+        "Block-Ads": false,
+        "Custom-Js": rawJS(stream)
       },
       subtitles: [],
     });
@@ -539,10 +543,26 @@ function rawJS(stream) {
         } catch (e) {}
     }
 
+    // ==========================================
+    // 🛡️ CHỐT CHẶN: CHỐNG ĐỆ QUY LỒNG NHAU (ANTI-INFINITE LOOP)
+    // ==========================================
+    if (window.name === 'v-media-frame-inner') {
+        log('GUARD', 'Phát hiện script đang chạy trong iframe con -> DỪNG NGAY để tránh lặp vô hạn/đen màn hình.');
+        return;
+    }
+    if (window.__v_player_injected) {
+        log('GUARD', 'Phát hiện script đã được inject vào context này trước đó -> Bỏ qua khởi tạo lại.');
+        return;
+    }
+    window.__v_player_injected = true;
+    // ==========================================
+
     log('INIT', 'Bắt đầu khởi tạo CustomJS với EMBED_STREAM_URL = ' + EMBED_STREAM_URL);
 
     function ensureDOMReady(callback) {
+        log('DOM_CHECK', 'Đang chờ DOM sẵn sàng...');
         if (document && document.body) {
+            log('DOM_CHECK', 'DOM đã sẵn sàng ngay lập tức.');
             callback();
         } else {
             var checkCount = 0;
@@ -550,9 +570,11 @@ function rawJS(stream) {
                 checkCount++;
                 if (document && document.body) {
                     clearInterval(checkTimer);
+                    log('DOM_CHECK', 'DOM sẵn sàng sau ' + checkCount + ' lần thử.');
                     callback();
                 } else if (checkCount > 200) {
                     clearInterval(checkTimer);
+                    log('DOM_CHECK', 'Quá thời gian chờ DOM (200 lần)!', new Error('Timeout'));
                 }
             }, 30);
         }
@@ -566,6 +588,7 @@ function rawJS(stream) {
                     var val = localStorage.getItem(key);
                     return val !== null ? val : defaultVal;
                 } catch(e) {
+                    log('STORAGE', 'Không thể đọc localStorage cho key: ' + key, e);
                     return memCache[key] !== undefined ? memCache[key] : defaultVal;
                 }
             },
@@ -573,15 +596,21 @@ function rawJS(stream) {
                 memCache[key] = val;
                 try {
                     localStorage.setItem(key, val);
-                } catch(e) {}
+                } catch(e) {
+                    log('STORAGE', 'Không thể ghi localStorage cho key: ' + key, e);
+                }
             }
         };
     })();
 
     (function applyAntiPopupShield() {
+        log('ANTI_POPUP', 'Đang thiết lập khiên chặn Popup...');
         try {
             var dummyWin = { focus: function () {}, blur: function () {}, close: function () {}, closed: true, postMessage: function () {} };
-            window.open = function (url) { return dummyWin; };
+            window.open = function (url) { 
+                log('ANTI_POPUP', 'Đã chặn 1 popup mở url: ' + url);
+                return dummyWin; 
+            };
             var blockHandler = function (e) {
                 var target = e.target;
                 while (target && target !== document) {
@@ -589,6 +618,7 @@ function rawJS(stream) {
                     if (target.tagName === 'A' && (target.getAttribute('target') === '_blank' || target.target === '_blank')) {
                         e.preventDefault();
                         e.stopPropagation();
+                        log('ANTI_POPUP', 'Đã chặn click mở tab mới từ thẻ A');
                         return false;
                     }
                     target = target.parentNode;
@@ -596,7 +626,9 @@ function rawJS(stream) {
             };
             window.addEventListener('click', blockHandler, true);
             window.addEventListener('touchstart', blockHandler, true);
-        } catch (e) {}
+        } catch (e) {
+            log('ANTI_POPUP', 'Lỗi thiết lập chặn Popup', e);
+        }
     })();
 
     function injectStyles() {
@@ -624,7 +656,10 @@ function rawJS(stream) {
                 '#v-arrow-prev { left: 12px !important; } #v-arrow-next { right: 12px !important; }' +
                 '.v-idle-fade { opacity: 0.2 !important; }';
             (document.head || document.documentElement).appendChild(style);
-        } catch (e) {}
+            log('UI', 'Đã chèn CSS styles thành công');
+        } catch (e) {
+            log('UI', 'Lỗi chèn CSS styles', e);
+        }
     }
 
     var idleTimer = null;
@@ -634,15 +669,11 @@ function rawJS(stream) {
         var nextBtn = document.getElementById('v-arrow-next');
 
         var elements = [topBar, prevBtn, nextBtn];
-        
-        // Khi người dùng tương tác lại -> Hiển thị rõ các nút
         elements.forEach(function(el) {
             if (el) el.classList.remove('v-idle-fade');
         });
 
         if (idleTimer) clearTimeout(idleTimer);
-        
-        // Sau 5 giây không thao tác: Tự động ĐÓNG khung Lịch sử/Khung tập và LÀM MỜ nút
         idleTimer = setTimeout(function() {
             var gridDiv = document.getElementById('v-box-list');
             var histDiv = document.getElementById('v-hist-box');
@@ -653,19 +684,121 @@ function rawJS(stream) {
             elements.forEach(function(el) {
                 if (el) el.classList.add('v-idle-fade');
             });
+            log('UI', 'Đã ẩn (fade) UI do người dùng không thao tác 5s.');
         }, 5000);
     }
 
     function setupAutoFadeEvents() {
-        ['mousemove', 'mousedown', 'touchstart', 'touchmove', 'click', 'scroll'].forEach(function(evt) {
+        ['mousemove', 'mousedown', 'touchstart', 'touchmove', 'click', 'scroll', 'keydown'].forEach(function(evt) {
             window.addEventListener(evt, resetIdleTimer, true);
         });
         resetIdleTimer();
     }
 
+    // ==========================================
+    // 🎮 ĐIỀU HƯỚNG REMOTE & PHÂN CHIA FOCUS (LỚP 1 VS IFRAME)
+    // ==========================================
+    function handleRemoteKey(e) {
+        var key = e.key || '';
+        var keyCode = e.keyCode || e.which || 0;
+
+        log('KEY_DEBUG', 'Phím bấm nhận được: key="' + key + '" | keyCode=' + keyCode);
+
+        // 1. KIỂM TRA PHÍM TRÁI / PHẢI -> FOCUS VÀO IFRAME ĐỂ TUA VIDEO
+        var isLeftRightKey = (
+            key === 'ArrowLeft' || keyCode === 37 ||
+            key === 'ArrowRight' || keyCode === 39
+        );
+
+        if (isLeftRightKey) {
+            log('REMOTE', '>>> Phát hiện phím Trái/Phải -> Chuyển Focus vào Iframe để tua video.');
+            var iframe = document.getElementById('v-media-frame');
+            if (iframe) {
+                try {
+                    iframe.focus();
+                } catch (err) {
+                    log('REMOTE', 'Không thể focus vào iframe', err);
+                }
+            }
+            resetIdleTimer();
+            return; // Cho phép sự kiện truyền tiếp vào trình phát video trong iframe
+        }
+
+        // 2. NẾU KHÔNG PHẢI PHÍM TRÁI/PHẢI -> TRẢ FOCUS VỀ LỚP 1 (WINDOW CHÍNH)
+        try {
+            if (document.activeElement !== document.body) {
+                window.focus();
+            }
+        } catch(err) {}
+
+        resetIdleTimer();
+
+        // 3. KIỂM TRA CÁC PHÍM QUA TẬP (PAGE UP/DOWN, CHANNEL UP/DOWN, MEDIA PREV/NEXT)
+        var isPrevKey = (
+            key === 'PageUp' || keyCode === 33 ||
+            key === 'ChannelUp' || keyCode === 166 || keyCode === 175 ||
+            key === 'MediaTrackPrevious' || keyCode === 88 || keyCode === 228
+        );
+
+        var isNextKey = (
+            key === 'PageDown' || keyCode === 34 ||
+            key === 'ChannelDown' || keyCode === 167 || keyCode === 174 ||
+            key === 'MediaTrackNext' || keyCode === 87 || keyCode === 227
+        );
+
+        if (isPrevKey) {
+            log('REMOTE', '>>> Bắt được phím LÙI TẬP (Thực thi tại Lớp 1)!');
+            var currentIndex = episodeList.findIndex(function(x) { 
+                return Number(x.num) === Number(currentEpisode); 
+            });
+            if (currentIndex > 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                loadEpisode(episodeList[currentIndex - 1]);
+            } else {
+                log('REMOTE', 'Đã ở tập đầu tiên, không thể lùi.');
+            }
+        } else if (isNextKey) {
+            log('REMOTE', '>>> Bắt được phím TIẾN TẬP (Thực thi tại Lớp 1)!');
+            var currentIndex = episodeList.findIndex(function(x) { 
+                return Number(x.num) === Number(currentEpisode); 
+            });
+            if (currentIndex >= 0 && currentIndex < episodeList.length - 1) {
+                e.preventDefault();
+                e.stopPropagation();
+                loadEpisode(episodeList[currentIndex + 1]);
+            } else {
+                log('REMOTE', 'Đã ở tập cuối cùng, không thể tiến.');
+            }
+        }
+    }
+
+    function attachIframeKeyListeners() {
+        var iframe = document.getElementById('v-media-frame');
+        if (!iframe) return;
+        try {
+            var iWin = iframe.contentWindow;
+            if (iWin) {
+                iWin.removeEventListener('keydown', handleRemoteKey, true);
+                iWin.addEventListener('keydown', handleRemoteKey, true);
+                log('REMOTE', 'Đã móc thành công Key Listener vào trong context Iframe!');
+            }
+        } catch(e) {
+            log('REMOTE', 'Iframe khác Domain (Cross-Origin), không thể gắn listener trực tiếp vào iframe.');
+        }
+    }
+
+    function setupRemoteControl() {
+        log('REMOTE', 'Đang đăng ký / Kiểm tra lại bộ lắng nghe Remote...');
+        window.removeEventListener('keydown', handleRemoteKey, true);
+        window.addEventListener('keydown', handleRemoteKey, true);
+        attachIframeKeyListeners();
+    }
+
     var loadingTimer = null;
     function showLoadingScreen(msg) {
         try {
+            log('UI_LOADING', 'Hiển thị màn hình Loading: ' + msg);
             if (loadingTimer) clearTimeout(loadingTimer);
             var loadingDiv = document.getElementById('v-stage-layer');
             if (!loadingDiv) {
@@ -697,6 +830,7 @@ function rawJS(stream) {
             if (loadingTimer) clearTimeout(loadingTimer);
             var elem = document.getElementById('v-stage-layer');
             if (elem) elem.remove();
+            log('UI_LOADING', 'Đã tắt màn hình Loading.');
         } catch(e) {}
     }
 
@@ -707,6 +841,7 @@ function rawJS(stream) {
     var isFirstLoadWithHist = false;
 
     function parseStreamUrl(urlStr) {
+        log('PARSE', 'Đang phân tích URL: ' + urlStr);
         var result = { current: 1, listEpisodesUrl: '', streamUrl: urlStr };
         try {
             if (!urlStr) throw new Error('URL Stream trống!');
@@ -733,7 +868,10 @@ function rawJS(stream) {
 
             var pathName = urlObj.pathname.split('/').filter(Boolean)[0] || 'default_series';
             seriesKey = pathName.replace(/-\\d+$/, ''); 
-        } catch(e) {}
+            log('PARSE', 'Phân tích thành công: Tập ' + result.current + ', ListURL: ' + (result.listEpisodesUrl || 'none'));
+        } catch(e) {
+            log('PARSE', 'Lỗi khi phân tích Stream URL', e);
+        }
         return result;
     }
 
@@ -743,6 +881,7 @@ function rawJS(stream) {
                 lastEpi: parseInt(epiNum, 10),
                 time: Date.now()
             }));
+            log('HISTORY', 'Đã lưu lịch sử: Tập ' + epiNum);
         } catch(e) {}
     }
 
@@ -750,8 +889,11 @@ function rawJS(stream) {
         try {
             var raw = SmartStorage.getItem('watch_hist_' + seriesKey, null);
             if (!raw) return null;
-            return typeof raw === 'string' ? JSON.parse(raw) : raw;
+            var parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            log('HISTORY', 'Đã đọc lịch sử: ' + JSON.stringify(parsed));
+            return parsed;
         } catch(e) {
+            log('HISTORY', 'Lỗi khi lấy lịch sử', e);
             return null;
         }
     }
@@ -760,21 +902,29 @@ function rawJS(stream) {
         try {
             var iframe = document.getElementById('v-media-frame');
             if (!iframe) return;
+            log('PLAYER', 'Thử gọi lệnh auto-play vào bên trong Iframe...');
             var iDoc = iframe.contentDocument || iframe.contentWindow.document;
             if (iDoc) {
                 var video = iDoc.querySelector('video');
                 if (video) {
-                    video.play();
+                    video.play().catch(function(e){ log('PLAYER', 'Auto-play bị chặn', e); });
+                    log('PLAYER', 'Đã gọi video.play()');
                     return;
                 }
                 var playBtn = iDoc.querySelector('.vjs-big-play-button, .jw-display-icon-container, .play-btn, [aria-label="Play"]');
-                if (playBtn) playBtn.click();
+                if (playBtn) {
+                    playBtn.click();
+                    log('PLAYER', 'Đã click nút play UI');
+                }
             }
-        } catch(e) {}
+        } catch(e) {
+            log('PLAYER', 'Không thể truy cập vào Iframe nội bộ (CORS/Lỗi)', e);
+        }
     }
 
     function loadEpisode(epiItem) {
         try {
+            log('LOAD_EPI', 'Bắt đầu load chuyển sang Tập ' + epiItem.num + ' (URL: ' + epiItem.streamUrl + ')');
             showLoadingScreen('Đang chuyển sang Tập ' + epiItem.num + '...');
             currentEpisode = parseInt(epiItem.num, 10);
             
@@ -782,7 +932,24 @@ function rawJS(stream) {
             isFirstLoadWithHist = false; 
 
             var iframe = document.getElementById('v-media-frame');
-            if (iframe) iframe.src = epiItem.streamUrl;
+            if (iframe) {
+                log('LOAD_EPI', 'Đang cập nhật iframe.src mới...');
+                iframe.src = epiItem.streamUrl;
+                
+                // Tự động gắn lại listener cho iframe khi nó load xong tập mới
+                iframe.onload = function() {
+                    log('REMOTE', 'Iframe tập mới đã load xong -> Kiểm tra & Re-attach Remote...');
+                    setupRemoteControl();
+                };
+            } else {
+                log('LOAD_EPI', 'Không tìm thấy iframe để cập nhật!', new Error('Iframe Missing'));
+            }
+
+            // Trả Focus về Window chính cho Lớp 1 khi chuyển tập thành công
+            try { window.focus(); } catch(e){}
+
+            // Re-check kích hoạt Remote Control cho tập mới ngay lập tức
+            setupRemoteControl();
 
             loadingTimer = setTimeout(function() {
                 hideLoadingScreen();
@@ -790,11 +957,14 @@ function rawJS(stream) {
             }, 3000);
 
             buildUI();
-        } catch(e) {}
+        } catch(e) {
+            log('LOAD_EPI', 'Lỗi khi chuyển tập phim', e);
+        }
     }
 
     function buildUI() {
         try {
+            log('BUILD_UI', 'Bắt đầu khởi tạo giao diện điều khiển (Top Bar, Box, Buttons)...');
             injectStyles();
             var parent = document.body || document.documentElement;
 
@@ -805,7 +975,6 @@ function rawJS(stream) {
             const headerDiv = document.createElement('div');
             headerDiv.id = 'v-top-bar';
 
-            // 1. NÚT CHỌN TẬP
             const toggleBtn = document.createElement('button');
             toggleBtn.className = 'v-btn-act';
             toggleBtn.innerHTML = 'Tập ' + currentEpisode + ' &#9660;';
@@ -834,11 +1003,11 @@ function rawJS(stream) {
 
             toggleBtn.onclick = function (e) {
                 e.stopPropagation();
-                histDiv.className = 'closed';
+                var hBox = document.getElementById('v-hist-box');
+                if(hBox) hBox.className = 'closed';
                 gridDiv.className = gridDiv.classList.contains('open') ? 'closed' : 'open';
             };
 
-            // 2. NÚT LỊCH SỬ & KHUNG THÔNG BÁO BÊN DƯỚI
             const histBtn = document.createElement('button');
             histBtn.className = 'v-btn-act';
             histBtn.innerHTML = '📜 Lịch sử';
@@ -879,7 +1048,6 @@ function rawJS(stream) {
                 histDiv.className = histDiv.classList.contains('open') ? 'closed' : 'open';
             };
 
-            // CHỨC NĂNG ĐÓNG MENU KHI CHẠM / NHẤN RA NGOÀI
             var hideMenusOnOutsideClick = function (e) {
                 var target = e.target;
                 if (!epiWrapper.contains(target) && !histWrapper.contains(target)) {
@@ -916,7 +1084,6 @@ function rawJS(stream) {
                 }
             }
 
-            // 3. MŨI TÊN CHUYỂN TẬP BÊN TRÁI / PHẢI
             var currentIndex = episodeList.findIndex(function(x) { return Number(x.num) === Number(currentEpisode); });
             if (currentIndex > 0) {
                 const prevBtn = document.createElement('div');
@@ -937,14 +1104,20 @@ function rawJS(stream) {
             }
 
             setupAutoFadeEvents();
-        } catch(e) {}
+            log('BUILD_UI', 'Khởi tạo UI thành công.');
+        } catch(e) {
+            log('BUILD_UI', 'Lỗi nghiêm trọng khi khởi tạo UI', e);
+        }
     }
 
     ensureDOMReady(function() {
         try {
+            log('MAIN', 'Tiến hành dọn dẹp trang và chèn Iframe chính...');
             showLoadingScreen('Đang chuẩn bị trình phát...');
+            
             document.body.style.cssText = 'margin: 0 !important; padding: 0 !important; width: 100vw !important; height: 100vh !important; overflow: hidden !important; background-color: #000 !important;';
             document.body.innerHTML = '';
+            log('MAIN', 'Đã dọn dẹp document.body');
 
             var parsed = parseStreamUrl(EMBED_STREAM_URL);
             currentEpisode = parsed.current;
@@ -961,20 +1134,36 @@ function rawJS(stream) {
 
             var mainIframe = document.createElement('iframe');
             mainIframe.id = 'v-media-frame';
+            mainIframe.name = 'v-media-frame-inner';
             mainIframe.src = EMBED_STREAM_URL;
             mainIframe.style.cssText = 'width: 100vw; height: 100vh; border: 0; position: fixed; top: 0; left: 0; z-index: 1;';
             mainIframe.setAttribute('allowfullscreen', 'true');
             mainIframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
             document.body.appendChild(mainIframe);
 
+            mainIframe.onload = function() {
+                log('REMOTE', 'Main Iframe lần đầu load xong -> Kích hoạt Remote Control...');
+                setupRemoteControl();
+            };
+            
+            log('MAIN', 'Đã chèn main Iframe: ' + EMBED_STREAM_URL);
+
             saveHistory(currentEpisode);
 
+            // Kích hoạt nhận diện Remote Control ban đầu
+            setupRemoteControl();
+
             if (parsed.listEpisodesUrl) {
+                log('API', 'Đang gọi Fetch lấy danh sách tập: ' + parsed.listEpisodesUrl);
                 fetch(parsed.listEpisodesUrl)
-                    .then(function(res) { return res.json(); })
+                    .then(function(res) { 
+                        log('API', 'Fetch HTTP Trạng thái: ' + res.status);
+                        return res.json(); 
+                    })
                     .then(function(resData) {
                         var data = resData.data || resData;
                         if (data && data.list_episodes && Array.isArray(data.list_episodes)) {
+                            log('API', 'Lấy thành công ' + data.list_episodes.length + ' tập phim.');
                             episodeList = [];
                             for (var j = 0; j < data.list_episodes.length; j++) {
                                 var item = data.list_episodes[j];
@@ -990,14 +1179,16 @@ function rawJS(stream) {
                             }
                             buildUI();
                         } else {
-                            throw new Error('Invalid JSON');
+                            throw new Error('Định dạng JSON không chứa list_episodes');
                         }
                     })
-                    .catch(function() {
+                    .catch(function(err) {
+                        log('API', 'Lỗi fetch danh sách tập, fallback tạo 1 tập duy nhất.', err);
                         episodeList = [{ num: currentEpisode, streamUrl: EMBED_STREAM_URL }];
                         buildUI();
                     });
             } else {
+                log('API', 'Không có URL List Tập -> Fallback tạo 1 tập.');
                 episodeList = [{ num: currentEpisode, streamUrl: EMBED_STREAM_URL }];
                 buildUI();
             }
@@ -1008,12 +1199,17 @@ function rawJS(stream) {
             }, 3000);
 
         } catch(mainErr) {
+            log('MAIN', 'Lỗi sập toàn bộ luồng khởi tạo chính', mainErr);
             hideLoadingScreen();
         }
     });
 })();
 `;
 }
+
+
+
+
 
 
 function sortEpisodesByName(data) {
