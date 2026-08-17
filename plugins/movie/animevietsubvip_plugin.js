@@ -7,7 +7,7 @@ function getManifest() {
     return JSON.stringify({
         "id": "animevietsubvip",
         "name": "Nguồn Animevietsub Vip",
-        "version": "1.6.5",
+        "version": "1.6.7",
         "info": "",
         "baseUrl": "https://animevietsub.xyz",
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/animevietsubvip.png",
@@ -129,7 +129,7 @@ function log(msg) {
           var encodedKeyword = encodeURIComponent(keyword || "");
           
           var resultUrl = BASELINK + paramSearch + encodedKeyword;
-          if (page > 1) {
+          if (page > 0) {
             if(resultUrl.indexOf("?") > -1){
                 paramPage = "/" + paramPage;
               }
