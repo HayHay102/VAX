@@ -8,7 +8,7 @@ function getManifest() {
         "description": "Nguồn phim Animevv...",
         "version": "1.2.6",
         "info": "",
-        "BASEURL": BASEURL,
+        "baseUrl": BASEURL,
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/animevv.png",
         "isEnabled": true,
         "adblock": false,

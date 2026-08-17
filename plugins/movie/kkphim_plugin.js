@@ -11,7 +11,6 @@ function getManifest() {
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/kkphim.png",
         "isEnabled": true,
         "author": "Youngbi",
-        popup_html: popup_html,
         "type": "MOVIE"
     });
 }

@@ -19,7 +19,6 @@ function getManifest() {
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/shortflix.png",
         "isEnabled": true,
         "author": "Alokillgtv",
-        popup_html: popup_html,
         "type": "shortfilm",
         "playerType": "exoplayer"
     });

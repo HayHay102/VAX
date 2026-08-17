@@ -7,7 +7,7 @@ function getManifest() {
         "description": "Mochill Trang Xem Phim.",
         "info": "Nguồn phim xịn của Motchill.",
         "version": "1.4.1",
-        "baseUrl": "https://motchille.tv",
+        "baseUrl": BASEURL,
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/motchill.png",
         "layoutType": "HORIZONTAL",
         "isEnabled": true,

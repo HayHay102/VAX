@@ -11,8 +11,8 @@ function getManifest() {
         "layoutType": "HORIZONTAL",
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/ophim.png",
         "isEnabled": true,
-      "author": "Alokillgtv",
-     popup_html:  popup_html,
+        "author": "Alokillgtv",
+        popup_html:  popup_html,
         "type": "MOVIE"
     });
 }

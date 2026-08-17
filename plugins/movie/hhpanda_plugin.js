@@ -1,6 +1,5 @@
 var BASEURL = "https://hhpanda.st"; 
 var LOGGER = false;
-// https://www.whoreshub.com/categories/4k-porn/
 function getManifest() {
     return JSON.stringify({
         "id": "hhpanda",

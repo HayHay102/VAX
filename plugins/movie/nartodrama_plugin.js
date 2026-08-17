@@ -12,10 +12,10 @@ function getManifest() {
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/nartodrama.png",
         "isEnabled": true,
         "author": "Alokillgtv",
-       "type": "shortfilm",
+        "type": "shortfilm",
         "playerType": "exoplayer",
         popup_html: popup_html,
-      "subtitleCat": true
+        "subtitleCat": true
     })
 };
 // "type": "shortfilm",

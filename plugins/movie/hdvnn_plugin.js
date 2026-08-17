@@ -2,15 +2,14 @@ var BASEURL = "https://hdvnn.xyz";
 var BASEAPI = "http://vkey.vn/novahd/api";
 var BASELINK = BASEURL;
 var popup_html = "<div class='donate-container'><h2 class='donate-heading'>DONATE</h2><p class='donate-description'>Anh em yêu quý có thể mời bọn mình 2 ly cà phê nhé. Để có động lực duy trì App, cập nhật plugin và tìm thêm nhiều nguồn mới và hay cho anh em. Một chút lòng thành cũng làm bọn mình tiếp tục hoạt động tốt hơn, cám ơn anh em.</p><div class='donate-grid'><div class='donate-card'><div class='donate-title'>Donate Tác giả Plugin</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qrht.png' alt='Donate Tác giả Plugin' /></div></div><div class='donate-card'><div class='donate-title'>Donate Tác giả App</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qryb.png' alt='Donate Tác giả App' /></div></div></div></div><style>.donate-container{max-width:800px;margin:0 auto;padding:10px;box-sizing:border-box;font-family:Arial,sans-serif;text-align:center;color:#eee}.donate-heading{font-size:22px;font-weight:bold;margin:0 0 12px 0;color:#fff;text-transform:uppercase;letter-spacing:1px}.donate-description{font-size:14px;line-height:1.5;margin-bottom:18px;color:#ccc}.donate-grid{display:flex;flex-direction:row;justify-content:center;align-items:stretch;gap:16px}.donate-card{flex:1;min-width:0;background:#22252a;border-radius:12px;padding:14px;border:1px solid #33373e;display:flex;flex-direction:column;align-items:center}.donate-title{font-weight:bold;font-size:15px;margin-bottom:12px;color:#fff}.qr-wrapper{width:100%;max-width:240px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:#181a1d;border-radius:8px;padding:8px;box-sizing:border-box}.qr-wrapper img{width:100%;height:100%;object-fit:contain;border-radius:4px}@media(max-width:600px){.donate-grid{flex-direction:column}.donate-heading{font-size:18px;margin-bottom:8px}.donate-description{font-size:13px;margin-bottom:12px}.qr-wrapper{max-width:180px}}</style>"
-// https://raw.githubusercontent.com/alokillgtv03/vaxplugins/main/img/phimchill.ico
 function getManifest() {
   try{
     return JSON.stringify({
       "id": "hdvnn",
       "name": "Nguồn HDVNN",
-      "version": "1.0",
+      "version": "1.1",
       "author": "Alokillgtv",
-      "baseUrl": BASEURL,
+      "baseUrl": "https://hdvnn.net",
       "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/hdvnn.png",
       "isEnabled": true,
       "isAdult": false,
@@ -18,7 +17,6 @@ function getManifest() {
       "layoutType": "HORIZONTAL",
       "type": "MOVIE",
       "subtitleCat": false,
-      popup_html: popup_html,
       "debug": true,
       "playerType": "auto"
     });
@@ -425,7 +423,7 @@ function parseEmbedResponse(html, url, datare) {
           var stream = currentHost + "/?url=" + embedUrl + "#.m3u8";
           console.log("Stream 1:\n" + stream)
           return JSON.stringify({
-            url: stream, 
+            url: stream + "#.m3u8", 
             mimeType: "video/mp4",
             isEmbed: false, 
             headers: {
@@ -466,6 +464,7 @@ function parseEmbedResponse(html, url, datare) {
             var path =  embedUrl.replace("https://player.abyssplayer.com/","");
             embedUrl = "https://abysscdn.com/?v=" + path;
           }
+          
           return JSON.stringify({
             url: "https://iframe.alokillgtv.workers.dev/?url=" + embedUrl, 
             mimeType: "text/html",

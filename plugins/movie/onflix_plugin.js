@@ -7,14 +7,13 @@ function getManifest() {
 		"name": "Onflix",
 		"description": "Trang xem phim siêu hay.",
 		"version": "1.9.1",
-		"baseUrl": "https://onflix.lat",
-    "info": "",
+		"baseUrl": "https://onflixstatus.com",
+		"info": "",
 		"iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/onflix.png",
 		"isEnabled": true,
 		"type": "MOVIE",
-    "author": "Alokillgtv",
-    popup_html: popup_html,
-    "layoutType": "HORIZONTAL",
+		"author": "Alokillgtv",
+		"layoutType": "HORIZONTAL",
 		"playerType": "auto"
 	});
 }

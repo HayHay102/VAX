@@ -2,24 +2,21 @@
 // SIÊU TẦM PHIM VAAPP PLUGIN (Code thêm từ bản của bạn ʚʚ Ƭ Ɗųƴ ɞɞ)
 // ========================================================
 
-const BASE_URL = "https://www.sieutamphim.pro";
-
-// ========================================================
-// CONFIGURATION & METADATA
-// ========================================================
+var BASE_URL = "https://www.sieutamphim.pro";
+var popup_html = "<div class='donate-container'><h2 class='donate-heading'>DONATE</h2><p class='donate-description'>Anh em yêu quý có thể mời bọn mình 2 ly cà phê nhé. Để có động lực duy trì App, cập nhật plugin và tìm thêm nhiều nguồn mới và hay cho anh em. Một chút lòng thành cũng làm bọn mình tiếp tục hoạt động tốt hơn, cám ơn anh em.</p><div class='donate-grid'><div class='donate-card'><div class='donate-title'>Donate Tác giả Plugin</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qrht.png' alt='Donate Tác giả Plugin' /></div></div><div class='donate-card'><div class='donate-title'>Donate Tác giả App</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qryb.png' alt='Donate Tác giả App' /></div></div></div></div><style>.donate-container{max-width:800px;margin:0 auto;padding:10px;box-sizing:border-box;font-family:Arial,sans-serif;text-align:center;color:#eee}.donate-heading{font-size:22px;font-weight:bold;margin:0 0 12px 0;color:#fff;text-transform:uppercase;letter-spacing:1px}.donate-description{font-size:14px;line-height:1.5;margin-bottom:18px;color:#ccc}.donate-grid{display:flex;flex-direction:row;justify-content:center;align-items:stretch;gap:16px}.donate-card{flex:1;min-width:0;background:#22252a;border-radius:12px;padding:14px;border:1px solid #33373e;display:flex;flex-direction:column;align-items:center}.donate-title{font-weight:bold;font-size:15px;margin-bottom:12px;color:#fff}.qr-wrapper{width:100%;max-width:240px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:#181a1d;border-radius:8px;padding:8px;box-sizing:border-box}.qr-wrapper img{width:100%;height:100%;object-fit:contain;border-radius:4px}@media(max-width:600px){.donate-grid{flex-direction:column}.donate-heading{font-size:18px;margin-bottom:8px}.donate-description{font-size:13px;margin-bottom:12px}.qr-wrapper{max-width:180px}}</style>"
 
 function getManifest() {
     return JSON.stringify({
         "id": "sieutamphim",
         "name": "Sưu Tầm Phim",
-        "version": "1.1.0",
-        "baseUrl": "https://www.sieutamphim.pro",
-        "iconUrl": "https://www.sieutamphim.pro/posts/2024/06/cropped-logosieutamphim-192x192.png",
+        "version": "1.1.2",
+        "baseUrl": BASE_URL,
+        "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/sieutamphim.png",
         "isEnabled": true,
         "isAdult": false,
         "type": "MOVIE",
         "layoutType": "VERTICAL",
-        "playerType": "embed"
+        "playerType": "auto"
     });
 }
 
@@ -353,14 +350,16 @@ function parseDetailResponse(html, url) {
                                               decrypted.indexOf("short.icu") !== -1;
                                 
                                 if (isAbyss) {
-                                    // Tạo trang HTML bọc iframe của abyssplayer để tránh redirect bypass sang abyss.to
-                                    var iframeHtml = '<html><body style="margin:0;padding:0;background:#000;"><iframe src="' + decrypted + '" style="width:100%;height:100%;border:none;" allowfullscreen></iframe></body></html>';
-                                    var base64Url = "data:text/html;base64," + base64Encode(iframeHtml);
-                                    
+                                    console.log("Link Abyss:" + decrypted);
+                                    var vMatch = decrypted.match(/(?:[?&]v=|\/)([a-zA-Z0-9_-]+)(?:[?&]|$)/
+);
+                                    var videoId = vMatch ? vMatch[1] : "";
+                                    var stream = "https://sc.k-20.xyz/stream/series/clbpx:lo2b09rr074-2q1390mfi:" + videoId + ".json";
                                     return JSON.stringify({
-                                        url: base64Url,
+                                        url: stream,
                                         isEmbed: true,
-                                        headers: { "Referer": BASE_URL + "/" }
+                                        headers: { "Referer": BASE_URL + "/" },
+                                        datasend: "true"
                                     });
                                 } else {
                                     // Các link khác (như blogger.com) trả về trực tiếp để tránh WebView chặn load data URL
@@ -403,7 +402,21 @@ function parseDetailResponse(html, url) {
     }
 }
 
-function parseEmbedResponse(html, sourceUrl) {
+function parseEmbedResponse(html, sourceUrl,datasend) {
+    if(datasend == "true"){
+        var $data = JSON.parse(html);
+        var stream = $data.streams[0].url;
+        console.log("Stream " + stream)
+        return JSON.stringify({
+            url: stream + "#.m3u8" || "",
+            mimeType: "video/mp4",
+            isEmbed: false,
+            headers: {
+                "Referer": "https://sc.k-20.xyz",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            }
+        });
+    }
     return parseDetailResponse(html, sourceUrl);
 }
 
@@ -444,6 +457,3 @@ function parseCategoriesResponse(html) { return "[]"; }
 function parseCountriesResponse(html) { return "[]"; }
 function parseYearsResponse(html) { return "[]"; }
 
-function getUrlCategories() { return ""; }
-function getUrlCountries() { return ""; }
-function getUrlYears() { return ""; }

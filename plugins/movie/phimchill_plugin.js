@@ -6,7 +6,7 @@ function getManifest() {
         "name": "Phim Chill",
         "description": "Phim online",
         "version": "3.8.5",             
-        "baseUrl": BASEURL,
+        "baseUrl": "https://phimchillhd.im",
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/phimchill.png", 
         "isEnabled": true,
         "layoutType": "VERTICAL",

@@ -1,21 +1,19 @@
   var BASEURL = "https://phimfun.net";
   var DEV = "";
-  
-  // https://www.whoreshub.com/categories/4k-porn/
   function getManifest() {
     return JSON.stringify({
-      id: "phimfun",
-      name: "Nguồn Phim Fun",
-      description: "Nguồn phim mới.",
+      "id": "phimfun",
+      "name": "Nguồn Phim Fun",
+      "description": "Nguồn phim mới.",
       "version": "1.1.6",
-      info: "Nguồn phim dự phòng, có server riêng có thể sơ cưa khi những nguồn khác bị lỗi. Có cơ chế lưu lại tập vừa xem và có thể chuyển tập không cần quay lại menu phim.",
-      baseUrl: "https://phimfun.net",
-      iconUrl: "https://phimfun.net/Content/PhimFun/Imgs/phimfun.png",
-      isEnabled: true,
-      debug: true,
+      "info": "Nguồn phim dự phòng, có server riêng có thể sơ cưa khi những nguồn khác bị lỗi. Có cơ chế lưu lại tập vừa xem và có thể chuyển tập không cần quay lại menu phim.",
+      "baseUrl": "https://phimfun.net",
+      "iconUrl": "https://phimfun.net/Content/PhimFun/Imgs/phimfun.png",
+      "isEnabled": true,
+      "debug": true,
       "layoutType": "HORIZONTAL",
-      type: "MOVIE",
-      playerType: "exoplayer",
+      "type": "MOVIE",
+      "playerType": "exoplayer",
     });
   }
   
