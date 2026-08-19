@@ -7,7 +7,7 @@ function getManifest() {
     return JSON.stringify({
       "id": "supermv",
       "name": "Nguồn SuperMV",
-      "version": "1.4",
+      "version": "1.5",
       "author": "Alokillgtv",
       "BASEURL": BASEURL,
       "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/supermv.png",
@@ -16,7 +16,6 @@ function getManifest() {
       "adblock": false,
       "layoutType": "HORIZONTAL",
       "type": "MOVIE",
-      "debug": true,
       "subtitleCat": false,
       popup_html: popup_html,
       "playerType": "exoplayer"

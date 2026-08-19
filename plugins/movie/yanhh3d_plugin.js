@@ -1,4 +1,5 @@
-BASEURL = "http://yanhh3d.pw";
+//BASEURL = "http://vkey.vn/yanhh3d";
+BASEURL = "https://yanhh3d.pw";
 var popup_html = "<div class='donate-container'><h2 class='donate-heading'>DONATE</h2><p class='donate-description'>Anh em yêu quý có thể mời bọn mình 2 ly cà phê nhé. Để có động lực duy trì App, cập nhật plugin và tìm thêm nhiều nguồn mới và hay cho anh em. Một chút lòng thành cũng làm bọn mình tiếp tục hoạt động tốt hơn, cám ơn anh em.</p><div class='donate-grid'><div class='donate-card'><div class='donate-title'>Donate Tác giả Plugin</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qrht.png' alt='Donate Tác giả Plugin' /></div></div><div class='donate-card'><div class='donate-title'>Donate Tác giả App</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qryb.png' alt='Donate Tác giả App' /></div></div></div></div><style>.donate-container{max-width:800px;margin:0 auto;padding:10px;box-sizing:border-box;font-family:Arial,sans-serif;text-align:center;color:#eee}.donate-heading{font-size:22px;font-weight:bold;margin:0 0 12px 0;color:#fff;text-transform:uppercase;letter-spacing:1px}.donate-description{font-size:14px;line-height:1.5;margin-bottom:18px;color:#ccc}.donate-grid{display:flex;flex-direction:row;justify-content:center;align-items:stretch;gap:16px}.donate-card{flex:1;min-width:0;background:#22252a;border-radius:12px;padding:14px;border:1px solid #33373e;display:flex;flex-direction:column;align-items:center}.donate-title{font-weight:bold;font-size:15px;margin-bottom:12px;color:#fff}.qr-wrapper{width:100%;max-width:240px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:#181a1d;border-radius:8px;padding:8px;box-sizing:border-box}.qr-wrapper img{width:100%;height:100%;object-fit:contain;border-radius:4px}@media(max-width:600px){.donate-grid{flex-direction:column}.donate-heading{font-size:18px;margin-bottom:8px}.donate-description{font-size:13px;margin-bottom:12px}.qr-wrapper{max-width:180px}}</style>"
 function getManifest() {
     return JSON.stringify({
@@ -6,14 +7,15 @@ function getManifest() {
         "name": "Yanhh3d",
         "description": "Trang xem phim Hoạt Hình siêu hay.",
         "info":"Nếu không load được hãy vào \nCài Đặt => Kho plugin => Đăng nhập để xem URL mới của trang là gì rồi nhập domain mới và lưu lại. \nHoặc dùng DNS để xem. Bạn cần tải app 1.1.1.1 về dùng hoặc thử bật DNS và DPI trong cài đặt app này.",
-        "version": "1.3.8",
+        "version": "1.4",
         "baseUrl": "http://yanhh3d.team",
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/yanhh3d.png",
         "isEnabled": true,
+        "debug": true,
         "layoutType": "HORIZONTAL",
         "author": "Alokillgtv",
         "type": "ANIME",
-        "playerType": "embedtoexoplay"
+        "playerType": "exoplayer"
     });
 }
 
@@ -340,17 +342,26 @@ function parseMovieDetail(htmlContent, url) {
             var idserver = this.attr("href");
             var items = [];
             var items4k = [];
+            // https://sc.k-20.xyz/stream/series/yan:thon-phe-tinh-khong-movie-quyet-chien-nguyen-thuy-tinh:tap-1.json
+            const regex = /^https?:\/\/[^\/]+\/([^\/]+)\/(tap-\d+).*$/;
+            
+            const result = url.replace(regex, "$1:$2");
+            console.log(result);
+            var linkjson = "https://sc.k-20.xyz/stream/series/yan:"+result+".json"
+// Kết quả: thon-phe-tinh-khong-movie-quyet-chien-nguyen-thuy-tinh:tap-1
+
+          
             $parent.find(idserver).find("a").each(function() {
                 var name = this.find("div").text();
                 var item = {
-                    id: this.attr("href"),
+                    id: linkjson + "?quality=1080&type=" + encodeURI(nameServer),
                     name: name,
                     slug: "tap-" + name.replace(/\s/, "-")
                 };
                 items.push(item);
                 
                 var item4k = {
-                    id: this.attr("href") + "?type=4k",
+                    id: linkjson + "?quality=4K&type=" + encodeURI(nameServer),
                     name: name,
                     slug: "tap-" + name.replace(/\s/, "-")
                 };
@@ -422,44 +433,54 @@ function parseMovieDetail(htmlContent, url) {
 function parseDetailResponse(html, url) {
     try {
         log("parseDetailResponse[url]: \n" + url);
-        var allLink = [];
-        _$(html).find('div[class*="list-severs"]').find("a").each(function() {
-            var name = this.text();
-            var link = this.attr("data-src");
-            allLink.push({ link: link, name: name });
-        });
+        var $data = JSON.parse(html);
 
-        let selectedLink = null;
-        const pool = { k4: null, hd: null, anyM3u8: null, anyEmbed: null };
-        allLink.forEach((item) => {
-            if (item.name.match(/4k/i) && item.link.endsWith('.m3u8')) {
-                pool.k4 = item.link;
-            } else if (item.name.match(/1080/i) && item.link.endsWith('.m3u8')) {
-                pool.hd = item.link;
-            } else if (item.link.endsWith('.m3u8')) {
-                pool.anyM3u8 = item.link;
-            } else if (item.link.includes('abyss')) {
-                pool.anyEmbed = item.link;
-            }
-        });
-
-        selectedLink = pool.hd || pool.k4 || pool.anyM3u8 || pool.anyEmbed;
-        if (url.indexOf("type=4k") > -1) {
-            selectedLink = pool.k4 || pool.hd || pool.anyM3u8 || pool.anyEmbed;
-            log("parseDetailResponse[url]: \nĐã chọn 4K: " + selectedLink);
+        if (!$data.streams || $data.streams.length === 0) {
+            throw new Error("Không tìm thấy danh sách streams trong JSON");
         }
 
-        var streamlink = selectedLink ? selectedLink.replace(/(https?:\/\/[^\/]+)\/[^]+?\/([^\/]+\.m3u8)$/, '$1/stream/m3u8/$2') : "";
-      
-        console.log("StreamLink\n" + streamlink)
+        // 1. Giải mã URL và đưa về chữ thường
+        var decodedUrl = decodeURIComponent(url).toLowerCase();
+
+        // 2. Tách tham số quality và type bằng Biểu thức chính quy (Pure JS)
+        var qualityMatch = decodedUrl.match(/[?&]quality=([^&]+)/);
+        var typeMatch = decodedUrl.match(/[?&]type=([^&]+)/);
+
+        var reqQuality = qualityMatch ? qualityMatch[1] : ""; // VD: "1080", "4k"
+        var reqType = typeMatch ? typeMatch[1] : "";       // VD: "thuyết minh", "vietsub"
+
+        var selectedStream = null;
+
+        // 3. Vòng lặp tìm stream phù hợp (Dùng closure thay vì 'this' để tránh lỗi Scope trong QuickJS)
+        for (var i = 0; i < $data.streams.length; i++) {
+            var item = $data.streams[i];
+            var title = (item.title || "").toLowerCase();
+
+            // Kiểm tra điều kiện
+            var matchesType = !reqType || title.indexOf(reqType) !== -1;
+            var matchesQuality = !reqQuality || title.indexOf(reqQuality) !== -1;
+
+            if (matchesType && matchesQuality) {
+                selectedStream = item.url;
+                break; // Thấy bản khớp nhất thì dừng
+            }
+        }
+
+        // 4. Fallback: Nếu không khớp bộ lọc, lấy stream đầu tiên làm mặc định
+        if (!selectedStream) {
+            selectedStream = $data.streams[0].url;
+        }
+
+        log("Selected Stream: " + selectedStream);
+
         return JSON.stringify({
-            "url": url,
+            "url": selectedStream,
             "isEmbed": false,
+            "mimeType": "application/x-mpegURL",
             "headers": {
-                "Referer": "https://yanhh3d.mom",
-                "Origin": "https://yanhh3d.mom",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-              "Custom-Js": customJS(streamlink),
+                "Referer": "https://yanhh3d.pw/",
+                "Origin": "https://yanhh3d.pw",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             }
         });
 
@@ -468,6 +489,7 @@ function parseDetailResponse(html, url) {
         return JSON.stringify({ "url": "", "headers": {} });
     }
 }
+
 /*
 function parseEmbedResponse(html, url, datasend) {
   console.log("embed Raw:\n" + html)

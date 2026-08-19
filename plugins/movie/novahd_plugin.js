@@ -8,7 +8,7 @@ function getManifest() {
     "id": "novahd",
     "name": "Nguồn NovaHD",
     "description": "Nguồn phim NovaHD",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "author": "Alokillgtv",
     "info": "",
     "BASEURL": "https://vercel.alokillgtv.workers.dev",
@@ -521,6 +521,54 @@ function parseDetailResponse(html, url) {
   }
 }
 
+function getParam(url) {
+    var params = {
+        type: "",
+        id: "",
+        imdb_id: "",
+        ttid: "",
+        title: "",
+        season: "",
+        episode: "",
+        server: "",
+        tmdb: ""
+    };
+
+    if (!url || typeof url !== "string") return params;
+
+    // Lấy phần query string sau dấu '?' (nếu có)
+    var queryString = url.indexOf("?") > -1 ? url.split("?")[1] : url;
+
+    // Tách các cặp key=value phân cách bởi dấu '&'
+    var pairs = queryString.split("&");
+
+    pairs.forEach(function(pair) {
+        if (!pair) return;
+
+        // Bóc tách key và value bằng RegExp
+        var match = pair.match(/^([^=]+)=(.*)$/);
+        if (match) {
+            var key = match[1].trim();
+            var rawValue = match[2].trim();
+
+            // Decode value (xử lý unicode và khoảng trắng)
+            var value = "";
+            try {
+                value = decodeURIComponent(rawValue);
+            } catch (e) {
+                value = rawValue;
+            }
+
+            // Gán giá trị vào object tương ứng nếu key tồn tại
+            if (params.hasOwnProperty(key)) {
+                params[key] = value;
+            }
+        }
+    });
+
+    return params;
+}
+  
 // =========================================================
 // 3. PARSE EMBED RESPONSE (GIỮ NGUYÊN CODE CỦA BẠN)
 // =========================================================
@@ -623,7 +671,15 @@ function parseEmbedResponse(html, url) {
       // LỌC NGHIÊM NGẶT CHI BẮT VI VÀ EN:
       var isVi = lang.indexOf("vi") === 0 || lang === "vnm" || display.indexOf("viet") > -1 || display.indexOf("vnm") > -1;
       var isEn = lang.indexOf("en") === 0 || display.indexOf("eng") > -1;
-
+      var objparam = getParam(url);
+      // objparam.imdb_id 
+      if(objparam.type == "tv"){
+        var param = "&id=" + objparam.id + "&imdb_id=" + objparam.imdb_id + "&season=" + objparam.season + "&episode=" + objparam.episode
+      }
+      else{
+        var param = "&id=" + objparam.id + "&imdb_id=" + objparam.imdb_id
+      }
+      
       if (isVi) {
         viCount++;
         subtitleList.push({
@@ -631,13 +687,21 @@ function parseEmbedResponse(html, url) {
           url: itemUrl,
           mimeType: subMime
         });
-      } else if (isEn && enCount < 3) {
+      } else if (enCount < 3) {
         enCount++;
         subtitleList.push({
-          lang: "Engsub " + enCount + " [" + subMime + "]",
-          url: itemUrl,
-          mimeType: subMime
-        });
+          lang: "Dịch AI " + enCount,
+          url: `https://subtitleai.alokillgtv.workers.dev/?sub=${enCount}${param}`,
+          mimeType: "text/vtt"
+        })
+        if(isEn && enCount == 1){
+          subtitleList.push({
+            lang: "English",
+            url: itemUrl,
+            mimeType: subMime
+          });
+        }
+          
       }
     });
 

@@ -13,17 +13,16 @@ function getManifest() {
         "id": "shortflix",
         "name": "Phim Ngắn Shortflix",
         "description": "Phim Ngắn lồng tiếng vietsub hay",
-        "version": "1.2.6",
+        "version": "1.2.8",
         "info": "",
         "baseUrl": "https://www.shortflix.net",
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/shortflix.png",
-        "isEnabled": true,
         "author": "Alokillgtv",
         "type": "shortfilm",
         "playerType": "exoplayer"
     });
 }
-
+// "type": "shortfilm",
 function log(msg) {
   	if(DEV){
       if (typeof nativeLog !== 'undefined') {
@@ -486,7 +485,14 @@ function parseMovieDetail(html, url) {
             $items.push($item);
         }
         servers.push({
-            name: "Server",
+            name: "Full tập",
+            episodes: [{
+              id: url + "?tap=1&full1tap=true",
+              name: "Full 1 Tập",
+              slug: "tap-full"
+            }]
+        },{
+            name: "Chia tập",
             episodes: $items
         });
         
@@ -528,7 +534,7 @@ function parseDetailResponse(html, url) {
         var $subtitle = "";
         var $dataVD = parseScript(script);
         var $episodes = $dataVD.data.episodes || [];
-        console.log("episode\n" + JSON.stringify($episodes))
+        //console.log("episode\n" + JSON.stringify($episodes))
         var tapcurrent = $episodes.findIndex(function(ep) {
             return ep.name == tapVal || ep.slug == tapVal || ep.episode == tapVal;
         });
@@ -552,7 +558,27 @@ function parseDetailResponse(html, url) {
             $subtitle = $video.subtitles[0].fileUrl;
         }
         
-        log("parseDetailResponse[url]: \n" + $linkstream);
+        if(url.indexOf("full1tap=true") > -1){
+          //.log("ListMV\n" + JSON.stringify($episodes))
+          //log("parseDetailResponse[url]: \n" + $linkstream);
+          var postbody = BASE64.encode(JSON.stringify($episodes))
+          var link = "https://script.google.com/macros/s/AKfycbxtqzEVME2KNoP1nA-A0t-_Hmf5FdBSOSbVVAmzB8AUxfma-3Wbq0GZQPAUBuHGAiCF/exec?film_url=" + encodeURIComponent(url)
+          console.log("link Post:\n" + link)
+          var $return = JSON.stringify({
+              "url": link,
+              "isEmbed": true,
+              "postBody": "data=" + postbody,
+              "headers": {
+                  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                  "X-Requested-With": "XMLHttpRequest"
+              },
+              datasend: encodeURIComponent(link)
+            
+          });
+          //console.log($return);
+          return $return
+      }
+      else{
         return JSON.stringify({
             "url": $linkstream,
             "isEmbed": false,
@@ -566,6 +592,7 @@ function parseDetailResponse(html, url) {
                 "url": $subtitle
             }]
         });
+      }
     } catch (e) {
         log("parseDetailResponse[err]:\n " + e);
         return JSON.stringify({
@@ -574,6 +601,35 @@ function parseDetailResponse(html, url) {
         });
     }
 }
+
+
+ function parseEmbedResponse(html, url, datasend) {
+     console.log("Kết quả:\n" + html)
+    log("parseEmbedResponse [url]: " + url); //console.log("parseEmbedResponse [Raw]: " + html);
+    try {
+      var decode = decodeURIComponent(datasend)
+      console.log("embed:\n" + decode)
+      var $return = JSON.stringify({
+        url: decode + "&m3u8=true" ,
+        mimeType: "application/x-mpegURL",
+        isEmbed: false,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        },
+        subtitles: [{
+          lang: "Vietsub",
+          url: decode + "&subtitle=true",
+          mimeType: "text/vtt"
+        }]     
+      });
+      console.log("Return Embed:\n" + $return)
+      return $return
+    } catch (e) {
+      console.log("[Lỗi parseEmbedResponse]", e);
+      return JSON.stringify({ url: "", isEmbed: false, headers: {} });
+    }
+  }
+
 
 function sortEpisodesByName(data) {
     try {
@@ -596,6 +652,143 @@ function sortEpisodesByName(data) {
         return data;
     }
 }
+
+BASE64 = {
+  encode: function (str) {
+    try {
+      if (!str) return "";
+
+      // 1. Encode String ra mảng UTF-8 Bytes trước
+      var utf8Bytes = [];
+      for (var i = 0; i < str.length; i++) {
+        var code = str.charCodeAt(i);
+        if (code < 128) {
+          utf8Bytes.push(code);
+        } else if (code < 2048) {
+          utf8Bytes.push((code >> 6) | 192, (code & 63) | 128);
+        } else if (
+          (code & 0xfc00) === 0xd800 &&
+          i + 1 < str.length &&
+          (str.charCodeAt(i + 1) & 0xfc00) === 0xdc00
+        ) {
+          // Ký tự Surrogate Pair
+          code =
+            0x10000 + ((code & 0x03ff) << 10) + (str.charCodeAt(++i) & 0x03ff);
+          utf8Bytes.push(
+            (code >> 18) | 240,
+            ((code >> 12) & 63) | 128,
+            ((code >> 6) & 63) | 128,
+            (code & 63) | 128
+          );
+        } else {
+          utf8Bytes.push(
+            (code >> 12) | 224,
+            ((code >> 6) & 63) | 128,
+            (code & 63) | 128
+          );
+        }
+      }
+
+      // 2. Chuyển mảng UTF-8 Bytes thành chuỗi Base64
+      var chars =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+      var encoded = "";
+      var byte1, byte2, byte3;
+      var b1, b2, b3, b4;
+
+      for (var j = 0; j < utf8Bytes.length; j += 3) {
+        byte1 = utf8Bytes[j];
+        byte2 = j + 1 < utf8Bytes.length ? utf8Bytes[j + 1] : NaN;
+        byte3 = j + 2 < utf8Bytes.length ? utf8Bytes[j + 2] : NaN;
+
+        b1 = byte1 >> 2;
+        b2 = ((byte1 & 3) << 4) | (isNaN(byte2) ? 0 : byte2 >> 4);
+        b3 = isNaN(byte2)
+          ? 64
+          : ((byte2 & 15) << 2) | (isNaN(byte3) ? 0 : byte3 >> 6);
+        b4 = isNaN(byte3) ? 64 : byte3 & 63;
+
+        encoded +=
+          chars.charAt(b1) +
+          chars.charAt(b2) +
+          chars.charAt(b3) +
+          chars.charAt(b4);
+      }
+
+      return encoded;
+    } catch (e) {
+      console.log("[BASE64.encode Error]:", e.message || e);
+      return "";
+    }
+  },
+
+  decode: function (base64String) {
+    try {
+      if (!base64String) return "";
+
+      // 1. Dọn dẹp chuỗi & xử lý nếu URL-encoded (ví dụ: %2B, %2F)
+      var str = decodeURIComponent(base64String.trim());
+
+      // Chuyển URL-safe base64 về base64 chuẩn
+      str = str.replace(/-/g, "+").replace(/_/g, "/");
+
+      // Bảng ký tự Base64
+      var chars =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+      var output = [];
+      var buffer = 0,
+        bits = 0;
+
+      // 2. Decode Base64 thành Mảng Byte
+      for (var i = 0; i < str.length; i++) {
+        var char = str.charAt(i);
+        if (char === "=") break; // Bỏ qua padding
+        var index = chars.indexOf(char);
+        if (index === -1) continue; // Bỏ qua ký tự không hợp lệ
+
+        buffer = (buffer << 6) | index;
+        bits += 6;
+
+        if (bits >= 8) {
+          bits -= 8;
+          output.push((buffer >> bits) & 0xff);
+        }
+      }
+
+      // 3. Decode UTF-8 từ mảng Byte ra String
+      var result = "";
+      var j = 0;
+      while (j < output.length) {
+        var c = output[j++];
+        if (c < 128) {
+          result += String.fromCharCode(c);
+        } else if (c > 191 && c < 224) {
+          var c2 = output[j++];
+          result += String.fromCharCode(((c & 31) << 6) | (c2 & 63));
+        } else if (c > 223 && c < 240) {
+          var c2 = output[j++];
+          var c3 = output[j++];
+          result += String.fromCharCode(
+            ((c & 15) << 12) | ((c2 & 63) << 6) | (c3 & 63)
+          );
+        } else if (c >= 240) {
+          var c2 = output[j++];
+          var c3 = output[j++];
+          var c4 = output[j++];
+          var u =
+            (((c & 7) << 18) | ((c2 & 63) << 12) | ((c3 & 63) << 6) | (c4 & 63)) -
+            0x10000;
+          result += String.fromCharCode(0xd800 + (u >> 10), 0xdc00 + (u & 0x3ff));
+        }
+      }
+
+      return result;
+    } catch (e) {
+      console.log("[BASE64.decode Error]:", e.message || e);
+      return "";
+    }
+  }
+};
 
 function parseCategoriesResponse(apiResponseJson) {
     try {

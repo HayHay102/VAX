@@ -8,14 +8,13 @@ function getManifest() {
       "id": "fluxtv",
       "name": "Nguồn FluxTV",
       "description": "Nguồn phim FluxTV",
-      "version": "1.1",
+      "version": "1.3",
       "author": "Alokillgtv",
       "info": "Nguồn phim thuộc servers nước ngoài.\nDùng để sơ cua khi các nguồn trong nước bị sập.\nNguồn này được mình tích hợp rẩt nhiều subtitle nên có thể tự động dịch và lồng tiếng tự động.\nVì là nguồn nước ngoài nên đôi khi cần phải vượt DNS mới xem được.\nDo đó nếu không xem được hãy vào cài đặt bật DNS và DPI hoặc dùng ứng dụng 1.1.1.1 để vượt DNS.\nMột vài phim load sẽ hơi lâu, nhưng khi load được sẽ phát mượt. Nếu không load được hay bấm tải lại sẽ tự tìm link khác để phát.\nNếu vẫn không dược hãy thử hạ độ phân giải xuống 1 cấp sẽ coi được..",
       "BASEURL": BASEURL,
       "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/fluxtv.png",
       "isEnabled": true,
       "isAdult": false,
-      "debug": true,
       "adblock": false,
       "layoutType": "HORIZONTAL",
       "type": "MOVIE",
@@ -362,7 +361,14 @@ function parseMovieDetail(html, url) {
             var tmdbId = tmdbIdMatch ? tmdbIdMatch[1] : "";
 
             var imdbMatch = url.match(/[?&]imdb_id=([^&]+)/i);
-            var imdbId = imdbMatch ? decodeURIComponent(imdbMatch[1]) : "";
+            var rawImdbFromUrl = imdbMatch ? decodeURIComponent(imdbMatch[1]) : "";
+
+            var ttIdMatch = url.match(/[?&]ttid=([^&]+)/i);
+            var rawTtFromUrl = ttIdMatch ? decodeURIComponent(ttIdMatch[1]) : "";
+
+            // Định dạng chuẩn ttid (thêm 'tt' nếu chưa có)
+            var finalImdbId = rawImdbFromUrl ? (rawImdbFromUrl.indexOf("tt") === 0 ? rawImdbFromUrl : "tt" + rawImdbFromUrl) : "";
+            var finalTtId = rawTtFromUrl ? (rawTtFromUrl.indexOf("tt") === 0 ? rawTtFromUrl : "tt" + rawTtFromUrl) : finalImdbId;
 
             var titleMatch = url.match(/[?&]title=([^&]+)/i);
             var movieTitle = titleMatch ? decodeURIComponent(titleMatch[1]) : ($data && $data.title ? $data.title : "");
@@ -477,7 +483,8 @@ function parseMovieDetail(html, url) {
                         var serverEpisodes = baseEpisodes.map(function(ep) {
                             var realServerParam = targetStreamIdx + 1;
                             var epUrl = "https://fetchvideo.alokillgtv.workers.dev/?type=tv&id=" + tmdbId +
-                                        (imdbId ? ("&imdb_id=" + encodeURIComponent(imdbId)) : "") +
+                                        (finalImdbId ? ("&imdb_id=" + encodeURIComponent(finalImdbId)) : "") +
+                                        (finalTtId ? ("&ttid=" + encodeURIComponent(finalTtId)) : "") +
                                         "&title=" + encodeURIComponent(movieTitle) +
                                         "&season=" + ep.season + "&episode=" + ep.episode +
                                         "&server=" + realServerParam;
@@ -505,7 +512,8 @@ function parseMovieDetail(html, url) {
                         var epName = providerStr + (qualityStr ? " " + qualityStr : "");
 
                         var epUrl = "https://fetchvideo.alokillgtv.workers.dev/?type=movie&id=" + tmdbId +
-                                    (imdbId ? ("&imdb_id=" + encodeURIComponent(imdbId)) : "") +
+                                    (finalImdbId ? ("&imdb_id=" + encodeURIComponent(finalImdbId)) : "") +
+                                    (finalTtId ? ("&ttid=" + encodeURIComponent(finalTtId)) : "") +
                                     "&title=" + encodeURIComponent(movieTitle) +
                                     "&server=" + srvNum;
 
@@ -535,11 +543,11 @@ function parseMovieDetail(html, url) {
         }
 
         // =========================================================
-        // LƯỢT 1: PARSE DỮ LIỆU TỪ TMDB (TRẢ VỀ SERVERS = [])
+        // LƯỢT 1: PARSE DỮ LIỆU TỪ DỮ LIỆU PHIM CHI TIẾT
         // =========================================================
-        log("[parseMovieDetail] Executing FIRST flow (TMDB Response)...");
+        log("[parseMovieDetail] Executing FIRST flow (Detail Response)...");
         var $data = JSON.parse(html);
-        if (!$data) throw new Error("Empty JSON response from TMDB");
+        if (!$data) throw new Error("Empty JSON response from Detail API");
 
         var id = url || "";
         var title = $data.title || $data.name || $data.original_title || $data.original_name || "";
@@ -588,14 +596,25 @@ function parseMovieDetail(html, url) {
         }
 
         var tmdbId = $data.id || "";
-        var imdbId = $data.imdb_id || ($data.external_ids ? $data.external_ids.imdb_id : "");
+
+        // Trích xuất IMDb / TT ID gốc từ dữ liệu
+        var rawImdb = $data.imdb_id || ($data.external_ids ? $data.external_ids.imdb_id : "") || $data.ttid || $data.tt_id || "";
+        
+        // Chuẩn hóa tự động: Nếu có chuỗi ID mà chưa chứa "tt" ở đầu thì tự gắn thêm "tt"
+        var formattedTtId = "";
+        if (rawImdb) {
+            var cleanStr = String(rawImdb).trim();
+            formattedTtId = cleanStr.indexOf("tt") === 0 ? cleanStr : ("tt" + cleanStr);
+        }
+
         var extraUrl = "";
 
         if (tmdbId) {
             var typeParam = isTV ? "tv" : "movie";
             var baseWorkerUrl = "https://fetchvideo.alokillgtv.workers.dev/?type=" + typeParam +
                                 "&id=" + tmdbId +
-                                (imdbId ? ("&imdb_id=" + encodeURIComponent(imdbId)) : "") +
+                                (formattedTtId ? ("&imdb_id=" + encodeURIComponent(formattedTtId)) : "") +
+                                (formattedTtId ? ("&ttid=" + encodeURIComponent(formattedTtId)) : "") +
                                 "&title=" + encodeURIComponent(title);
 
             if (isTV && $data.seasons && Array.isArray($data.seasons)) {
@@ -653,6 +672,53 @@ function parseMovieDetail(html, url) {
     }
 }
 
+
+function getParam(url) {
+    var params = {
+        type: "",
+        id: "",
+        imdb_id: "",
+        ttid: "",
+        title: "",
+        season: "",
+        episode: "",
+        server: ""
+    };
+
+    if (!url || typeof url !== "string") return params;
+
+    // Lấy phần query string sau dấu '?' (nếu có)
+    var queryString = url.indexOf("?") > -1 ? url.split("?")[1] : url;
+
+    // Tách các cặp key=value phân cách bởi dấu '&'
+    var pairs = queryString.split("&");
+
+    pairs.forEach(function(pair) {
+        if (!pair) return;
+
+        // Bóc tách key và value bằng RegExp
+        var match = pair.match(/^([^=]+)=(.*)$/);
+        if (match) {
+            var key = match[1].trim();
+            var rawValue = match[2].trim();
+
+            // Decode value (xử lý unicode và khoảng trắng)
+            var value = "";
+            try {
+                value = decodeURIComponent(rawValue);
+            } catch (e) {
+                value = rawValue;
+            }
+
+            // Gán giá trị vào object tương ứng nếu key tồn tại
+            if (params.hasOwnProperty(key)) {
+                params[key] = value;
+            }
+        }
+    });
+
+    return params;
+}
 // ===== HÀM TẠO KHỐI CHI TIẾT PHIM END ======
 
 // ===== HÀM TẠO XỬ LÝ STREAM PHIM BEGIN ======
@@ -777,10 +843,12 @@ function parseDetailResponse(html, url) {
     var encodedStream = BASE64.encode(JSON.stringify(payload));
 
     var subApiUrl = "";
+    var objparam = getParam(url);
+    // objparam.imdb_id 
     if (isTV) {
-      subApiUrl = "https://subtitles.shegu.st/subtitles?type=tv&tmdb=" + tmdbId + "&season=" + (season || "1") + "&episode=" + (episode || "1") + "&stream=" + encodeURIComponent(encodedStream);
+      subApiUrl = "https://subtitles.shegu.st/subtitles?id="+objparam.id+"&imdb_id="+objparam.imdb_id+"&type=tv&tmdb=" + tmdbId + "&season=" + (season || "1") + "&episode=" + (episode || "1") + "&stream=" + encodeURIComponent(encodedStream);
     } else {
-      subApiUrl = "https://subtitles.shegu.st/subtitles?type=movie&tmdb=" + tmdbId + "&stream=" + encodeURIComponent(encodedStream);
+      subApiUrl = "https://subtitles.shegu.st/subtitles?id="+objparam.id+"&imdb_id="+objparam.imdb_id+"&type=movie&tmdb=" + tmdbId + "&stream=" + encodeURIComponent(encodedStream);
     }
 
     console.log("▶ Format: " + rawFormat + " | Stream (Server " + (effectiveServerIdx + 1) + "): " + rawStreamUrl);
@@ -917,7 +985,14 @@ function parseEmbedResponse(html, url) {
       // LỌC CHUẨN VIETSUB VÀ ENGSUB:
       var isVi = lang.indexOf("vi") === 0 || lang === "vnm" || display.indexOf("viet") > -1 || display.indexOf("vnm") > -1;
       var isEn = lang.indexOf("en") === 0 || display.indexOf("eng") > -1;
-
+      var objparam = getParam(url);
+      // objparam.imdb_id 
+      if(objparam.type == "tv"){
+        var param = "&id=" + objparam.id + "&imdb_id=" + objparam.imdb_id + "&season=" + objparam.season + "&episode=" + objparam.episode
+      }
+      else{
+        var param = "&id=" + objparam.id + "&imdb_id=" + objparam.imdb_id
+      }
       if (isVi) {
         viCount++;
         subtitleList.push({
@@ -925,18 +1000,25 @@ function parseEmbedResponse(html, url) {
           url: itemUrl,
           mimeType: subMime
         });
-      } else if (isEn && enCount < 3) {
+      } else if (enCount < 3) {
         enCount++;
         subtitleList.push({
-          lang: "Engsub " + enCount + " [" + subMime + "]",
-          url: itemUrl,
-          mimeType: subMime
-        });
+          lang: "Dịch AI " + enCount,
+          url: `https://subtitleai.alokillgtv.workers.dev/?sub=${enCount}${param}`,
+          mimeType: "text/vtt"
+        })
+        if(enCount == 1 && isEn){
+          subtitleList.push({
+            lang: "English",
+            url: itemUrl,
+            mimeType: subMime
+          });
+        }
       }
     });
 
     console.log("▶ Đã lọc chuẩn " + subtitleList.length + " sub (chỉ gồm Vietsub và Engsub).");
-
+    
     var streamVD = JSON.stringify({
       url: streamUrl,
       mimeType: mimeType,
