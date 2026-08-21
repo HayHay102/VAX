@@ -13,7 +13,7 @@ function getManifest() {
         "id": "shortflix",
         "name": "Phim Ngắn Shortflix",
         "description": "Phim Ngắn lồng tiếng vietsub hay",
-        "version": "1.2.8",
+        "version": "1.3",
         "info": "",
         "baseUrl": "https://www.shortflix.net",
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/shortflix.png",
@@ -562,7 +562,7 @@ function parseDetailResponse(html, url) {
           //.log("ListMV\n" + JSON.stringify($episodes))
           //log("parseDetailResponse[url]: \n" + $linkstream);
           var postbody = BASE64.encode(JSON.stringify($episodes))
-          var link = "https://script.google.com/macros/s/AKfycbxtqzEVME2KNoP1nA-A0t-_Hmf5FdBSOSbVVAmzB8AUxfma-3Wbq0GZQPAUBuHGAiCF/exec?film_url=" + encodeURIComponent(url)
+          var link = "https://script.google.com/macros/s/AKfycbwOr1SrXDDAEFpcNJGolpcReeDe5u5A7v7BWMqoKw6y1UA-LGjLtVwIgxc-u1d_J1Tb/exec?film_url=" + encodeURIComponent(url)
           console.log("link Post:\n" + link)
           var $return = JSON.stringify({
               "url": link,

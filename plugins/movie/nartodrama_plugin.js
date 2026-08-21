@@ -6,7 +6,7 @@ function getManifest() {
         "id": "nartodrama",
         "name": "Phim Ngắn Narto",
         "description": "Phim Ngắn lồng tiếng vietsub hay",
-        "version": "1.1.8",
+        "version": "1.1.9",
         "info": "Nguồn phim ngắn siêu hay, một vài bộ phim nên xem theo chiều dọc. App có hỗ trợ nhé. Hãy nhấn thử lại nếu không tải được video.",
         "baseUrl": "https://nartodrame.alokillgtv.workers.dev",
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/nartodrama.png",
@@ -269,7 +269,7 @@ function parseListResponse(html, $url) {
                 var cleanThumb = src.replace(/&amp;/g, '&');
                 items.push({
                     "id": href,
-                    "title": title.trim(),
+                    "title": title.trim().replace(/dubbing|dubbed/i, "Lồng Tiếng").replace("&quot;",""),
                     "posterUrl": cleanThumb,
                     "backdropUrl": cleanThumb,
                     "quality": "",
@@ -340,7 +340,8 @@ function parseMovieDetail(html, url) {
             slug = slugMatch2 ? slugMatch2[1] : "";
         }
 
-        // === BƯỚC 2: TRÍCH XUẤT THÔNG TIN PHIM ===
+        // === LẤY THÔNG TIN CHI TIẾT PHIM ===
+        console.log("Lượt 1 lấy thông tin");
         var lurl = "";
         var limg = "";
         var lname = "Đang cập nhật...";
@@ -351,30 +352,41 @@ function parseMovieDetail(html, url) {
         var status = "";
         var category = "";
         var episode_current = "";
-
+  
         var rmatch = html.match(/meta\s+property="og:url"\s+content="([^"]+)"/i);
         if (rmatch && rmatch[1]) lurl = rmatch[1];
-
+  
         rmatch = html.match(/meta\s+property="og:image"\s+content="([^"]+)"/i);
         if (rmatch && rmatch[1]) limg = rmatch[1];
-
+  
         rmatch = html.match(/meta\s+property="og:title"\s+content="([^"]+)"/i);
         if (rmatch && rmatch[1]) lname = decodeHTMLtext(rmatch[1]);
-
+        lname = lname.replace(/dubbing|dubbed/i, "Lồng Tiếng").replace("&quot;","");
+        
         rmatch = html.match(/meta\s+property="og:description"\s+content="([^"]+)"/i);
         if (rmatch && rmatch[1]) ldes = decodeHTMLtext(rmatch[1]);
+        
         var year = 2026;
-        var extra = "";
         category = _$(html).find(".movie-tag-pill").textAll(" - ");
         episode_current = _$(html).find(".movie-sub").text();
+        
+        // Lấy dữ liệu raw từ script
         var rawScript = _$(html).find('script:content("episodeItemsRaw = [{")').html();
-        var $objepi = "";
-        var servers = [];
-        var items = [];
-        var episodes = rawScript.match(/(?:const|let|var)\s+episodeItemsRaw\s*=\s*(\[[\s\S]*?\])(?:;|\n|$)/i);
+        var $objepi = [];
+        var episodes = rawScript ? rawScript.match(/(?:const|let|var)\s+episodeItemsRaw\s*=\s*(\[[\s\S]*?\])(?:;|\n|$)/i) : null;
+        
         if (episodes && episodes[1]) {
-            $objepi = JSON.parse(episodes[1]);
+            try {
+                $objepi = JSON.parse(episodes[1]);
+            } catch(err) {}
         }
+        
+        // Xác định tổng số tập (Ưu tiên lấy từ mảng script, nếu không có thì lấy từ URL maxfile hoặc mặc định là 1)
+        var matchMax = url.match(/maxfile=(\d+)/i);
+        var maxEpi = $objepi.length > 0 ? $objepi.length : (matchMax ? parseInt(matchMax[1], 10) : 1);
+
+        var servers = [];
+
         var urlmatch = "";
         if (id.indexOf("/detail/watch/") > -1) {
             urlmatch = id.match(/(?<=\/watch\/)[^/]+/i);
@@ -383,24 +395,46 @@ function parseMovieDetail(html, url) {
             urlmatch = id.match(/(?<=\/detail\/)[^?]+/i);
             urlmatch[0] = urlmatch[0].replace(/\/(\d+)$/g, "");
         }
-        var slug = urlmatch[0];
-        for (var $j = 0; $j < $objepi.length; $j++) {
-            var $movie = $objepi[$j];
-            var $number = $movie.number;
-            var link = BASEURL + "/e/rs/detail/" + slug + "/" + $number + "/refresh-source?lang=vi-VN&force=1";
+        var slugVal = urlmatch[0];
+        
+        var items = [];
+       // var linkFull = BASEURL + "/e/rs/detail/" + slugVal + "/1/refresh-source?lang=vi-VN&force=1" + "&fulltap=true&maxfile=" + maxEpi + "&slug=" + slugVal;
+        // https://edge.narto-drama.com/e/rs/detail/watch/long-tieng-muon-dam-giang-son-vao-long-ta/1/refresh-source?lang=vi-VN&rs_src=self&rs_attempt=1&rs_flag=0&rs_local=0&rs_sid=hgsleaj5&force=1
+        var linkFull = "https://edge.narto-drama.com/e/rs/detail/" + slugVal + "/1/refresh-source?lang=vi-VN&rs_sid=hgsleaj5&force=1" + "&fulltap=true&maxfile=" + maxEpi + "&slug=" + slugVal;
+        servers.push({
+            name: "Server 1 Tập",
+            episodes: [{
+                name: "Nối Thành 1 Tập",
+                id: linkFull ,
+                slug: "tap-full"
+            },{
+                name: "Xem Tập Đã Nối",
+                id: linkFull + "&play=true" ,
+                slug: "tap-full"
+            },{
+                name: "Làm Mới Tập Nối",
+                id: linkFull + "&clear=true" ,
+                slug: "tap-full"
+            }]
+        });
+        
+        for (var $j = 0; $j < maxEpi; $j++) {
+            var $number = ($j + 1);
+            var link = "https://edge.narto-drama.com/e/rs/detail/" + slugVal + "/" + $number + "/refresh-source?lang=vi-VN&force=1&rs_sid=hgsleaj5";
 
-            var item = {
+            items.push({
                 id: link,
                 name: "Tập " + $number,
                 slug: "Tap-" + $number
-            };
-            items.push(item);
+            });
         }
+        
         servers.push({
-            name: "Server",
+            name: "Server Chia Tập",
             episodes: items
         });
-
+        
+        // === TRẢ VỀ KẾT QUẢ ĐẦY ĐỦ MỘT LẦN DUY NHẤT ===
         var $return = JSON.stringify({
             id: id,
             title: lname,
@@ -413,14 +447,16 @@ function parseMovieDetail(html, url) {
             status: status,
             category: category,
             episode_current: episode_current,
-            servers: servers,
+            servers: servers, // Đã đưa servers vào đây
             duration: lduran || "",
             casts: lactor || "",
             director: ldirec || "",
-            extra: extra
+            extra: ""
         });
-      console.log("Return 2:\n" + $return)
-      return $return
+        
+        console.log("Return Success:\n" + $return);
+        return $return;
+        
     } catch (e) {
         console.log("parseMovieDetail[err]:\n " + e);
         return JSON.stringify({
@@ -431,75 +467,487 @@ function parseMovieDetail(html, url) {
     }
 }
 
+function htmlload(videosrc, subtitle, linkpost, postbody, customHeaders = {}, rawbackup = "") {
+  console.log("Stream html:\n" + videosrc);
+  const mergedHeaders = Object.assign({
+    'Referer': 'https://nartodrama.com/',
+    'Origin': 'https://nartodrama.com/'
+  }, customHeaders);
+
+  const isMp4 = !videosrc.includes('.m3u8') && (videosrc.includes('.mp4') || !videosrc.includes('m3u'));
+
+  // ================= LUỒNG MP4 =================
+  if (isMp4) {
+    return `<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MP4 Player</title>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif}
+        body{background:#000;height:100vh;display:flex;justify-content:center;align-items:center;color:#f8fafc;overflow:hidden}
+        .black-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:5;transition:opacity 0.5s ease}
+        .black-overlay.hidden{opacity:0;pointer-events:none;display:none}
+        .card{background:rgba(15,23,42,0.98);border:1px solid rgba(56,189,248,0.3);padding:30px 24px;border-radius:20px;text-align:center;box-shadow:0 25px 50px rgba(0,0,0,0.9);z-index:10;max-width:440px;width:90%;transition:opacity 0.5s ease,transform 0.5s ease}
+        .card.hidden{opacity:0;transform:scale(0.95);pointer-events:none;display:none}
+        .videoplayer{width:100vw;height:100vh;position:fixed;top:0;left:0;right:0;bottom:0;background:#000;display:flex;justify-content:center;align-items:center;z-index:1;overflow:hidden}
+        .videoplayer video{width:100%;height:100%;object-fit:fill}
+        video::-webkit-media-controls-fullscreen-button { display: none !important; }
+        .spinner{width:45px;height:45px;border:4px solid rgba(255,255,255,0.1);border-top:4px solid #38bdf8;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 15px auto}
+        @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        .loading-title{font-size:17px;font-weight:600;color:#fff;margin-bottom:10px}
+        .loading-desc{font-size:13px;color:#cbd5e1;line-height:1.5}
+        .loading-progress{margin-top:15px;font-size:14px;color:#38bdf8;font-weight:600}
+    </style>
+</head>
+<body>
+    <div class="black-overlay" id="blackOverlay"></div>
+    <div class="card" id="loadingCard">
+        <div class="spinner"></div>
+        <div class="loading-title">Thông báo</div>
+        <div class="loading-desc">Phim dùng định dạng MP4 trực tiếp.<br>Đang chuẩn bị phát...</div>
+        <div class="loading-progress" id="text">Đang chuẩn bị... 0%</div>
+    </div>
+    <div class="videoplayer" id="playerContainer">
+      <video id="myVideo" controls playsinline webkit-playsinline disablepictureinpicture controlsList="nofullscreen nodownload" preload="auto">Trình duyệt không hỗ trợ thẻ video.</video>
+    </div>
+    <script>
+        const video = document.getElementById('myVideo');
+        const loadingCard = document.getElementById('loadingCard');
+        const blackOverlay = document.getElementById('blackOverlay');
+        const textEl = document.getElementById('text');
+
+        video.requestFullscreen = function() {};
+        if (video.webkitRequestFullscreen) video.webkitRequestFullscreen = function() {};
+        if (video.webkitEnterFullscreen) video.webkitEnterFullscreen = function() {};
+
+        const mainSrc = ${JSON.stringify(videosrc)};
+        const backupSrc = ${JSON.stringify(rawbackup)};
+        let currentSrc = mainSrc;
+        let isBackupTried = false;
+        let progress = 0;
+        let isAllowedToPlay = false;
+
+        function loadVideoSource(src) {
+            video.src = src;
+            video.load();
+        }
+
+        video.addEventListener('error', function() {
+            if (!isBackupTried && backupSrc && backupSrc !== mainSrc) {
+                isBackupTried = true;
+                currentSrc = backupSrc;
+                loadVideoSource(backupSrc);
+            }
+        });
+
+        const watchdog = setInterval(() => {
+            if (!isAllowedToPlay && !video.paused) {
+                video.pause();
+                video.currentTime = 0;
+            }
+        }, 50);
+
+        const progressInterval = setInterval(() => {
+            if (progress < 100) {
+                progress += 1;
+                textEl.innerText = "Đang chuẩn bị phát... " + progress + "%";
+            }
+        }, 100);
+
+        loadVideoSource(mainSrc);
+
+        setTimeout(() => {
+            clearInterval(progressInterval);
+            clearInterval(watchdog);
+            isAllowedToPlay = true;
+            loadingCard.classList.add('hidden');
+            blackOverlay.classList.add('hidden');
+            video.play().catch(e => {});
+        }, 10000);
+    </script>
+</body>
+</html>`;
+  }
+}
+
 function parseDetailResponse(html, url) {
     try {
         console.log("parseDetailResponse[url]: \n" + url);
-        var $objmv = JSON.parse(html);
-        var rawStream = $objmv.direct_play_url || $objmv.play_url || "";
-        var $subtitle = $objmv.direct_subtitle_url || "";
         
-        if (!rawStream) {
-            throw new Error("Không tìm thấy link stream");
+        // Kiểm tra nếu html rỗng hoặc không hợp lệ
+        if (!html || typeof html !== 'string') {
+            throw new Error("Phản hồi từ server bị trống hoặc không hợp lệ");
         }
 
-        var lowerStream = rawStream.toLowerCase();
-        var mimeType = "application/x-mpegURL";
-        var finalStreamUrl = rawStream;
+        if(url.indexOf("fulltap") > -1 && url.indexOf("play=true") == -1){
+            var slug = url.match(/slug=([^&]+)/i)[1];
+            var maxfile = url.match(/maxfile=([^&]+)/i)[1];
+            var data = [slug, maxfile];   
+            var postbody = BASE64.encode(JSON.stringify(data));
+            var clear = "";
+            if(url.indexOf("clear=true") > -1){
+              clear = "&clear=true"
+            }
+            var linkpost = "https://script.google.com/macros/s/AKfycbyen58UYqBbf_j2dS55R0yWCQThRL25YhGIoZmY5KRFF131U0HeqVfPb4DJsa4Tlp13/exec?film_url=" + encodeURIComponent(slug) + "&maxfile=" + maxfile + "&slug=" + slug + clear;
+            
+            var $objmv = JSON.parse(html);
+            var rawStream = $objmv.direct_play_url || $objmv.play_url || "";
+            var rawbackup = $objmv.play_url || "";
+            var $subtitle = $objmv.direct_subtitle_url || "";
+            //var encode = BASE64.encode(htmlload(rawStream, $subtitle, linkpost, postbody,rawbackup));
+            var encode = BASE64.encode(htmlload(rawStream, $subtitle, linkpost, postbody,rawbackup));
+            
+            var base64 = `https://base64html.alokillgtv.workers.dev/?url=data:text/html;base64,${encode}`;
+            console.log("link Post:\n" + linkpost);
+           // console.log("link base64:\n" + base64);
+            var isEmbed = true;
+            if(rawStream.includes('mp4')){
+              linkpost = base64;
+              isEmbed = false;
+            }
 
-        // 1. PHÂN LOẠI CHÍNH XÁC
-        if (lowerStream.includes(".mp4")) {
-            mimeType = "video/mp4";
-            if (!finalStreamUrl.endsWith("#.m3u8")) {
-                finalStreamUrl += "#.m3u8";
-            }
-        } 
-        else if (lowerStream.includes(".m3u8")) {
-            mimeType = "application/x-mpegURL";
-        } 
-        else {
-            mimeType = "application/x-mpegURL";
-            if (!finalStreamUrl.endsWith("#.m3u8")) {
-                finalStreamUrl += "#.m3u8";
-            }
+          
+            var $return = JSON.stringify({
+                "url": linkpost,
+                "isEmbed": isEmbed,
+                "mimeType": "text/html",
+                "headers": {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                },
+                "subtitles": [{
+                  lang: "Vietsub",
+                  type: "text/vtt",
+                  url: linkpost + "&subtitle=true"
+                }],
+                datasend: encodeURIComponent(linkpost)
+            });
+            return $return;
         }
-
-        // 2. XỬ LÝ SUBTITLE
-        var listsub = [];
-        if ($subtitle) {
-            if (!$subtitle.startsWith("http://") && !$subtitle.startsWith("https://")) {
-                if (!$subtitle.startsWith("/")) {
-                    $subtitle = "/" + $subtitle;
-                }
-                $subtitle = BASEURL + $subtitle;
-            }
-
-            listsub.push({
-                "lang": "Subtitle",
-                "url": $subtitle,
-                "mimeType": "text/vtt"
+        if(url.indexOf("play=true") > -1){
+            var slug = url.match(/slug=([^&]+)/i)[1];
+            var maxfile = url.match(/maxfile=([^&]+)/i)[1];
+            var linkpost = "https://script.google.com/macros/s/AKfycbyen58UYqBbf_j2dS55R0yWCQThRL25YhGIoZmY5KRFF131U0HeqVfPb4DJsa4Tlp13/exec?film_url=" + encodeURIComponent(slug) + "&maxfile=" + maxfile + "&slug=" + slug;
+            return JSON.stringify({
+                "url": linkpost + "&m3u8=true#.m3u8",
+                "isEmbed": false,
+                "mimeType": "application/x-mpegURL",
+                "headers": {
+                    "Referer": typeof BASEURL !== 'undefined' ? BASEURL : "https://edge.narto-drama.com/",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Custom-Js": `SnifferBridge.play("${finalStreamUrl}#.m3u8");SnifferBridge.log("Sniffer: ${finalStreamUrl}")`
+                },
+                "subtitles": [{
+                  lang: "Vietsub",
+                  url: linkpost + "&subtitle=true",
+                  mimeType: "text/vtt"
+                }]
             });
         }
-
-        console.log("parseDetailResponse[url]: \n" + finalStreamUrl);
-
-        return JSON.stringify({
-            "url": finalStreamUrl,
-            "isEmbed": false,
-            "mimeType": mimeType,
-            "headers": {
-                "Referer": typeof BASEURL !== 'undefined' ? BASEURL : "https://edge.narto-drama.com/",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            },
-            "subtitles": listsub
-        });
+        else {
+            var $objmv = JSON.parse(html);
+            //var rawStream = $objmv.direct_play_url || $objmv.play_url || "";
+            var rawStream = $objmv.play_url || $objmv.play_url || "";
+            var $subtitle = $objmv.direct_subtitle_url || "";
+            
+            if (!rawStream) {
+                throw new Error("Không tìm thấy link stream");
+            }
+  
+            var lowerStream = rawStream.toLowerCase();
+            var mimeType = "application/x-mpegURL";
+            var finalStreamUrl = rawStream;
+            // https://dramabox-stream.narto-drama.com
+            if (lowerStream.includes(".mp4") || finalStreamUrl.indexOf("dramabox-stream.narto-drama.com") > -1) {
+                mimeType = "video/mp4";
+                if (!finalStreamUrl.endsWith("#.m3u8")) {
+                    finalStreamUrl += "#.m3u8";
+                }
+            } 
+            else if (lowerStream.includes(".m3u8")) {
+                mimeType = "application/x-mpegURL";
+            } 
+            else {
+                mimeType = "application/x-mpegURL";
+                if (!finalStreamUrl.endsWith("#.m3u8")) {
+                    finalStreamUrl += "#index.m3u8";
+                }
+            }
+  
+            var listsub = [];
+            if ($subtitle) {
+                if (!$subtitle.startsWith("http://") && !$subtitle.startsWith("https://")) {
+                    if (!$subtitle.startsWith("/")) {
+                        $subtitle = "/" + $subtitle;
+                    }
+                    $subtitle = BASEURL + $subtitle;
+                }
+  
+                listsub.push({
+                    "lang": "Subtitle",
+                    "url": $subtitle,
+                    "mimeType": "text/vtt"
+                });
+            }
+  
+            console.log("parseDetailResponse[url]: \n" + finalStreamUrl);
+  //               "Custom-Js": `SnifferBridge.play("${finalStreamUrl}#.m3u8");SnifferBridge.log("Sniffer: ${finalStreamUrl}")`
+            return JSON.stringify({
+                "url": finalStreamUrl + "#.m3u8",
+                "isEmbed": false,
+                "mimeType": mimeType,
+                "headers": {
+                    "Referer": typeof BASEURL !== 'undefined' ? BASEURL : "https://edge.narto-drama.com/",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Custom-Js": `SnifferBridge.play("${finalStreamUrl}#.m3u8");SnifferBridge.log("Sniffer: ${finalStreamUrl}")`
+                },
+                "subtitles": listsub
+            });
+          
+        }
+        
     } catch (e) {
-        console.log("parseDetailResponse[err]:\n " + e);
+        console.log("parseDetailResponse[err]:\n " + e.message);
         return JSON.stringify({
             "url": "",
             "headers": {}
         });
     }
 }
+
+
+function parseEmbedResponse(html, url, datasend) {
+    console.log("Kết quả:\n" + html);
+    if (typeof log === "function") log("parseEmbedResponse [url]: " + url);
+
+    try {
+        // 1. Kiểm tra đầu vào html
+        if (!html) {
+            throw new Error("Dữ liệu HTML/JSON nhận về bị rỗng");
+        }
+
+        var result = {};
+        try {
+            result = (typeof html === 'object') ? html : JSON.parse(html);
+        } catch (jsonErr) {
+            throw new Error("Chuỗi HTML không phải là JSON hợp lệ: " + jsonErr.message);
+        }
+
+        // 2. Lấy link stream linh hoạt (phòng trường hợp server đổi tên key)
+        var link = result.direct_play_url || result.url || result.play_url || result.stream_url || "";
+        if (!link) {
+            throw new Error("Không tìm thấy đường dẫn video trong phản hồi");
+        }
+
+        // 3. Giải mã datasend an toàn (tránh lỗi URIError)
+        var decode = "";
+        if (datasend) {
+            try {
+                decode = decodeURIComponent(datasend);
+            } catch (uriErr) {
+                decode = datasend; // Lấy chuỗi gốc nếu giải mã lỗi
+            }
+        }
+
+        // 4. Nhận diện định dạng MP4 vs M3U8 để gán mimeType và URL chuẩn
+        var isMp4 = (result.type === "mp4_not_supported") || 
+                    (result.status === "error") || 
+                    (link.toLowerCase().indexOf(".mp4") > -1);
+
+        var mimeType = "application/x-mpegURL";
+        var finalUrl = link;
+
+        if (isMp4 || link.indexOf("dramabox-stream.narto-drama.com") > -1) {
+            mimeType = "video/mp4";
+            finalUrl = link + "#.m3u8"; // File MP4 giữ nguyên link gốc, KHÔNG cộng #.m3u8
+        } else {
+            mimeType = "application/x-mpegURL";
+            if (!finalUrl.endsWith("#.m3u8")) {
+                finalUrl += "#.m3u8";
+            }
+        }
+
+        // 5. Chuẩn hóa mảng Subtitle (chỉ thêm nếu URL subtitle hợp lệ)
+        var subtitles = [];
+        var subUrl = result.subtitle || result.sub || "";
+        if (typeof subUrl === 'string' && subUrl.trim() !== "") {
+            subtitles.push({
+                lang: "Vietsub",
+                url: subUrl.trim(),
+                mimeType: "text/vtt"
+            });
+        }
+
+        // 6. Header chống chặn Hotlink/CDN
+        var refererHeader = typeof BASEURL !== 'undefined' ? BASEURL : "https://edge.narto-drama.com/";
+
+        var returnObj = {
+            url: finalUrl,
+            mimeType: mimeType,
+            isEmbed: false,
+            headers: {
+                "Referer": refererHeader,
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            subtitles: subtitles
+        };
+
+        var $return = JSON.stringify(returnObj);
+        console.log("Return Embed:\n" + $return);
+        return $return;
+
+    } catch (e) {
+        // Bắt toàn bộ lỗi phát sinh và trả về JSON rỗng an toàn cho Player
+        console.log("[Lỗi parseEmbedResponse]: " + (e.message || e));
+        return JSON.stringify({ 
+            url: "", 
+            isEmbed: false, 
+            mimeType: "application/x-mpegURL",
+            headers: {},
+            subtitles: []
+        });
+    }
+}
+
+
+
+BASE64 = {
+  encode: function (str) {
+    try {
+      if (!str) return "";
+
+      // 1. Encode String ra mảng UTF-8 Bytes trước
+      var utf8Bytes = [];
+      for (var i = 0; i < str.length; i++) {
+        var code = str.charCodeAt(i);
+        if (code < 128) {
+          utf8Bytes.push(code);
+        } else if (code < 2048) {
+          utf8Bytes.push((code >> 6) | 192, (code & 63) | 128);
+        } else if (
+          (code & 0xfc00) === 0xd800 &&
+          i + 1 < str.length &&
+          (str.charCodeAt(i + 1) & 0xfc00) === 0xdc00
+        ) {
+          // Ký tự Surrogate Pair
+          code =
+            0x10000 + ((code & 0x03ff) << 10) + (str.charCodeAt(++i) & 0x03ff);
+          utf8Bytes.push(
+            (code >> 18) | 240,
+            ((code >> 12) & 63) | 128,
+            ((code >> 6) & 63) | 128,
+            (code & 63) | 128
+          );
+        } else {
+          utf8Bytes.push(
+            (code >> 12) | 224,
+            ((code >> 6) & 63) | 128,
+            (code & 63) | 128
+          );
+        }
+      }
+
+      // 2. Chuyển mảng UTF-8 Bytes thành chuỗi Base64
+      var chars =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+      var encoded = "";
+      var byte1, byte2, byte3;
+      var b1, b2, b3, b4;
+
+      for (var j = 0; j < utf8Bytes.length; j += 3) {
+        byte1 = utf8Bytes[j];
+        byte2 = j + 1 < utf8Bytes.length ? utf8Bytes[j + 1] : NaN;
+        byte3 = j + 2 < utf8Bytes.length ? utf8Bytes[j + 2] : NaN;
+
+        b1 = byte1 >> 2;
+        b2 = ((byte1 & 3) << 4) | (isNaN(byte2) ? 0 : byte2 >> 4);
+        b3 = isNaN(byte2)
+          ? 64
+          : ((byte2 & 15) << 2) | (isNaN(byte3) ? 0 : byte3 >> 6);
+        b4 = isNaN(byte3) ? 64 : byte3 & 63;
+
+        encoded +=
+          chars.charAt(b1) +
+          chars.charAt(b2) +
+          chars.charAt(b3) +
+          chars.charAt(b4);
+      }
+
+      return encoded;
+    } catch (e) {
+      console.log("[BASE64.encode Error]:", e.message || e);
+      return "";
+    }
+  },
+
+  decode: function (base64String) {
+    try {
+      if (!base64String) return "";
+
+      // 1. Dọn dẹp chuỗi & xử lý nếu URL-encoded (ví dụ: %2B, %2F)
+      var str = decodeURIComponent(base64String.trim());
+
+      // Chuyển URL-safe base64 về base64 chuẩn
+      str = str.replace(/-/g, "+").replace(/_/g, "/");
+
+      // Bảng ký tự Base64
+      var chars =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+      var output = [];
+      var buffer = 0,
+        bits = 0;
+
+      // 2. Decode Base64 thành Mảng Byte
+      for (var i = 0; i < str.length; i++) {
+        var char = str.charAt(i);
+        if (char === "=") break; // Bỏ qua padding
+        var index = chars.indexOf(char);
+        if (index === -1) continue; // Bỏ qua ký tự không hợp lệ
+
+        buffer = (buffer << 6) | index;
+        bits += 6;
+
+        if (bits >= 8) {
+          bits -= 8;
+          output.push((buffer >> bits) & 0xff);
+        }
+      }
+
+      // 3. Decode UTF-8 từ mảng Byte ra String
+      var result = "";
+      var j = 0;
+      while (j < output.length) {
+        var c = output[j++];
+        if (c < 128) {
+          result += String.fromCharCode(c);
+        } else if (c > 191 && c < 224) {
+          var c2 = output[j++];
+          result += String.fromCharCode(((c & 31) << 6) | (c2 & 63));
+        } else if (c > 223 && c < 240) {
+          var c2 = output[j++];
+          var c3 = output[j++];
+          result += String.fromCharCode(
+            ((c & 15) << 12) | ((c2 & 63) << 6) | (c3 & 63)
+          );
+        } else if (c >= 240) {
+          var c2 = output[j++];
+          var c3 = output[j++];
+          var c4 = output[j++];
+          var u =
+            (((c & 7) << 18) | ((c2 & 63) << 12) | ((c3 & 63) << 6) | (c4 & 63)) -
+            0x10000;
+          result += String.fromCharCode(0xd800 + (u >> 10), 0xdc00 + (u & 0x3ff));
+        }
+      }
+
+      return result;
+    } catch (e) {
+      console.log("[BASE64.decode Error]:", e.message || e);
+      return "";
+    }
+  }
+};
 
 function sortEpisodesByName(data) {
     try {

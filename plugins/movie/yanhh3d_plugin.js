@@ -7,13 +7,12 @@ function getManifest() {
         "name": "Yanhh3d",
         "description": "Trang xem phim Hoạt Hình siêu hay.",
         "info":"Nếu không load được hãy vào \nCài Đặt => Kho plugin => Đăng nhập để xem URL mới của trang là gì rồi nhập domain mới và lưu lại. \nHoặc dùng DNS để xem. Bạn cần tải app 1.1.1.1 về dùng hoặc thử bật DNS và DPI trong cài đặt app này.",
-        "version": "1.4",
+        "version": "1.5",
         "baseUrl": "http://yanhh3d.team",
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/yanhh3d.png",
-        "isEnabled": true,
-        "debug": true,
         "layoutType": "HORIZONTAL",
         "author": "Alokillgtv",
+        "debug": true,
         "type": "ANIME",
         "playerType": "exoplayer"
     });
@@ -286,7 +285,7 @@ function parseMovieDetail(htmlContent, url) {
     try {
         log("parseMovieDetail[url]: \n" + url);
 
-        // === BƯỚC 1: ĐỒNG NHẤT ID PHIM BẰNG REGEX META (Y hệt tác giả) ===
+        // === BƯỚC 1: ĐỒNG NHẤT ID PHIM BẰNG REGEX META ===
         var idMatch = /<link\s+rel="canonical"\s+href="([^"]+)"/i.exec(htmlContent) ||
             /<meta\s+property="og:url"\s+content="([^"]+)"/i.exec(htmlContent);
         var id = idMatch ? idMatch[1] : (url || "");
@@ -299,6 +298,18 @@ function parseMovieDetail(htmlContent, url) {
         if (!slug) {
             var slugMatch2 = /\/phim\/([^/_.]+)/.exec(htmlContent);
             slug = slugMatch2 ? slugMatch2[1] : "";
+        }
+
+        // --- FIX LỖI TẠI ĐÂY: Trích xuất chính xác SLUG của phim (VD: "tram-than-phan-2") ---
+        // Lấy tên đường dẫn đứng trước /tap- hoặc tên đường dẫn cuối của phim
+        var movieSlug = "";
+        var cleanUrl = (id || url).replace(/https?:\/\/[^\/]+/, ''); // Bỏ domain
+        var slugExtractMatch = cleanUrl.match(/\/([^\/]+?)(?:\/tap-\d+|\/|$)/);
+        
+        if (slugExtractMatch && slugExtractMatch[1] && slugExtractMatch[1] !== 'phim') {
+            movieSlug = slugExtractMatch[1];
+        } else {
+            movieSlug = slug || "movie";
         }
 
         // === BƯỚC 2: TRÍCH XUẤT THÔNG TIN PHIM ===
@@ -337,36 +348,40 @@ function parseMovieDetail(htmlContent, url) {
         var servers = [];
         var $parent = _$(htmlContent).find('.detail-infor-content');
         var $child = $parent.find("li");
+
         $child.find("a").each(function() {
-            var nameServer = this.text();
-            var idserver = this.attr("href");
+            var nameServer = _$(this).text();
+            var idserver = _$(this).attr("href");
             var items = [];
             var items4k = [];
-            // https://sc.k-20.xyz/stream/series/yan:thon-phe-tinh-khong-movie-quyet-chien-nguyen-thuy-tinh:tap-1.json
-            const regex = /^https?:\/\/[^\/]+\/([^\/]+)\/(tap-\d+).*$/;
-            
-            const result = url.replace(regex, "$1:$2");
-            console.log(result);
-            var linkjson = "https://sc.k-20.xyz/stream/series/yan:"+result+".json"
-// Kết quả: thon-phe-tinh-khong-movie-quyet-chien-nguyen-thuy-tinh:tap-1
 
-          
             $parent.find(idserver).find("a").each(function() {
-                var name = this.find("div").text();
+                var name = _$(this).find("div").text().trim() || _$(this).text().trim();
+                
+                // Lấy con số tập từ UI (VD: "Tập 1" -> 1)
+                var epNumMatch = name.match(/\d+/);
+                var tapSlug = epNumMatch ? "tap-" + epNumMatch[0] : "tap-1";
+
+                // Ghép đúng định dạng: movieSlug:tapSlug
+                // Kết quả mong muốn: tram-than-phan-2:tap-1
+                var dynamicResult = movieSlug + ":" + tapSlug;
+                var linkjson = "https://sc.k-20.xyz/stream/series/yan:" + dynamicResult + ".json";
+
                 var item = {
                     id: linkjson + "?quality=1080&type=" + encodeURI(nameServer),
                     name: name,
-                    slug: "tap-" + name.replace(/\s/, "-")
+                    slug: tapSlug
                 };
                 items.push(item);
                 
                 var item4k = {
                     id: linkjson + "?quality=4K&type=" + encodeURI(nameServer),
                     name: name,
-                    slug: "tap-" + name.replace(/\s/, "-")
+                    slug: tapSlug
                 };
                 items4k.push(item4k);
             });
+
             servers.push({
                 name: nameServer,
                 episodes: items
@@ -382,7 +397,7 @@ function parseMovieDetail(htmlContent, url) {
             return match ? parseInt(match[0], 10) : 0;
         }
 
-        // Duyệt qua từng server để sort mảng episodes bên trong
+        // Sắp xếp các tập từ Tập 1 -> Tập mới nhất
         servers.forEach(server => {
             if (server.episodes && Array.isArray(server.episodes)) {
                 server.episodes.sort((a, b) => {
@@ -429,6 +444,7 @@ function parseMovieDetail(htmlContent, url) {
         });
     }
 }
+
 
 function parseDetailResponse(html, url) {
     try {
