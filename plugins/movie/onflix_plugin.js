@@ -6,7 +6,7 @@ function getManifest() {
 		"id": "onflix",
 		"name": "Onflix",
 		"description": "Trang xem phim siêu hay.",
-		"version": "1.9.1",
+		"version": "1.9.2",
 		"baseUrl": "https://onflixstatus.com",
 		"info": "",
 		"iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/onflix.png",

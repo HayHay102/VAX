@@ -1,5 +1,5 @@
 var BASEURL = "https://www.rophim.ad";
-var BASEAPI = "https://api.rophim.stream";
+var BASEAPI = "https://rophim.alokillgtv.workers.dev";
 var BASELINK = BASEAPI;
 var popup_html = "<div class='donate-container'><h2 class='donate-heading'>DONATE</h2><p class='donate-description'>Anh em yêu quý có thể mời bọn mình 2 ly cà phê nhé. Để có động lực duy trì App, cập nhật plugin và tìm thêm nhiều nguồn mới và hay cho anh em. Một chút lòng thành cũng làm bọn mình tiếp tục hoạt động tốt hơn, cám ơn anh em.</p><div class='donate-grid'><div class='donate-card'><div class='donate-title'>Donate Tác giả Plugin</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qrht.png' alt='Donate Tác giả Plugin' /></div></div><div class='donate-card'><div class='donate-title'>Donate Tác giả App</div><div class='qr-wrapper'><img src='https://vaxplugin.alokillgtv.workers.dev/img/qryb.png' alt='Donate Tác giả App' /></div></div></div></div><style>.donate-container{max-width:800px;margin:0 auto;padding:10px;box-sizing:border-box;font-family:Arial,sans-serif;text-align:center;color:#eee}.donate-heading{font-size:22px;font-weight:bold;margin:0 0 12px 0;color:#fff;text-transform:uppercase;letter-spacing:1px}.donate-description{font-size:14px;line-height:1.5;margin-bottom:18px;color:#ccc}.donate-grid{display:flex;flex-direction:row;justify-content:center;align-items:stretch;gap:16px}.donate-card{flex:1;min-width:0;background:#22252a;border-radius:12px;padding:14px;border:1px solid #33373e;display:flex;flex-direction:column;align-items:center}.donate-title{font-weight:bold;font-size:15px;margin-bottom:12px;color:#fff}.qr-wrapper{width:100%;max-width:240px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:#181a1d;border-radius:8px;padding:8px;box-sizing:border-box}.qr-wrapper img{width:100%;height:100%;object-fit:contain;border-radius:4px}@media(max-width:600px){.donate-grid{flex-direction:column}.donate-heading{font-size:18px;margin-bottom:8px}.donate-description{font-size:13px;margin-bottom:12px}.qr-wrapper{max-width:180px}}</style>"
 function getManifest() {
@@ -7,7 +7,7 @@ function getManifest() {
     return JSON.stringify({
       "id": "rophim",
       "name": "Nguồn Rổ Phim Mới",
-      "version": "1.2",
+      "version": "1.2.1",
       "author": "Alokillgtv",
       "baseUrl": "https://www.rophim.ad",
       "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/rophim.png",
@@ -18,7 +18,6 @@ function getManifest() {
       "type": "MOVIE",
       "subtitleCat": false,
       "author": "Alokillgtv",
-      popup_html: popup_html,
       "playerType": "embed"
     });
   }
@@ -32,6 +31,7 @@ function getManifest() {
       "baseUrl": "http://vkey.vn/",
       "iconUrl": "https://raw.githubusercontent.com/alokillgtv03/vaxplugins/main/img/novahd.png",
       "isEnabled": true,
+      
       "type": "MOVIE",
       "playerType": "exoplayer"
      });
@@ -42,6 +42,9 @@ function getManifest() {
 // ===== HÀM MENU LIST BEGIN ======
 {
 // Tạo List phim ở menu Home
+ // https://api.rophim.stream/api/v1/movie/filterV2?q=&countries=&genres=&years=&custom_year=&quality=&type=&status=&is_shown_in_theater=1&exclude_status=Upcoming&versions=&rating=&networks=&productions=&sort=release_date&page=1
+// https://api.rophim.stream/api/v1/movie/hot
+// https://api.rophim.stream/api/v1/movie/filterV2?q=&countries=&genres=&years=&custom_year=&quality=&type=&status=&is_shown_in_theater=1&exclude_status=Upcoming&versions=&rating=&networks=&productions=&sort=release_date&page=1
   function getHomeSections() {
       localStorage.clear();
       return JSON.stringify([
@@ -247,6 +250,8 @@ function getManifest() {
 
 // ===== HÀM TẠO KHỐI LIST PHIM BEGIN ======
 function parseListResponse(html, $url) {
+    console.log("listURL\n" + $url)
+    //console.log(html)
     try {
         var $data = JSON.parse(html)
         var items = [];
@@ -256,6 +261,7 @@ function parseListResponse(html, $url) {
             var type = item.type;
             if(type == 2){
                 var id = BASEAPI + "/api/v1/movie/seasons?mId=" + item._id;
+              console.log("apiSeason\n" + id)
             }
             else{
                 
@@ -320,7 +326,7 @@ function parseListResponse(html, $url) {
                 "totalPages": 9999
             }
         });
-        console.log("Return 1:\n" + $return)
+        //console.log("Return 1:\n" + $return)
         return $return
     } catch (e) {
         log("parseListResponse[err]:\n " + e);
@@ -345,108 +351,120 @@ function parseListResponse(html, $url) {
 
 // ===== HÀM TẠO KHỐI CHI TIẾT PHIM BEGIN ======
 function parseMovieDetail(html, url, datasend) {
-    log("datasend 1:\n" + datasend);
+    if(url.indexOf("season") > -1){
+      log("Movie Raw\n" + html);
+      log("datasend 1:\n" + datasend);
+    }
+    
     log("parseMovieDetail[url]: \n" + url);
     try {
-        // === BƯỚC 2: TRÍCH XUẤT THÔNG TIN PHIM ===  
-        var item = JSON.parse(datasend)
+        var item = JSON.parse(datasend);
         var id = url;
-        var posterurl = item.images.posters;
+        var posterurl = item.images ? item.images.posters : null;
         var linkIMG = "";
         if (posterurl && posterurl[0]) {
             linkIMG = "https://static.rp-cdn.net/vimg/300-0/" + posterurl[0].path;
         }
         var posterUrl = linkIMG;
-        var backurl = item.images.backdrops;
+        var backurl = item.images ? item.images.backdrops : null;
         if (backurl && backurl[0]) {
             linkIMG = "https://static.rp-cdn.net/vimg/1920-0/" + backurl[0].path;
         }
         var backdropUrl = linkIMG;
-        var title = item.title;
-        var description = item.overview;
+        var title = item.title || "";
+        var description = item.overview || "";
         var director = "";
         var casts = "";
         var merge = [];
-        item.genres.forEach(function(box) {
-            merge.push("[" + box.name + "](/api/v1/movie/filterV2?genres=" + box._id + "&sort=release_date)");
-        })
+        if (item.genres && Array.isArray(item.genres)) {
+            item.genres.forEach(function(box) {
+                merge.push("[" + box.name + "](/api/v1/movie/filterV2?genres=" + box._id + "&sort=release_date)");
+            });
+        }
         var category = merge.join(", ");
-        // menu category
         var duration = "";
         var status = "";
         var episode_current = "";
-        var year = item.year;
-        var quality = item.quality.toUpperCase();
-        var rating = item.rating;
-        var country = item.countries.map(item => item.name).join(", ");;
-        var extra = ""; //BASEAPI + "/sources?type="+tags+"&tmdbId=" + 
+        var year = item.year || "";
+        var quality = item.quality ? item.quality.toUpperCase() : "";
+        var rating = item.rating || "";
+        var country = (item.countries && Array.isArray(item.countries)) ? item.countries.map(function(c) { return c.name; }).join(", ") : "";
+        var extra = "";
         var servers = [];
         var episodes = [];
+
         if (item.type == 1) {
-            var typeEpi = item.latest_episode
-            for (const key in typeEpi) {
-              var namesv = "Vietsub";
-              if(key == 2){
-                  namesv = "Lồng Tiếng"
-              }
-              if(key == 3){
-                  namesv = "Thuyết Minh [MB]"
-              }
-              if(key == 4){
-                  namesv = "Thuyết Minh [MN]"
-              }
-              episodes.push({
-                    id: BASEAPI + "/player/embed?id=" + item._id + "&ver=" + key,
+            var typeEpi = item.latest_episode;
+            for (var key in typeEpi) {
+                var namesv = "Vietsub";
+                if (key == 2) {
+                    namesv = "Lồng Tiếng";
+                }
+                if (key == 3) {
+                    namesv = "Thuyết Minh [MB]";
+                }
+                if (key == 4) {
+                    namesv = "Thuyết Minh [MN]";
+                }
+                // https://api.rophim.stream/player/embed?id=ezexbGWK&version=1&season=1&episode=1
+                episodes.push({
+                    id: "https://api.rophim.stream/player/embed?id=" + item._id + "&ver=" + key,
                     name: namesv,
                     slug: "full"
-              })
+                });
             }
             servers.push({
                 name: "Server",
                 episodes: episodes
-          })
-            // https://api.rophim.stream/player/embed?id=AMd5dDgp&version=1
+            });
             
         } else {
-            // https://api.rophim.stream/player/embed?id=6grp3kzn&ep=2&ss=1&ver=1&version=2
-            //
             var seasonMV = JSON.parse(html);
-            //var seasonMV = JSON.parse(seasontext);
-            var version = seasonMV.result[0].episodes[0].versions.length;
-            for (var $j = 0; $j < version; $j++) {
-                var type = seasonMV.result[0].episodes[0].versions[$j].type;
-                var episodes = [];
-                var numser = ($j + 1)
-                seasonMV.result.forEach(function(box, index) {
-                    var seasonID = box._id;
-                    box.episodes.forEach(function(parent) {
-                        var epi = parent.episode_number;
-                        var sesa = parent.season_number;
-                        var link = "https://api.rophim.stream/player/embed?id=" + seasonID + "&ep=" + epi + "&ss=" + sesa + "&ver=" + type + "&version=1"
-                        episodes.push({
-                            id: link,
-                            name: "[Mùa " + sesa + "] Tập " + epi,
-                            slug: "mua-" + sesa + "-tap-" + epi
-                        })
-                    })
-                })
-                var namesv = "Vietsub";
-                if(type == 2){
-                  namesv = "Lồng Tiếng";
-                }
-                if(type == 3){
-                  namesv = "Thuyết Minh [MB]";
-                }
-                if(type == 4){
-                  namesv = "Thuyết Minh [MN]";
-                }
-                servers.push({
-                    name: namesv,
-                    episodes: episodes
-                })
-            }
+            if (seasonMV && seasonMV.result && Array.isArray(seasonMV.result)) {
+                var serverMap = {};
 
+                seasonMV.result.forEach(function(season) {
+                    var seasonID = season._id;
+                    if (season.episodes && Array.isArray(season.episodes)) {
+                        season.episodes.forEach(function(ep) {
+                            var epi = ep.episode_number;
+                            var sesa = ep.season_number;
+                            var versions = ep.versions || [];
+
+                            versions.forEach(function(verObj) {
+                                var type = verObj.type;
+                                if (!serverMap[type]) {
+                                    serverMap[type] = [];
+                                }
+                                var link = "https://api.rophim.stream/player/embed?id=" + seasonID + "&ep=" + epi + "&ss=" + sesa + "&ver=" + type + "&version=1";
+                                serverMap[type].push({
+                                    id: link,
+                                    name: "[Mùa " + sesa + "] Tập " + epi,
+                                    slug: "mua-" + sesa + "-tap-" + epi
+                                });
+                            });
+                        });
+                    }
+                });
+
+                for (var verKey in serverMap) {
+                    var namesv = "Vietsub";
+                    if (verKey == 2) {
+                        namesv = "Lồng Tiếng";
+                    } else if (verKey == 3) {
+                        namesv = "Thuyết Minh [MB]";
+                    } else if (verKey == 4) {
+                        namesv = "Thuyết Minh [MN]";
+                    }
+
+                    servers.push({
+                        name: namesv,
+                        episodes: serverMap[verKey]
+                    });
+                }
+            }
         }
+
         var $return = JSON.stringify({
             id: url || "",
             title: title || "",
@@ -459,15 +477,15 @@ function parseMovieDetail(html, url, datasend) {
             status: status || "",
             category: category || "",
             episode_current: episode_current || "",
-            servers: servers || "",
+            servers: servers || [],
             duration: duration || "",
             casts: casts || "",
             director: director || "",
             country: country || "",
             extra: extra || ""
         });
-        console.log("Return 2\n" + $return);
-        return $return
+       // log("Return 2\n" + $return);
+        return $return;
     } catch (e) {
         log("parseMovieDetail[err]:\n " + e);
         return JSON.stringify({

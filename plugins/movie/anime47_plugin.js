@@ -9,7 +9,7 @@ function getManifest() {
       "id": "anime47",
       "name": "Nguồn Anime47",
       "description": "Nguồn phim Anime47",
-      "version": "1.3.4",
+      "version": "1.3.5",
       "author": "Alokillgtv",
       "info": "Nguồn phim Anime của VN.\nNguồn có server riêng nên xem video rất nhanh và mượt.",
       "baseUrl": "https://anime47.best",
@@ -21,7 +21,6 @@ function getManifest() {
       "isAdult": false,
       "adblock": true,
       "subtitleCat": false,
-      "popup_html": popup_html
     });
   }
   catch(e){

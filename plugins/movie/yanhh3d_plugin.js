@@ -7,12 +7,11 @@ function getManifest() {
         "name": "Yanhh3d",
         "description": "Trang xem phim Hoạt Hình siêu hay.",
         "info":"Nếu không load được hãy vào \nCài Đặt => Kho plugin => Đăng nhập để xem URL mới của trang là gì rồi nhập domain mới và lưu lại. \nHoặc dùng DNS để xem. Bạn cần tải app 1.1.1.1 về dùng hoặc thử bật DNS và DPI trong cài đặt app này.",
-        "version": "1.5",
+        "version": "1.5.1",
         "baseUrl": "http://yanhh3d.team",
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/yanhh3d.png",
         "layoutType": "HORIZONTAL",
         "author": "Alokillgtv",
-        "debug": true,
         "type": "ANIME",
         "playerType": "exoplayer"
     });

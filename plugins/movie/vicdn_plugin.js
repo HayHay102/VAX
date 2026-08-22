@@ -7,7 +7,7 @@ function getManifest() {
     "id": "vicdn",
     "name": "Nguồn Vicdn",
     "description": "Nguồn phim Vicdn.",
-    "version": "1.7",
+    "version": "1.7.1",
     "info": "Nguồn phim vietsub và thuyết minh mới.\n\n Hỗ trợ lồng tiếng và có tốc độ phát rất nhanh.",
     "baseUrl": "https://vicdn.cc",
     "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/vicdn.png",
@@ -15,7 +15,6 @@ function getManifest() {
     "isEnabled": true,
     "adblock": false,
     "type": "MOVIE",
-    "debug": true,
     "author": "Alokillgtv",
     "playerType": "embed",
   });

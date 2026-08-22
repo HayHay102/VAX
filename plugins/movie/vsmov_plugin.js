@@ -7,7 +7,7 @@ function getManifest() {
     "id": "vsmov",
     "name": "Nguồn Vsmov",
     "description": "Nguồn phim Vsmov...",
-    "version": "1.2",
+    "version": "1.2.1",
     "info": "",
     "baseUrl": "https://vsmov.com",
     "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/vsmov.png",

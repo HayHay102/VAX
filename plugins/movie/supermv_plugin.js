@@ -8,14 +8,13 @@ function getManifest() {
     return JSON.stringify({
       "id": "supermv",
       "name": "Nguồn SuperMV",
-      "version": "1.6",
+      "version": "1.6.2",
       "author": "Alokillgtv",
       "BASEURL": BASEURL,
       "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/supermv.png",
       "isEnabled": true,
       "isAdult": false,
       "adblock": false,
-      debug:true,
       "layoutType": "HORIZONTAL",
       "type": "MOVIE",
       "subtitleCat": false,
@@ -751,11 +750,6 @@ function parseEmbedResponse(html, url) {
                     url: itemUrl,
                     mimeType: subMime
                 });
-                subtitleList.push({
-                      lang: "Vietsub " + (viCount > 1 ? viCount : "1") + " [" + subMime + "] - Skip Ads",
-                      url: linkSub,
-                      mimeType: subMime
-                  });
             } else if (enCount < 3) {
                 enCount++;
               var linkAIsub = `https://subtitleai.alokillgtv.workers.dev/?sub=${enCount}${param}`;
@@ -763,11 +757,6 @@ function parseEmbedResponse(html, url) {
                 subtitleList.push({
                     lang: "Dịch AI " + enCount,
                     url: linkAIsub,
-                    mimeType: "text/vtt"
-                });
-                subtitleList.push({
-                    lang: "Dịch AI " + enCount + " - Skip Ads",
-                    url: linkAI,
                     mimeType: "text/vtt"
                 });
             }
@@ -787,6 +776,10 @@ function parseEmbedResponse(html, url) {
                 "Referer": "",
                 "Origin": ""
             },
+            skipTimes: [
+           // Bỏ qua 30s quảng cáo ở phút 2:00 -> 2:30
+                { start: 000, end: 32, type: "ad" }     // Bỏ qua 28s quảng cáo ở phút 15:00 -> 15:28
+              ],
             subtitles: subtitleList
         });
         console.log("streamdata:\n" + $return);

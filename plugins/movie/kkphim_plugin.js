@@ -6,11 +6,12 @@ function getManifest() {
     return JSON.stringify({
         "id": "kkphim",
         "name": "KKPhim",
-        "version": "1.0.5",
+        "version": "1.0.7",
         "baseUrl": "https://phimapi.com",
         "iconUrl": "https://vaxplugin.alokillgtv.workers.dev/img/kkphim.png",
         "isEnabled": true,
         "author": "Youngbi",
+        "debug": true,
         "type": "MOVIE"
     });
 }
@@ -179,7 +180,7 @@ function parseSearchResponse(apiResponseJson) {
     return parseListResponse(apiResponseJson);
 }
 
-function parseMovieDetail(apiResponseJson) {
+function parseMovieDetail(apiResponseJson,url) {
     try {
         var response = JSON.parse(apiResponseJson);
         var movie = response.movie || {};
@@ -191,7 +192,7 @@ function parseMovieDetail(apiResponseJson) {
             if (server.server_data) {
                 server.server_data.forEach(function (ep) {
                     serverEpisodes.push({
-                        id: ep.link_m3u8 || ep.link_embed, // Use m3u8 as ID
+                        id: url + "?stream=" + encodeURI(ep.link_m3u8.replace(".m3u8",".html")) ||  url + "?stream=" + encodeURI(ep.link_embed), // Use m3u8 as ID
                         name: ep.name,
                         slug: ep.slug
                     });
@@ -220,7 +221,7 @@ function parseMovieDetail(apiResponseJson) {
             if (movie.tmdb.type) tmdbType = movie.tmdb.type;
         }
 
-        return JSON.stringify({
+        var $return = JSON.stringify({
             id: movie.slug,
             title: movie.name,
             originName: movie.origin_name || "",
@@ -243,23 +244,25 @@ function parseMovieDetail(apiResponseJson) {
             tmdbSeason: tmdbSeason || 0,
             tmdbType: tmdbType || ""
         });
+      console.log("Return\n" + $return)
+      return $return
     } catch (error) { return "null"; }
 }
 
-function parseDetailResponse(apiResponseJson) {
-
+function parseDetailResponse(apiResponseJson, url) {
+    var stream = url.match(/stream=(.*)/i)[1].replace(".html",  ".m3u8");
+    console.log("Stream\n" + stream)
     // However, conforming to the interface:
     return JSON.stringify({
-        url: "", // In this architecture, the episode ID *is* the URL, so this might be redundant or used for resolving.
-        // But since I don't see `episodeId` passed to `getStreamLink` in `MovieRepository` signature...
-        // Wait, `MovieRepository` signature IS `getStreamLink(movieSlug: String)`?
-        // That's weird. How does it know WHICH episode?
-
-        // Checking `PlayerScreen.kt` or `VideoPlayerControls.kt` would clarify this but I'm in writing file mode.
-        // I'll assume for KKPhim, if I return empty URL here, the Player might use the episode ID passed to it?
-        // Actually, I'll return the raw response just in case.
+        url: stream, 
+        mimeType: "application/x-mpegURL",
+        isEmbed: false,
         headers: { "User-Agent": "Mozilla/5.0", "Referer": "https://phimapi.com" },
-        subtitles: []
+       skipTimes: [
+     // Bỏ qua 30s quảng cáo ở phút 2:00 -> 2:30
+          { start: 890, end: 935, type: "ad" }     // Bỏ qua 28s quảng cáo ở phút 15:00 -> 15:28
+        ],
+      subtitles: []
     });
 }
 
